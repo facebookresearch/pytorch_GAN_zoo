@@ -29,7 +29,7 @@ class ProgressiveGANTrainer(GANTrainer):
 
     def __init__(self,
                  pathdb,
-                 miniBatchProfile = None,
+                 miniBatchScheduler = None,
                  datasetProfile = None,
                  configScheduler = None,
                  **kwargs):
@@ -61,12 +61,14 @@ class ProgressiveGANTrainer(GANTrainer):
         if configScheduler is not None:
             self.configScheduler = {int(key): value for key, value in configScheduler.items()}
 
-        self.miniBatchProfile = {}
-        if miniBatchProfile is not None:
-            self.miniBatchProfile = {int(x): value for x, value in miniBatchProfile.items()}
+        self.miniBatchScheduler = {}
+        if miniBatchScheduler is not None:
+            self.miniBatchScheduler = {int(x): value for x, value in miniBatchScheduler.items()}
+
         self.datasetProfile = {}
         if datasetProfile is not None:
             self.datasetProfile = {int(x): value for x, value in datasetProfile.items()}
+
         GANTrainer.__init__(self, pathdb, **kwargs)
 
     def initModel(self):
@@ -178,7 +180,7 @@ class ProgressiveGANTrainer(GANTrainer):
 
     def updateDatasetForScale(self, scale):
 
-        self.modelConfig.miniBatchSize = getMinOccurence(self.miniBatchProfile,scale, self.modelConfig.miniBatchSize)
+        self.modelConfig.miniBatchSize = getMinOccurence(self.miniBatchScheduler,scale, self.modelConfig.miniBatchSize)
         self.path_db = getMinOccurence(self.datasetProfile, scale, self.path_db)
 
         # Scale scheduler
