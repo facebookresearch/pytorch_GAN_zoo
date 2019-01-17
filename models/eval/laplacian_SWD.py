@@ -40,10 +40,10 @@ def test(parser, visualisation = None):
         raise ValueError("You need to input a configuration file")
 
     #Mandatory fields
-    checkPointDir      = getVal(kwargs, "dir", os.path.join('testNets', name))
     scale              = getVal(kwargs, "scale", None)
     iter               = getVal(kwargs, "iter", None)
 
+    checkPointDir      = os.path.join(kwargs["dir"], modelLabel)
     checkpointData     = getLastCheckPoint(checkPointDir, name, scale = scale, iter = iter)
 
     if checkpointData is None:

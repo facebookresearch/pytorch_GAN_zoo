@@ -49,10 +49,10 @@ def test(parser, visualisation = None):
     classifier = torch.nn.DataParallel(classifier).to(torch.device("cuda:0"))
 
     #Mandatory fields
-    checkPointDir      = getVal(kwargs, "dir", os.path.join('testNets', name))
     scale              = getVal(kwargs, "scale", None)
     iter               = getVal(kwargs, "iter", None)
 
+    checkPointDir      = os.path.join(kwargs["dir"], modelLabel)
     checkpointData     = getLastCheckPoint(checkPointDir, name, scale = scale, iter = iter)
 
 

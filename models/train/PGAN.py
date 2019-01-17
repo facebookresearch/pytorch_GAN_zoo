@@ -59,13 +59,11 @@ def train(parser, visualization = None):
 
     # Script
     modelLabel         = getVal(kwargs,"name", "default")
-    checkPointDir      = getVal(kwargs, "dir", os.path.join('testNets', modelLabel))
     lossIterEvaluation = getVal(kwargs, "evalIter", 100)
     saveIter           = getVal(kwargs, "saveIter", 1000)
     restart            = getVal(kwargs, "restart", False)
 
-    if os.path.dirname(checkPointDir) == 'testNets' and not os.path.isdir('testNets'):
-        os.mkdir(checkPointDir)
+    checkPointDir      = os.path.join(kwargs["dir"], modelLabel)
 
     if not os.path.isdir(checkPointDir):
         os.mkdir(checkPointDir)

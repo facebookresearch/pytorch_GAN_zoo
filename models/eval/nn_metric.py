@@ -65,7 +65,7 @@ def test(parser, visualisation = None):
         raise ValueError("You need to give a feature extractor")
 
     #Mandatory fields
-    checkPointDir      = getVal(kwargs, "dir", os.path.join('testNets', name))
+    checkPointDir      = os.path.join(kwargs["dir"], modelLabel)
     scale              = getVal(kwargs, "scale", None)
     iter               = getVal(kwargs, "iter", None)
 
