@@ -1,3 +1,4 @@
+import os
 import importlib
 import argparse
 import visualization.visualizer
@@ -18,7 +19,7 @@ if __name__ == "__main__":
     parser.add_argument('-n','--name', help="Model's name",
                         type=str, dest="name")
     parser.add_argument('-d', '--dir', help='Output directory',
-                        type=str, dest="dir")
+                        type=str, dest="dir", default='output_networks')
     parser.add_argument('-c','--config', help="Model's name",
                         type=str, dest="configPath")
     parser.add_argument('-s', '--save_iter', help="If it applies, frequence at\
@@ -35,19 +36,22 @@ if __name__ == "__main__":
     parser.add_argument('-A','--statsFile', help="Statistsics file",
                         type=str, dest="statsFile")
 
-    basArgs, unknown = parser.parse_known_args()
+    baseArgs, unknown = parser.parse_known_args()
 
     vis_module = None
-    if basArgs.np_vis:
+    if baseArgs.np_vis:
         vis_module = importlib.import_module("visualization.np_visualizer")
-    elif basArgs.no_vis:
+    elif baseArgs.no_vis:
         print("Visualization disabled")
     else:
         vis_module = importlib.import_module("visualization.visualizer")
 
-    module = importlib.import_module( "models.train." + basArgs.model_name)
+    module = importlib.import_module( "models.train." + baseArgs.model_name)
 
-    print("Running " + basArgs.model_name)
+    if not os.path.isdir(baseArgs.dir):
+        os.mkdir(baseArgs.dir)
+
+    print("Running " + baseArgs.model_name)
     output = module.train(parser, visualization = vis_module)
 
     if output is not None and not output:

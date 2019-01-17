@@ -17,7 +17,7 @@ def test(parser, visualisation = None):
     if visualisation is None:
         raise ValueError("A visualizer is mandatory for this evaluation")
 
-    checkPointDir      = getVal(kwargs, "dir", os.path.join('testNets', name))
+    checkPointDir      = os.path.join(kwargs["dir"], modelLabel)s
 
     suffixes = {"SWD" : "_swd", "NN" : "_nn_metric", "INCEPTION": "_inception_metric"}
 

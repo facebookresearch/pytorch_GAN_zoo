@@ -68,7 +68,7 @@ def test(parser, visualisation = None):
     pathAttrib     = getVal(kwargs, "statsFile", pathAttrib)
     pathVal        = getVal(kwargs, "valDatasetPath", None)
     pathPartVal    = getVal(kwargs, "valPartitionPath", None)
-    checkPointDir  = getVal(kwargs, "dir", os.path.join('testNets', name))
+    checkPointDir  = os.path.join(kwargs["dir"], modelLabel)
 
     specificAttrib = [categoryName]
 

@@ -48,11 +48,12 @@ def test(parser, visualisation = None):
     pathStats          = getVal(kwargs, "statsFile", None)
     scale              = getVal(kwargs, "scale", None)
     iter               = getVal(kwargs, "iter", None)
-    checkPointDir      = getVal(kwargs, "dir", os.path.join('testNets', name))
+    checkPointDir      = os.path.join(kwargs["dir"], modelLabel)
     checkpointData     = getLastCheckPoint(checkPointDir,
                                            name,
                                            scale = scale,
                                            iter = iter)
+
 
     if checkpointData is None:
         raise FileNotFoundError("Not checkpoint found for model " + name + " at directory " + dir)

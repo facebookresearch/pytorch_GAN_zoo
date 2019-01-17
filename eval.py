@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument('-n','--name', help="Model's name",
                         type=str, dest="name")
     parser.add_argument('-d', '--dir', help='Output directory',
-                        type=str, dest="dir")
+                        type=str, dest="dir", default="output_networks")
     parser.add_argument('-i', '--iter', help='Iteration to evaluate',
                         type=int, dest="iter")
     parser.add_argument('-s', '--scale', help='Scale to evaluate',
