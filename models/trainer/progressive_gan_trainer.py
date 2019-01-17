@@ -12,7 +12,7 @@ import torchvision.transforms as Transforms
 import torch.nn
 import torch.nn.functional as F
 
-from .std_p_gan_config import _C
+from .standard_configurations.pgan_config import _C
 from ..progressive_gan import ProgressiveGAN
 from .gan_trainer import GANTrainer
 from ..utils.utils import getMinOccurence
