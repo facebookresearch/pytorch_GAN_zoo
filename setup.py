@@ -1,22 +1,26 @@
 import argparse
-import sys
 import json
 import os
 
 import numpy as np
 from scipy import misc
 
-from models.utils.utils import getVal, printProgressBar
+from models.utils.utils import printProgressBar
 from models.utils.image_transform import NumpyResize, pil_loader
+
 
 def saveImage(path, image):
     return misc.imsave(path, image)
 
-def celebaSetup(inputPath, outputPath, pathConfig = "config_celeba_cropped.json"):
 
-    imgList = [ f for f in os.listdir(inputPath) if os.path.splitext(f)[1] ==".jpg"]
-    cx=89
-    cy=121
+def celebaSetup(inputPath,
+                outputPath,
+                pathConfig="config_celeba_cropped.json"):
+
+    imgList = [f for f in os.listdir(
+        inputPath) if os.path.splitext(f)[1] == ".jpg"]
+    cx = 89
+    cy = 121
 
     nImgs = len(imgList)
 
@@ -28,12 +32,13 @@ def celebaSetup(inputPath, outputPath, pathConfig = "config_celeba_cropped.json"
         path = os.path.join(inputPath, item)
         img = np.array(pil_loader(path))
 
-        img = img[cy - 64 : cy + 64, cx - 64 : cx + 64]
+        img = img[cy - 64: cy + 64, cx - 64: cx + 64]
 
         path = os.path.join(outputPath, item)
         saveImage(path, img)
 
     printProgressBar(nImgs, nImgs)
+
 
 def resizeDataset(inputPath, outputPath, maxSize):
 
@@ -41,12 +46,13 @@ def resizeDataset(inputPath, outputPath, maxSize):
     scales = [0, 5, 7, 8]
     index = 0
 
-    imgList = [ f for f in os.listdir(inputPath) if os.path.splitext(f)[1] in [".jpg", ".npy"]]
+    imgList = [f for f in os.listdir(inputPath) if os.path.splitext(f)[
+        1] in [".jpg", ".npy"]]
 
     nImgs = len(imgList)
 
     if maxSize < sizes[0]:
-        raise ArgumentError("Maximum resolution too low")
+        raise AttributeError("Maximum resolution too low")
 
     if not os.path.isdir(outputPath):
         os.mkdir(outputPath)
@@ -58,13 +64,13 @@ def resizeDataset(inputPath, outputPath, maxSize):
         if size > maxSize:
             break
 
-        localPath = os.path.join(outputPath,str(size))
+        localPath = os.path.join(outputPath, str(size))
         if not os.path.isdir(localPath):
             os.mkdir(localPath)
 
         datasetProfile[str(scales[index])] = localPath
 
-        print("Resolution %d x %d" %(size, size))
+        print("Resolution %d x %d" % (size, size))
 
         resizeModule = NumpyResize((size, size))
 
@@ -79,9 +85,7 @@ def resizeDataset(inputPath, outputPath, maxSize):
 
         printProgressBar(nImgs, nImgs)
 
-
     return datasetProfile, localPath
-
 
 
 if __name__ == "__main__":
@@ -109,16 +113,17 @@ if __name__ == "__main__":
     keepOriginalDataset = True
 
     if args.dataset_name not in ['celeba', 'celeba_cropped', 'celebaHQ']:
-        raise ArgumentError(args.dataset_name + " unknown datatset")
+        raise AttributeError(args.dataset_name + " unknown datatset")
 
-    if args.dataset_name in ['celeba', 'celeba_cropped'] :
-        config["config"]["maxIterAtScale"] = [48000, 96000, 96000, 96000, \
+    if args.dataset_name in ['celeba', 'celeba_cropped']:
+        config["config"]["maxIterAtScale"] = [48000, 96000, 96000, 96000,
                                               96000, 96000]
         maxSize = 128
 
     if args.dataset_name == 'celeba_cropped':
         if args.output_dataset is None:
-            raise ArgumentError("Please provide and output path to dump celebaCropped")
+            raise AttributeError(
+                "Please provide and output path to dump celebaCropped")
 
         print("Cropping dataset...")
         celebaSetup(args.dataset_path, args.output_dataset)
@@ -128,15 +133,16 @@ if __name__ == "__main__":
     if args.dataset_name == 'celebaHQ':
         maxSize = 1024
         moveLastScale = False
-        keepOriginalDataset =  True
+        keepOriginalDataset = True
 
     if args.fast_training:
         if args.output_dataset is None:
-            raise AttributeError("Please provide and output path to dump intermediate datasets")
-
+            raise AttributeError(
+                "Please provide and output path to dump intermediate datasets")
 
         if moveLastScale:
-            datasetProfile, _ =resizeDataset(args.output_dataset, args.output_dataset, maxSize / 2)
+            datasetProfile, _ = resizeDataset(
+                args.output_dataset, args.output_dataset, maxSize / 2)
 
             print("Moving the last dataset...")
 
@@ -144,7 +150,8 @@ if __name__ == "__main__":
             if not os.path.isdir(lastScaleOut):
                 os.mkdir(lastScaleOut)
 
-            for img in [ f for f in os.listdir(args.output_dataset) if os.path.splitext(f)[1] ==".jpg"]:
+            for img in [f for f in os.listdir(args.output_dataset)
+                        if os.path.splitext(f)[1] == ".jpg"]:
                 pathIn = os.path.join(args.output_dataset, img)
                 pathOut = os.path.join(lastScaleOut, img)
 
@@ -152,11 +159,13 @@ if __name__ == "__main__":
 
             datasetProfile[str(maxSize)] = lastScaleOut
         elif keepOriginalDataset:
-            datasetProfile, _ =resizeDataset(args.dataset_path, args.output_dataset, maxSize / 2)
+            datasetProfile, _ = resizeDataset(
+                args.dataset_path, args.output_dataset, maxSize / 2)
             datasetProfile[str(maxSize)] = args.dataset_path
             lastScaleOut = args.dataset_path
         else:
-            datasetProfile, lastScaleOut =resizeDataset(args.dataset_path, args.output_dataset, maxSize)
+            datasetProfile, lastScaleOut = resizeDataset(
+                args.dataset_path, args.output_dataset, maxSize)
 
         config["datasetProfile"] = datasetProfile
         config["pathDB"] = lastScaleOut

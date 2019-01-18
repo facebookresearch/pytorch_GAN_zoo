@@ -1,17 +1,18 @@
 # Progressive Product Gan
-import torch
 import torch.nn as nn
 import torch.optim as optim
 
 from copy import deepcopy
 from .progressive_gan import ProgressiveGAN
 from .networks.progressive_conv_net import GNet, DNet
-from .networks.product_net import ProductNetwork, PRODUCT_NETWORK_ANALYSIS_MODE, PRODUCT_NETWORK_FULL_MODE
+from .networks.product_net import ProductNetwork, \
+                                  PRODUCT_NETWORK_ANALYSIS_MODE, \
+                                  PRODUCT_NETWORK_FULL_MODE
 from .utils.config import BaseConfig
 from .utils.product_module import buildMaskSplit
-from .utils.utils import loadPartOfStateDict
 
 from .loss_criterions.loss_texture import LossTexture
+
 
 class PPGAN(ProgressiveGAN):
     r"""
@@ -19,45 +20,48 @@ class PPGAN(ProgressiveGAN):
     """
 
     def __init__(self,
-                dimTexture =1,
-                dimShape=1,
-                keySplits = None,
-                depthTexture0 = 0,
-                depthShape0 = 0,
-                maskExtraction = False,
-                mixedNoise = False,
-                textureLossModel = "",
-                textureLossLayers = None,
-                weightTextureLoss = 0.,
-                **kwargs):
+                 dimTexture=1,
+                 dimShape=1,
+                 keySplits=None,
+                 depthTexture0=0,
+                 depthShape0=0,
+                 maskExtraction=False,
+                 mixedNoise=False,
+                 textureLossModel="",
+                 textureLossLayers=None,
+                 weightTextureLoss=0.,
+                 **kwargs):
         r"""
         Args:
-            - dimTexture (int): dimension of the noise latent vector for the texture
-                                generator
-            - dimTexture (int): dimension of the noise latent vector for the shape
-                                generator
+            - dimTexture (int): dimension of the noise latent vector for the
+                                texture generator
+            - dimTexture (int): dimension of the noise latent vector for the
+                                shape generator
             - keySplits (dict): if not None and ACGAN is activated, specify the
                                 labels given to GShape, and the labels given to
                                 GTexture.
 
                                 We will have:
 
-                                keySplits["GShape"] : [list of the labels for GShape]
-                                keySplits["GTexture"] : [list of the labels for GTexture]
+                                keySplits["GShape"] : [list of the labels for
+                                                            GShape]
+                                keySplits["GTexture"] : [list of the labels for
+                                                            GTexture]
 
                                 Exemple:
 
                                 keySplits = { "GShape" : ["Size", "Type"],
                                               "GTexture" : ["Color", "Type"]}
 
-                                If None and ACGAN is activated all labels will be
-                                given to both networks
-            - maskExtraction (bool): set to true to activate the mask discriminator
+                                If None and ACGAN is activated all labels will
+                                be given to both networks
+            - maskExtraction (bool): set to true to activate the mask
+                                     discriminator
             - mixedNoise (bool): set to true to make both genereators use the
                                  same noise data
         """
 
-        if not 'config' in vars(self):
+        if 'config' not in vars(self):
             self.config = BaseConfig()
 
         self.config.dimRandomTexture = dimTexture
@@ -77,7 +81,7 @@ class PPGAN(ProgressiveGAN):
         self.config.mixedNoise = mixedNoise
 
         kwargs["dimOutput"] = 3
-        kwargs["dimLatentVector"] =  dimTexture + dimShape
+        kwargs["dimLatentVector"] = dimTexture + dimShape
 
         ProgressiveGAN.__init__(self, **kwargs)
 
@@ -85,13 +89,18 @@ class PPGAN(ProgressiveGAN):
         if textureLossModel is not "":
 
             if textureLossLayers is None:
-                raise ValueError("Please specify the layers to extract with the texture loss model")
+                raise ValueError(
+                    "Please specify the layers to extract with the texture \
+                    loss model")
 
-            self.lossTextureModule = LossTexture(self.device, textureLossModel, textureLossLayers)
+            self.lossTextureModule = LossTexture(
+                self.device, textureLossModel, textureLossLayers)
             self.weightTextureLoss = weightTextureLoss
 
             if self.weightTextureLoss == 0.:
-                raise ValueError("If a texture loss is applied, the weight corresponding to this loss must not be zero")
+                raise ValueError(
+                    "If a texture loss is applied, the weight corresponding \
+                     to this loss must not be zero")
 
         if maskExtraction:
             print("Mask discrimator activated")
@@ -100,7 +109,7 @@ class PPGAN(ProgressiveGAN):
 
     def getNetG(self):
 
-        if self.config.depthTexture0 == 0 :
+        if self.config.depthTexture0 == 0:
             self.config.depthTexture0 = self.config.depthScale0
         if self.config.depthShape0 == 0:
             self.config.depthShape0 = self.config.depthTexture0
@@ -115,27 +124,27 @@ class PPGAN(ProgressiveGAN):
                                                           self.config.attribKeysOrder,
                                                           attribShift,
                                                           self.config.keySplits,
-                                                          mixedNoise = self.config.mixedNoise)
+                                                          mixedNoise=self.config.mixedNoise)
 
         self.dimLatentVectorGShape = len([x for x in self.maskShape if x > 0])
-        self.dimLatentVectorGTexture = len([x for x in self.maskTexture if x > 0])
+        self.dimLatentVectorGTexture = len(
+            [x for x in self.maskTexture if x > 0])
 
         gTexture = GNet(self.dimLatentVectorGTexture,
                         self.config.depthTexture0,
-                        initBiasToZero = self.config.initBiasToZero,
-                        leakyReluLeak = self.config.leakyReluLeak,
-                        normalization = self.config.perChannelNormalization,
-                        generationActivation = self.lossCriterion.generationActivation,
-                        dimOutput = 3)
-
+                        initBiasToZero=self.config.initBiasToZero,
+                        leakyReluLeak=self.config.leakyReluLeak,
+                        normalization=self.config.perChannelNormalization,
+                        generationActivation=self.lossCriterion.generationActivation,
+                        dimOutput=3)
 
         gShape = GNet(self.dimLatentVectorGShape,
                       self.config.depthShape0,
-                      initBiasToZero = self.config.initBiasToZero,
-                      leakyReluLeak = self.config.leakyReluLeak,
-                      normalization = self.config.perChannelNormalization,
-                      generationActivation = self.lossCriterion.generationActivation,
-                      dimOutput = 1)
+                      initBiasToZero=self.config.initBiasToZero,
+                      leakyReluLeak=self.config.leakyReluLeak,
+                      normalization=self.config.perChannelNormalization,
+                      generationActivation=self.lossCriterion.generationActivation,
+                      dimOutput=1)
 
         # Add scales if necessary
         for depth in self.config.productDepths:
@@ -152,9 +161,9 @@ class PPGAN(ProgressiveGAN):
 
         return gnet
 
-    def getStateDict(self, saveTrainTmp = False):
+    def getStateDict(self, saveTrainTmp=False):
 
-        outdata = super(PPGAN, self).getStateDict(saveTrainTmp = saveTrainTmp)
+        outdata = super(PPGAN, self).getStateDict(saveTrainTmp=saveTrainTmp)
 
         if self.shapeDiscrimator is not None:
             if isinstance(self.shapeDiscrimator, nn.DataParallel):
@@ -170,12 +179,12 @@ class PPGAN(ProgressiveGAN):
         given pattern.
         """
         shapeDiscrimator = DNet(self.config.depthShape0,
-                                     initBiasToZero = self.config.initBiasToZero,
-                                     leakyReluLeak = self.config.leakyReluLeak,
-                                     sizeDecisionLayer = 1,
-                                     miniBatchNormalization = self.config.miniBatchStdDev,
-                                     dimInput = 1,
-                                     equalizedlR = self.config.equalizedlR)
+                                initBiasToZero=self.config.initBiasToZero,
+                                leakyReluLeak=self.config.leakyReluLeak,
+                                sizeDecisionLayer=1,
+                                miniBatchNormalization=self.config.miniBatchStdDev,
+                                dimInput=1,
+                                equalizedlR=self.config.equalizedlR)
 
         # Do not forget the update the scale if necessary
         for depth in self.config.productDepths:
@@ -183,17 +192,18 @@ class PPGAN(ProgressiveGAN):
 
         return shapeDiscrimator
 
-    def updateSolversDevice(self, buildAvG = True):
+    def updateSolversDevice(self, buildAvG=True):
 
-        super(PPGAN, self).updateSolversDevice(buildAvG = buildAvG)
+        super(PPGAN, self).updateSolversDevice(buildAvG=buildAvG)
 
         if self.shapeDiscrimator is not None:
 
             if isinstance(self.shapeDiscrimator, DNet):
-                self.shapeDiscrimator = nn.DataParallel(self.shapeDiscrimator).to(self.device)
+                self.shapeDiscrimator = nn.DataParallel(
+                    self.shapeDiscrimator).to(self.device)
 
             self.shapeOptimizer = optim.Adam(filter(lambda p: p.requires_grad, self.shapeDiscrimator.parameters()),
-                              betas = [0., 0.99], lr = self.config.learningRate)
+                                             betas=[0., 0.99], lr=self.config.learningRate)
 
     def addScale(self, newDepths):
         r"""
@@ -240,13 +250,17 @@ class PPGAN(ProgressiveGAN):
             predReal = self.shapeDiscrimator.forward(self.lastMask)
             lossDisShape = self.lossCriterion.getCriterion(predReal, True)
 
-            inputNoiseDiscriminator, _ = self.buildNoiseData(self.lastMask.size(0))
-            _, predFake, _ = self.netG(inputNoiseDiscriminator.to(self.device), mode = PRODUCT_NETWORK_FULL_MODE)
+            inputNoiseDiscriminator, _ = self.buildNoiseData(
+                self.lastMask.size(0))
+            _, predFake, _ = self.netG(inputNoiseDiscriminator.to(
+                self.device), mode=PRODUCT_NETWORK_FULL_MODE)
             predFake = predFake.detach()
-            lossDisShape += self.lossCriterion.getCriterion(self.shapeDiscrimator(predFake), False)
+            lossDisShape += self.lossCriterion.getCriterion(
+                self.shapeDiscrimator(predFake), False)
 
-            lossDisShape += self.getGradientPenalty(self.lastMask, predFake, network =  self.shapeDiscrimator)
-            lossDisShape+= (predReal** 2).sum() * self.config.epsilonD
+            lossDisShape += self.getGradientPenalty(
+                self.lastMask, predFake, network=self.shapeDiscrimator)
+            lossDisShape += (predReal ** 2).sum() * self.config.epsilonD
 
             lossDisShape.backward()
             self.trainTmp.lossDShape += lossDisShape.item()
@@ -255,22 +269,25 @@ class PPGAN(ProgressiveGAN):
             self.shapeOptimizer.zero_grad()
 
             inputNoise, _ = self.buildNoiseData(self.lastMask.size(0))
-            _, shape, texture = self.netG(inputNoise.to(self.device), mode = PRODUCT_NETWORK_FULL_MODE)
+            _, shape, texture = self.netG(inputNoise.to(
+                self.device), mode=PRODUCT_NETWORK_FULL_MODE)
 
             pred = self.shapeDiscrimator(shape)
             lossShape = self.lossCriterion.getCriterion(pred, True)
 
             self.trainTmp.lossGShape += lossShape.item()
 
-            lossShape.backward(retain_graph = True)
+            lossShape.backward(retain_graph=True)
 
         if self.lossTextureModule is not None and self.getSize() >= 128:
 
-            lossTexture = self.weightTextureLoss * self.lossTextureModule.getLoss(self.real_input, texture, mask = self.lastMask)
+            lossTexture = self.weightTextureLoss * \
+                self.lossTextureModule.getLoss(
+                    self.real_input, texture, mask=self.lastMask)
             self.trainTmp.lossTexture += lossTexture.item()
-            lossTexture.backward(retain_graph = True)
+            lossTexture.backward(retain_graph=True)
 
-    def optimizeParameters(self, input_batch, inputLabels = None, inputMasks = None):
+    def optimizeParameters(self, input_batch, inputLabels=None, inputMasks=None):
 
         # If a mask is provided, take it as a model for the shape generator
         if inputMasks is not None and self.shapeDiscrimator is not None:
@@ -283,9 +300,9 @@ class PPGAN(ProgressiveGAN):
         Update the blending factor alpha.
 
         Args:
-            - alpha (float): blending factor (in [0,1]). 0 means only the highest
-                            resolution in considered (no blend), 1 means the highest
-                            resolution is fully discarded.
+            - alpha (float): blending factor (in [0,1]). 0 means only the
+                             highest resolution in considered (no blend), 1
+                             means the highest resolution is fully discarded.
         """
         print("Changing alpha to %.3f" % newAlpha)
 
@@ -303,7 +320,7 @@ class PPGAN(ProgressiveGAN):
     def loadG(self,
               pathGShape,
               pathGTexture,
-              resetFormatLayer = True):
+              resetFormatLayer=True):
         r"""
         Load pretrained GShape and GTexture networks.
 
@@ -312,7 +329,7 @@ class PPGAN(ProgressiveGAN):
 
         self.netG = self.getNetG()
         self.netG.load(pathGShape, pathGTexture)
-        #self.netG.freezeNet("shape")
+        # self.netG.freezeNet("shape")
 
         # Don't forget to reset the machinery !
         self.updateSolversDevice()
@@ -326,5 +343,6 @@ class PPGAN(ProgressiveGAN):
 
     def getDetailledOutput(self, x):
 
-        out, shape, texture = self.netG(x.to(self.device), mode = PRODUCT_NETWORK_ANALYSIS_MODE)
+        out, shape, texture = self.netG(
+            x.to(self.device), mode=PRODUCT_NETWORK_ANALYSIS_MODE)
         return out.cpu(), shape.cpu(), texture.cpu()

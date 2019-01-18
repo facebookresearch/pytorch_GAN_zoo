@@ -12,19 +12,21 @@ from .networks.DCGAN_nets import GNet, DNet
 from .networks.product_net import ProductNetwork, PRODUCT_NETWORK_ANALYSIS_MODE
 from .utils.product_module import buildMaskSplit
 
+
 class DCGANProduct(BaseGAN):
     r"""
     Implementation of a product of DCGAN :
     """
+
     def __init__(self,
-                 latentVectorDimShape = 64,
-                 latentVectorDimTexture = 64,
-                 dimGShape = 64,
-                 dimGTexture = 64,
-                 dimD = 64,
-                 depth = 3,
-                 keySplits = None,
-                **kwargs):
+                 latentVectorDimShape=64,
+                 latentVectorDimTexture=64,
+                 dimGShape=64,
+                 dimGTexture=64,
+                 dimD=64,
+                 depth=3,
+                 keySplits=None,
+                 **kwargs):
         r"""
         Args:
 
@@ -71,8 +73,8 @@ class DCGANProduct(BaseGAN):
         print(self.config.keySplits)
 
         BaseGAN.__init__(self,
-                        latentVectorDimShape + latentVectorDimTexture,
-                        **kwargs)
+                         latentVectorDimShape + latentVectorDimTexture,
+                         **kwargs)
 
     def getNetG(self):
 
@@ -83,39 +85,40 @@ class DCGANProduct(BaseGAN):
                                                           self.ACGANCriterion.getAllAttribShift(),
                                                           self.config.keySplits)
 
-
         self.dimLatentVectorGShape = len([x for x in self.maskShape if x > 0])
         self.GShape = GNet(self.dimLatentVectorGShape,
                            1,
                            self.config.dimGShape,
-                           depthModel = self.config.depth,
-                           generationActivation = self.lossCriterion.generationActivation)
+                           depthModel=self.config.depth,
+                           generationActivation=self.lossCriterion.generationActivation)
 
-        self.dimLatentVectorGTexture = len([x for x in self.maskTexture if x > 0])
+        self.dimLatentVectorGTexture = len(
+            [x for x in self.maskTexture if x > 0])
         self.GTexture = GNet(self.dimLatentVectorGTexture,
                              self.config.dimOutput,
                              self.config.dimGTexture,
-                             depthModel = self.config.depth,
-                             generationActivation = self.lossCriterion.generationActivation)
+                             depthModel=self.config.depth,
+                             generationActivation=self.lossCriterion.generationActivation)
 
-        gnet = ProductNetwork(self.GShape, self.GTexture, self.maskShape, self.maskTexture)
+        gnet = ProductNetwork(self.GShape, self.GTexture,
+                              self.maskShape, self.maskTexture)
         return gnet
 
     def getNetD(self):
 
-        dnet =  DNet(self.config.dimOutput,
-                     self.config.dimD,
-                     self.lossCriterion.sizeDecisionLayer + self.config.categoryVectorDim,
-                     depthModel = self.config.depth)
+        dnet = DNet(self.config.dimOutput,
+                    self.config.dimD,
+                    self.lossCriterion.sizeDecisionLayer + self.config.categoryVectorDim,
+                    depthModel=self.config.depth)
         return dnet
 
     def getOptimizerD(self):
         return optim.Adam(filter(lambda p: p.requires_grad, self.netD.parameters()),
-                          betas = [0.1, 0.999], lr = self.config.learningRate)
+                          betas=[0.1, 0.999], lr=self.config.learningRate)
 
     def getOptimizerG(self):
         return optim.Adam(filter(lambda p: p.requires_grad, self.netG.parameters()),
-                          betas = [0.1, 0.999], lr = self.config.learningRate)
+                          betas=[0.1, 0.999], lr=self.config.learningRate)
 
     def getSize(self):
         return 2**(self.config.depth + 3)
@@ -123,7 +126,7 @@ class DCGANProduct(BaseGAN):
     def loadG(self,
               pathGShape,
               pathGTexture,
-              resetFormatLayer = True):
+              resetFormatLayer=True):
         r"""
         Load pretrained GShape and GTexture networks.
 
@@ -131,12 +134,14 @@ class DCGANProduct(BaseGAN):
         """
 
         self.netG = self.getOriginalG()
-        self.netG.load(pathGShape, pathGTexture, resetFormatLayer = resetFormatLayer)
+        self.netG.load(pathGShape, pathGTexture,
+                       resetFormatLayer=resetFormatLayer)
 
         # Don't forget to reset the machinery !
         self.updateSolversDevice()
 
     def getDetailledOutput(self, x):
 
-        out, shape, texture = self.netG(x.to(self.device), mode = PRODUCT_NETWORK_ANALYSIS_MODE)
+        out, shape, texture = self.netG(
+            x.to(self.device), mode=PRODUCT_NETWORK_ANALYSIS_MODE)
         return out.cpu(), shape.cpu(), texture.cpu()

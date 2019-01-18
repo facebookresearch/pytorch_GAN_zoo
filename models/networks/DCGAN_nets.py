@@ -1,8 +1,8 @@
 from collections import OrderedDict
-import torch
 import torch.nn as nn
 
 from ..utils.utils import num_flat_features
+
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -12,13 +12,14 @@ def weights_init(m):
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
+
 class GNet(nn.Module):
     def __init__(self,
                  dimLatentVector,
                  dimOutput,
                  dimModelG,
-                 depthModel = 3,
-                 generationActivation = nn.Tanh()):
+                 depthModel=3,
+                 generationActivation=nn.Tanh()):
         super(GNet, self).__init__()
 
         self.depthModel = depthModel
@@ -35,16 +36,18 @@ class GNet(nn.Module):
 
         for i in range(depthModel):
 
-            nextDepth = int(currDepth /2)
+            nextDepth = int(currDepth / 2)
 
             # state size. (currDepth) x 2**(i+1) x 2**(i+1)
-            sequence["convTranspose" + str(i+1)] = nn.ConvTranspose2d(currDepth, nextDepth, 4, 2, 1, bias=False)
+            sequence["convTranspose" + str(i+1)] = nn.ConvTranspose2d(
+                currDepth, nextDepth, 4, 2, 1, bias=False)
             sequence["batchNorm" + str(i+1)] = nn.BatchNorm2d(nextDepth)
             sequence["relu" + str(i+1)] = nn.ReLU(True)
 
             currDepth = nextDepth
 
-        sequence["outlayer"] = nn.ConvTranspose2d(dimModelG,dimOutput, 4, 2, 1, bias=False)
+        sequence["outlayer"] = nn.ConvTranspose2d(
+            dimModelG, dimOutput, 4, 2, 1, bias=False)
 
         self.outputAcctivation = generationActivation
 
@@ -54,7 +57,8 @@ class GNet(nn.Module):
     def initFormatLayer(self, dimLatentVector):
 
         currDepth = int(self.refDim * (2**self.depthModel))
-        self.formatLayer = nn.ConvTranspose2d(dimLatentVector, currDepth, 4, 1, 0, bias=False)
+        self.formatLayer = nn.ConvTranspose2d(
+            dimLatentVector, currDepth, 4, 1, 0, bias=False)
 
     def forward(self, input):
         x = self.formatLayer(input)
@@ -64,19 +68,22 @@ class GNet(nn.Module):
             return x
         return self.outputAcctivation(x)
 
+
 class DNet(nn.Module):
     def __init__(self,
                  dimInput,
                  dimModelD,
                  sizeDecisionLayer,
-                 depthModel = 3):
+                 depthModel=3):
         super(DNet, self).__init__()
 
         currDepth = dimModelD
         sequence = OrderedDict([])
 
         # input is (nc) x 2**(depthModel + 3) x 2**(depthModel + 3)
-        sequence["convTranspose" + str(depthModel)] = nn.Conv2d(dimInput, currDepth, 4, 2, 1, bias=False)
+        sequence["convTranspose" +
+                 str(depthModel)] = nn.Conv2d(dimInput, currDepth,
+                                              4, 2, 1, bias=False)
         sequence["relu" + str(depthModel)] = nn.LeakyReLU(0.2, inplace=True)
 
         for i in range(depthModel):
@@ -84,8 +91,11 @@ class DNet(nn.Module):
             index = depthModel - i - 1
             nextDepth = currDepth * 2
 
-            # state size. (currDepth) x 2**(depthModel + 2 -i) x 2**(depthModel + 2 -i)
-            sequence["convTranspose" + str(index)] = nn.Conv2d(currDepth, nextDepth, 4, 2, 1, bias=False)
+            # state size.
+            # (currDepth) x 2**(depthModel + 2 -i) x 2**(depthModel + 2 -i)
+            sequence["convTranspose" +
+                     str(index)] = nn.Conv2d(currDepth, nextDepth,
+                                             4, 2, 1, bias=False)
             sequence["batchNorm" + str(index)] = nn.BatchNorm2d(nextDepth)
             sequence["relu" + str(index)] = nn.LeakyReLU(0.2, inplace=True)
 
@@ -99,7 +109,8 @@ class DNet(nn.Module):
         self.initDecisionLayer(sizeDecisionLayer)
 
     def initDecisionLayer(self, sizeDecisionLayer):
-        self.decisionLayer = nn.Conv2d(self.dimFeatureMap, sizeDecisionLayer, 4, 1, 0, bias=False)
+        self.decisionLayer = nn.Conv2d(
+            self.dimFeatureMap, sizeDecisionLayer, 4, 1, 0, bias=False)
         self.decisionLayer.apply(weights_init)
 
     def forward(self, input):

@@ -2,9 +2,11 @@ class BaseConfig():
     r"""
     An empty class used for configuration members
     """
+
     def __init__(self, orig=None):
         if orig is not None:
             print("cawet")
+
 
 def getConfigFromDict(obj, inputDict, defaultConfig):
     r"""
@@ -33,6 +35,7 @@ def getConfigFromDict(obj, inputDict, defaultConfig):
         for member, value in vars(defaultConfig).items():
             setattr(obj, member, inputDict.get(member, value))
 
+
 def updateConfig(obj, ref):
     r"""
     Update a configuration with the fields of another given configuration
@@ -47,13 +50,15 @@ def updateConfig(obj, ref):
         for member, value in vars(ref).items():
             setattr(obj, member, value)
 
+
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
     elif v.lower() in ('no', 'false', 'f', 'n', '0'):
         return False
     else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
+        raise AttributeError('Boolean value expected.')
+
 
 def updateParserWithConfig(parser, defaultConfig):
 
@@ -62,13 +67,14 @@ def updateParserWithConfig(parser, defaultConfig):
             continue
 
         if isinstance(key, bool):
-            parser.add_argument('--' + name, type =str2bool,dest= name)
+            parser.add_argument('--' + name, type=str2bool, dest=name)
         else:
-            parser.add_argument('--' + name, type =type(key),dest= name)
+            parser.add_argument('--' + name, type=type(key), dest=name)
 
     parser.add_argument('--overrides',
                         action='store_true')
     return parser
+
 
 def getConfigOverrideFromParser(parsedArgs, defaultConfig):
 
@@ -82,8 +88,8 @@ def getConfigOverrideFromParser(parsedArgs, defaultConfig):
 
     return output
 
-def getDictFromConfig(obj, referenceConfig, printDefault = True):
 
+def getDictFromConfig(obj, referenceConfig, printDefault=True):
     r"""
     Retrieve all the members of obj which are also members of referenceConfig
     and dump them into a dictionnary
