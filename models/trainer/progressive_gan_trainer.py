@@ -35,7 +35,7 @@ class ProgressiveGANTrainer(GANTrainer):
                  **kwargs):
         r"""
         Args:
-            - pathdb (string): path to the directorty containing the image dataset
+            - pathdb (string): path to the directory containing the image dataset
             TODO: now the dataset is loaded using the torchvision.datasets.ImageFolder
             function which requires each image to have a label. Change that.
             - useGPU (bool): set to True if you want to use the available GPUs
@@ -49,7 +49,7 @@ class ProgressiveGANTrainer(GANTrainer):
             - checkPointDir (string): if not None, directory where the checkpoints
             should be saved
             - modelLabel (string): name of the model
-            - config (dictionary): configuration dictionnary. See std_p_gan_config.py
+            - config (dictionary): configuration dictionary. See std_p_gan_config.py
             for all the possible options
             - numWorkers (int): number of GOU to use. Will be set to one if not
                                 useGPU

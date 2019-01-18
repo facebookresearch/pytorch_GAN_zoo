@@ -5,6 +5,7 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as f
 
 import math
 
@@ -268,6 +269,7 @@ class BaseGAN():
                 lossGFake = self.lossCriterion.getCriterion(predFakeD, True)
 
                 if self.config.GDPP:
+                    #print("GDPP on")
                     loss_GDPP = compute_gdpp(phi_D_real, phi_G_fake).item()
                     #print(lossGFake,loss_GDPP)
                     lossGFake = lossGFake+loss_GDPP # we need also to try the ablatio of  compute_gdpp(phi_D_real, phi_D_fake)
@@ -593,7 +595,7 @@ class BaseGAN():
                 interpolates.append(locAlpha * pyramid[i] + ((1 - locAlpha) * fake[i]))
                 interpolates[i] = torch.autograd.Variable(interpolates[i], requires_grad=True)
         else:
-            alpha = alpha.expand(batchSize, input.nelement()/batchSize).contiguous().view(input.size())
+            alpha = alpha.expand(batchSize, int(input.nelement()/batchSize)).contiguous().view(input.size())
             alpha = alpha.to(self.device)
             interpolates = alpha * input + ((1 - alpha) * fake)
 

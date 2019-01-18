@@ -90,3 +90,6 @@ _C.equalizedlR = True
 _C.attribKeysOrder = None
 
 _C.equalizeLabels = False
+
+#GDPP
+_C.GDPP = False
