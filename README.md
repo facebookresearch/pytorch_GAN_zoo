@@ -30,7 +30,7 @@ python setup.py celeba_cropped /datasets01/CelebA/072017/img_align_celeba/ -o $O
 python train.py PGAN -c config_celeba_cropped.json
 ```
 
-And wait for a few days.
+And wait for a few days. Your checkpoints will be dumped in output_networks/default.
 
 ## Advanced guidelines
 
