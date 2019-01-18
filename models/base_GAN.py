@@ -600,7 +600,8 @@ class BaseGAN():
             interpolates = torch.autograd.Variable(interpolates, requires_grad=True)
 
         if network is None:
-            decisionInterpolate = self.netD(interpolates)[:, 0].sum()
+            pred, phi = self.netD(interpolates)
+            decisionInterpolate = pred[:, 0].sum()
         else:
             decisionInterpolate = network(interpolates)[:, 0].sum()
 
