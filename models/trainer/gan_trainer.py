@@ -29,7 +29,6 @@ class GANTrainer():
                  pathAttribDict = None,
                  selectedAttributes=None,
                  imagefolderDataset = False,
-                 celebaHQDB = False,
                  ignoreAttribs = False,
                  pathDBMask = None,
                  pathPartition = None,
@@ -60,8 +59,6 @@ class GANTrainer():
                                         the fashion of a
                                         torchvision.datasests.ImageFolderDataset
                                         object
-            - celebaHQDB (bool): set to true if the input images are in the .npy
-                                 format
             - ignoreAttribs (bool): set to True if the input attrib dict should
                                     only be used as a filter on image's names
             - pathDBMask (string): if not None path to the mask database (for
@@ -89,8 +86,6 @@ class GANTrainer():
 
         if not self.useGPU:
             self.numWorkers = 1
-
-        self.celebaHQDB = celebaHQDB
 
         self.pathAttribDict = pathAttribDict
         self.selectedAttributes = selectedAttributes

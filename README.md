@@ -13,7 +13,7 @@ This project requires:
 Optional:
 - visdom
 
-Fair setup:
+FAIR setup:
 
 Before running the project on the FAIR cluster, don't forget to setup the environment
 
@@ -23,7 +23,14 @@ module load NCCL/2.2.13-cuda.9.0 && module load anaconda3 && source activate fai
 
 ## Quick training
 
-If you want to waste no time and just launch a training session on celeba
+If you want to waste no time and just launch a training session on celeba cropped
+
+```
+python setup.py celeba_cropped /datasets01/CelebA/072017/img_align_celeba/ -o $OUTPUT_DATASET
+python train.py PGAN -c config_celeba_cropped.json
+```
+
+And wait for a few days.
 
 ## Advanced guidelines
 
