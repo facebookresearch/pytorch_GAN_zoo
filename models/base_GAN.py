@@ -13,6 +13,26 @@ from .loss_criterions import base_loss_criterions
 from .loss_criterions.ac_criterion import ACGanCriterion
 from .utils.utils import loadPartOfStateDict, finiteCheck
 
+def compute_gdpp(phi_fake, phi_real):
+    def compute_diversity(phi):
+        phi = f.normalize(phi, p=2, dim=1)
+        S_B = torch.mm(phi, phi.t())
+        eig_vals, eig_vecs = torch.eig(S_B, eigenvectors=True)
+        return eig_vals[:, 0], eig_vecs
+
+    def normalize_min_max(eig_vals):
+        min_v, max_v = torch.min(eig_vals), torch.max(eig_vals)
+        return (eig_vals - min_v) / (max_v - min_v)
+
+    fake_eig_vals, fake_eig_vecs = compute_diversity(phi_fake)
+    real_eig_vals, real_eig_vecs = compute_diversity(phi_real)
+    # Scaling factor to make the two losses operating in comparable ranges.
+    magnitude_loss = 0.0001 * f.mse_loss(target=real_eig_vals, input=fake_eig_vals)
+    structure_loss = -torch.sum(torch.mul(fake_eig_vecs, real_eig_vecs), 0)
+    normalized_real_eig_vals = normalize_min_max(real_eig_vals)
+    weighted_structure_loss = torch.sum(torch.mul(normalized_real_eig_vals, structure_loss))
+    return magnitude_loss + weighted_structure_loss
+
 def getNArgs(x):
 
     sizeX = x.size()
@@ -39,6 +59,7 @@ class BaseGAN():
                  attribKeysOrder = None,
                  weightConditionD= 0.0,
                  weightConditionG = 0.0,
+                 GDPP = False,
                  **kwargs):
         r"""
         Args:
@@ -54,6 +75,7 @@ class BaseGAN():
                               * 'WGANGP': cross entroipy loss.
             attribKeysOrder (dict): if not None, activate AC-GAN. In this case, both the generator and
                                    the discrimator are trained on abelled data.
+            GDPP (bool): set to true if Generative Determinantal Point Process loss is activated                       
         """
 
         if lossMode not in ['MSE', 'WGANGP', 'DCGAN', 'LeCunGAN']:
@@ -85,6 +107,7 @@ class BaseGAN():
         self.config.weightConditionG = weightConditionG
         self.config.weightConditionD = weightConditionD
         self.initializeACCriterion()
+        self.config.GDPP = GDPP
 
         self.config.latentVectorDim = self.config.noiseVectorDim \
                                       + self.config.categoryVectorDim
@@ -187,7 +210,7 @@ class BaseGAN():
         self.optimizerD.zero_grad()
 
         # #1 Real data
-        predRealD = self.netD.forward(self.real_input)
+        predRealD, phi_D_real = self.netD.forward(self.real_input)
         lossD = self.lossCriterion.getCriterion(predRealD, True)
 
         # #2 Fake data
@@ -200,7 +223,7 @@ class BaseGAN():
         else:
             predFakeG.detach()
 
-        predFakeD = self.netD(predFakeG)
+        predFakeD, phi_D_fake = self.netD(predFakeG)
         lossD += self.lossCriterion.getCriterion(predFakeD, False)
 
         if self.config.lambdaGP > 0:
@@ -241,9 +264,14 @@ class BaseGAN():
                 inputNoise, targetCatNoise = self.buildNoiseData(n_samples)
                 predFakeG = self.netG(inputNoise)
 
-                predFakeD = self.netD(predFakeG)
+                predFakeD, phi_G_fake = self.netD(predFakeG)
                 lossGFake = self.lossCriterion.getCriterion(predFakeD, True)
 
+                if self.config.GDPP:
+                    loss_GDPP = compute_gdpp(phi_D_real, phi_G_fake).item()
+                    #print(lossGFake,loss_GDPP)
+                    lossGFake = lossGFake+loss_GDPP # we need also to try the ablatio of  compute_gdpp(phi_D_real, phi_D_fake)
+                
                 self.trainTmp.lossG+= lossGFake.item()
                 self.auxiliaryLossesGeneration()
 
