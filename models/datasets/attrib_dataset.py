@@ -12,22 +12,10 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from torchvision import get_image_backend
-
-from PIL import Image
+from ..utils.image_transform import pil_loader
 
 
 from .utils.db_stats import buildKeyOrder
-
-def pil_loader(path):
-    imgExt  = os.path.splitext(path)[1]
-    if imgExt == ".npy":
-        img = np.load(path)[0]
-        return np.swapaxes(np.swapaxes(img, 0, 2), 0,1)
-
-    # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
-    with open(path, 'rb') as f:
-        img = Image.open(f)
-        return img.convert('RGB')
 
 class AttribDataset(Dataset):
     r"""

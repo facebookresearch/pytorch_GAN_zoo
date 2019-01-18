@@ -1,12 +1,14 @@
-# SL_fashionGen
-Generation of fashion items using GANs
+# Pytorch GAN Zoo
 
-Pytorch training code for generating images of clothing items. It is based on [DCGAN](https://arxiv.org/pdf/1511.06434.pdf) and [CAN](https://arxiv.org/pdf/1706.07068.pdf) (Creative Adversarial Networks) code and papers.
+Several GAN implementations:
+- Progressive Growiing of GAN (PGAN): https://arxiv.org/pdf/1710.10196.pdf
+- Decoupled progressive growing (PPGAN)
+- DCGAN: https://arxiv.org/pdf/1511.06434.pdf (incoming)
 
 ## Requirements
 
 This project requires:
-- the very last version of pytorch
+- pytorch (fair_env_latest_py3 version)
 - numpy
 - scipy
 
@@ -26,11 +28,18 @@ module load NCCL/2.2.13-cuda.9.0 && module load anaconda3 && source activate fai
 If you want to waste no time and just launch a training session on celeba cropped
 
 ```
-python setup.py celeba_cropped /datasets01/CelebA/072017/img_align_celeba/ -o $OUTPUT_DATASET
+python setup.py celeba_cropped $PATH_TO_CELEBA/img_align_celeba/ -o $OUTPUT_DATASET
 python train.py PGAN -c config_celeba_cropped.json
 ```
 
 And wait for a few days. Your checkpoints will be dumped in output_networks/default.
+
+For celebaHQ:
+
+```
+python setup.py celeba_cropped $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET -f
+python train.py PGAN -c config_celebaHQ.json
+```
 
 ## Advanced guidelines
 
