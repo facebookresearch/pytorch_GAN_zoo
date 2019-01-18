@@ -29,7 +29,7 @@ If you want to waste no time and just launch a training session on celeba croppe
 
 ```
 python setup.py celeba_cropped $PATH_TO_CELEBA/img_align_celeba/ -o $OUTPUT_DATASET
-python train.py PGAN -c config_celeba_cropped.json
+python train.py PGAN -c config_celeba_cropped.json --restart
 ```
 
 And wait for a few days. Your checkpoints will be dumped in output_networks/default.
@@ -38,7 +38,7 @@ For celebaHQ:
 
 ```
 python setup.py celeba_cropped $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET -f
-python train.py PGAN -c config_celebaHQ.json
+python train.py PGAN -c config_celebaHQ.json --restart
 ```
 
 ## Advanced guidelines
