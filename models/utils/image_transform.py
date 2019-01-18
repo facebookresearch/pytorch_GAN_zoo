@@ -1,9 +1,13 @@
 import torchvision
 import torchvision.transforms as Transforms
 
+import os
+
 import numpy as np
 import scipy
 import scipy.misc
+
+from PIL import Image
 
 # The equivalent of some torchvision.transforms operations but for numpy array
 # instead of PIL images
@@ -63,3 +67,14 @@ class NumpyToTensor(object):
             img = img.reshape(img.shape[0], img.shape[1], 1)
 
         return Transforms.functional.to_tensor(img)
+
+def pil_loader(path):
+    imgExt  = os.path.splitext(path)[1]
+    if imgExt == ".npy":
+        img = np.load(path)[0]
+        return np.swapaxes(np.swapaxes(img, 0, 2), 0,1)
+
+    # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
+    with open(path, 'rb') as f:
+        img = Image.open(f)
+        return img.convert('RGB')
