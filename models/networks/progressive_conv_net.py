@@ -350,8 +350,8 @@ class DNet(nn.Module):
 
         x = x.view(-1, num_flat_features(x))
         x = self.leakyRelu(self.groupScaleZero[1](x))
-
+        h_features = x
         # And finally the decision
         x = self.decisionLayer(x)
 
-        return x
+        return x, h_features
