@@ -13,7 +13,7 @@ This project requires:
 Optional:
 - visdom
 
-Fair setup:
+FAIR setup:
 
 Before running the project on the FAIR cluster, don't forget to setup the environment
 
@@ -21,56 +21,34 @@ Before running the project on the FAIR cluster, don't forget to setup the enviro
 module load NCCL/2.2.13-cuda.9.0 && module load anaconda3 && source activate fair_env_latest_py3
 ```
 
-## Repository architecture
+## Quick training
 
-### internship
-
-Othman's internship code + tex report
-
-### models
-
-GAN models implementation
-
-### stab_stats_maker.py
-
-A script used to estimate the importance of the different configuration's
-parameter for the gan stability.
-
-### build_classifier.py
-
-A script used to build classifiers for the inception and am score.
-
-## How to run a test ?
-
-Go to the main directory and tape the command
+If you want to waste no time and just launch a training session on celeba cropped
 
 ```
-python tests.py {names of the tests you want to run}
+python setup.py celeba_cropped /datasets01/CelebA/072017/img_align_celeba/ -o $OUTPUT_DATASET
+python train.py PGAN -c config_celeba_cropped.json
 ```
 
-All test are listed in models/test.
+And wait for a few days. Your checkpoints will be dumped in output_networks/default.
 
-For example you can run
+## Advanced guidelines
 
-```
-python tests.py test_save
-```
-
-## How to run a training session ?
+### How to run a training session ?
 
 ```
-python train.py $MODEL_NAME -c $CONFIGURATION_FILE -n $RUN_NAME [OVERRIDES]
+python train.py $MODEL_NAME -c $CONFIGURATION_FILE [-n $RUN_NAME] [-d $OUTPUT_DIRECTORY] [OVERRIDES]
 ```
 
-See base_config.json for an example of a typical configuration file for progressive GANs. Don't forget to change the path of your input dataset in the configuration file !
+Where:
 
-Your run will be saved in testNets\$RUN_NAME. If a checkpoint is detected in this directory the training will restart from the last detected checkpoint. Please use the option --restart to force the training to start over.
-
-The following models are available for training:
-PGAN: progressive gan
-PPGAN: progressive gan with a product architecture
-
-OVERRIDES : you can override the input configuration (see below) by specifying new values in the command line. Typically:
+1 - MODEL_NAME is the name of the model you want to run. Currently, two models are available:
+  - PGAN (progressive growing of gan)
+  - PPGAN (decoupled version of PGAN)
+2 - CONFIGURATION_FILE (mandatory): path to a training configuration file. This file is a json file containing at least a pathDB entry with the path to the training dataset. See below for more informations about this file.
+3 - RUN_NAME is the name you want to give to your training session. All checkpoints will be saved in $OUTPUT_DIRECTORY/$RUN_NAME. Default value is default
+4 - OUTPUT_DIRECTORY is the directory were all training sessions are saved. Default value is output_networks
+5 - OVERRIDES: you can overrides some of the models parameters defined in the configuration file in the command line. For example:
 
 ```
 python train.py PPGAN -c coin.json -n PAN --learningRate 0.2
@@ -84,43 +62,43 @@ To get all the possible overrides, please type:
 python train.py $MODEL_NAME --overrides
 ```
 
-### Mandatory fields in your configuration file:
-pathDB : path to the directory where the training dataset is saved
+### Configuration file of a training session
 
-### Optional fields of the configuration file:
-config: new configuration. Must be a dictionary. If a field is left empty then the default value will be used. Please refer to models/trainer/std_p_gan_config.py to have a detailed description of the possible fields with progressive gan and models/trainer/std_p_gan_config.py for the product progressive gan.
+The minimum necessary file for a training session is a json with the following lines
 
-Load an existing checkpoint:
-  - checkpointData : a dictionary with tree entries
-    - pathTrainConfig : path to the json configuration of the checkpoint
-    - pathModel: path to the networks (.pt file)
-    - pathTmpConfig: path to the temporary data of the training (.json)
-
-    For example a typical checkpoint would be
-    "checkpointData":{"pathTrainConfig": "celeba_check_train_config.json",
-                      "pathModel": "celeba_check_s2_i20000.pt",
-                      "pathTmpConfig": "celeba_check_s2_i20000_tmp_config.json"}
-
-Add labels to the dataset:
-  - pathAttrib : path to the .json file matching each image name with its attributes
-  - selectedAttributes : if only some attributes should be considered, list them here. ex ["texture", "shape"]
-  - ignoreAttribs : if set to true, all attributes will be ignored and the attribute dictionary will be used only as a way to filter the input dataset.
-
-Change the configuration at some scales:
-  - configScheduler : a dictionary. Each key is a scale index ("0" -> 4x4, "1" -> 8x8 etc..), associated to a configuration dictionary with the fields to change
-  - miniBatchScheduler : a dictionary. Each key is a scale key associated to the new mini batch size from this scale. Ex: {"2":128, "5":16}, then from scales 2 to 4 the mini batch size will be 128, and from scale 5 it will be 16.
-
-Other options:
- - celebaHQDB : set to True if you want to train on celeba HD (1024x1024)
- - imagefolderDataset : set to True if your input dataset is saved in this format https://pytorch.org/docs/stable/torchvision/datasets.html#imagefolder
-
-## How to run a training session for progressive gan with the product architecture ?
 ```
-python tests.py test_train_pppgan -c $CONFIGURATION_FILE -n $RUN_NAME
+{
+  "pathDB": PATH_TO_YOUR_DATASET
+}
 ```
 
-The configuration file is the same as for progressive gan with a few more possible options
-- pathDBMask : if you want to add a shape discrimator in your model, add here the path to the mask database. The match between an image and its mask should be done as follow: $MASK_NAME = $IMAGE_NAME + "_mask.jpg" ___
+Where a dataset can be:
+- a folder with all your images in .jpg, .png or .npy format
+- a folder with N subfolder and images in it
+- a .h5 file (cf fashionGen)
+
+To this you can add a "config" entry giving overrides to the standard configuration. See models/trainer/standard_configurations to see all possible overrides. For example:
+
+```
+{
+  "pathDB": PATH_TO_YOUR_DATASET,
+  "config":{"baseLearningRate":0.1,
+            "miniBatchSize":22}
+}
+```
+
+Will override the learning rate and the mini-batch-size.
+
+Other fields are available on the configuration file, like:
+- pathAttribDict (string): path to a .json file matching each image with its attributes
+- selectedAttributes (list): if specified, learn only the given attributes during the training session
+- pathDBMask (string): for decoupled models, path of the mask database. The match between an image and its mask should be done as follow: $MASK_NAME = $IMAGE_NAME + "_mask.jpg"__
+- pathPartition (string): path to a partition of the training dataset
+- partitionValue (string): if pathPartition is specified, name of the partition to choose
+- miniBatchScheduler (dictionary): dictionary updating the size of the mini batch at different scale of the training
+                                  ex {"2":16, "7":8} meaning that the mini batch size will be 16 from scale 16 to 6 and 8 from scale 7
+- configScheduler (dictionary): dictionary updating the model configuration at different scale of the training
+                                ex {"2":{"baseLearningRate":0.1, "epsilonD":1}} meaning that the learning rate and epsilonD will be updated to 0.1 and 1 from scale 2 and beyond
 
 ## How to run a evaluation of the results of your training session ?
 

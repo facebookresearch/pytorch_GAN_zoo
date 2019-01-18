@@ -3,7 +3,7 @@ import json
 from .progressive_gan_trainer import ProgressiveGANTrainer
 from ..pp_gan import PPGAN
 from ..utils.utils import getMinOccurence
-from .std_pp_gan_config import _C
+from .standard_configurations.ppgan_config import _C
 
 class PPGANTrainer(ProgressiveGANTrainer):
 

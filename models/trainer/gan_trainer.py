@@ -27,9 +27,8 @@ class GANTrainer():
                  modelLabel = "GAN",
                  config = None,
                  pathAttribDict = None,
-                 specificAttrib=None,
+                 selectedAttributes=None,
                  imagefolderDataset = False,
-                 celebaHQDB = False,
                  ignoreAttribs = False,
                  pathDBMask = None,
                  pathPartition = None,
@@ -52,14 +51,21 @@ class GANTrainer():
             - modelLabel (string): name of the model
             - config (dictionary): configuration dictionnary.
             for all the possible options
-            - imagefolderDataset (bool): set to true if the data are stored in the fashion of a
-                                        torchvision.datasests.ImageFolderDataset object
-            - celebaHQDB (bool): set to true if the input images are in the .npy
-                                 format
-            - configScheduler (dictionary): if the model configurartion should
-                                            be updated during the training
+            - pathAttribDict (string): path to the attribute dictionary giving
+                                       the labels of the dataset
+            - selectedAttributes (list): if not None, consider only the listed
+                                     attributes for labelling
+            - imagefolderDataset (bool): set to true if the data are stored in
+                                        the fashion of a
+                                        torchvision.datasests.ImageFolderDataset
+                                        object
             - ignoreAttribs (bool): set to True if the input attrib dict should
                                     only be used as a filter on image's names
+            - pathDBMask (string): if not None path to the mask database (for
+                                    decoupled settings)
+            - pathPartition (string): if only a subset of the original dataset
+                                      should be used
+            - pathValue (string): partition value
         """
 
 
@@ -81,10 +87,8 @@ class GANTrainer():
         if not self.useGPU:
             self.numWorkers = 1
 
-        self.celebaHQDB = celebaHQDB
-
         self.pathAttribDict = pathAttribDict
-        self.specificAttrib = specificAttrib
+        self.selectedAttributes = selectedAttributes
         self.imagefolderDataset = imagefolderDataset
         self.modelConfig.attribKeysOrder = None
 
@@ -413,18 +417,19 @@ class GANTrainer():
 
         if isH5:
             return H5Dataset(self.path_db,
-                             partition_path = self.pathPartition,
+                             partition_path  = self.pathPartition,
                              partition_value = self.partitionValue,
-                             specificAttrib = self.specificAttrib,
-                             stats_file = self.pathAttribDict,
-                             transform = transform,
-                             pathDBMask = self.pathDBMask)
+                             specificAttrib  = self.selectedAttributes,
+                             stats_file      = self.pathAttribDict,
+                             transform       = transform,
+                             pathDBMask      = self.pathDBMask)
 
-        return AttribDataset(self.path_db, transform = transform,
-                             attribDictPath = self.pathAttribDict,
-                             specificAttrib=self.specificAttrib,
+        return AttribDataset(self.path_db,
+                             transform        = transform,
+                             attribDictPath   = self.pathAttribDict,
+                             specificAttrib   = self.selectedAttributes,
                              mimicImageFolder = self.imagefolderDataset,
-                             pathMask = self.pathDBMask)
+                             pathMask         = self.pathDBMask)
 
     def inScaleUpdate(self, iter, scale, inputs_real):
         return inputs_real

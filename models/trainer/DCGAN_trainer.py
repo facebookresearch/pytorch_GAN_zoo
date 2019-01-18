@@ -6,7 +6,7 @@ from ..DCGAN import DCGAN
 from ..dcgan_product import DCGANProduct
 
 from .gan_trainer import GANTrainer
-from .std_dcgan_config import _C
+from .standard_configurations.dcgan_config import _C
 
 class DCGANTrainer(GANTrainer):
     r"""
