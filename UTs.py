@@ -8,7 +8,7 @@ if __name__ == "__main__":
     nFail = 0
 
     for item in UTList:
-        module = importlib.import_module( "models.UTs." + item)
+        module = importlib.import_module("models.UTs." + item)
         results = module.test()
 
         if results:
@@ -17,6 +17,6 @@ if __name__ == "__main__":
             print(item + " ...Fail")
 
         nCorrect += int(results)
-        nFail    += (1 - int(results))
+        nFail += (1 - int(results))
 
     print("%d corrects, %d fails" % (nCorrect, nFail))

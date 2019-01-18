@@ -1,21 +1,17 @@
 import os
 import json
 
-from collections import OrderedDict
 from copy import deepcopy
 
-import numpy as np
-
-import torchvision
 import torchvision.transforms as Transforms
 import torch
-import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
-from torchvision import get_image_backend
+
+from torch.utils.data import Dataset
 from ..utils.image_transform import pil_loader
 
 
 from .utils.db_stats import buildKeyOrder
+
 
 class AttribDataset(Dataset):
     r"""
@@ -23,15 +19,16 @@ class AttribDataset(Dataset):
     It loads both the images and an attribute dictionnary describing each image's
     attribute.
     """
+
     def __init__(self,
                  pathdb,
-                 attribDictPath = None,
+                 attribDictPath=None,
                  specificAttrib=None,
                  transform=None,
-                 mimicImageFolder = False,
-                 ignoreAttribs = False,
-                 getEqualizer = False,
-                 pathMask = None):
+                 mimicImageFolder=False,
+                 ignoreAttribs=False,
+                 getEqualizer=False,
+                 pathMask=None):
         r"""
         Args:
 
@@ -62,9 +59,9 @@ class AttribDataset(Dataset):
 
                 with open(attribDictPath, 'rb') as file:
                     tmpDict = json.load(file)
-                self.listImg = [ imgName for imgName in os.listdir(pathdb) \
-                                   if (os.path.splitext(imgName)[1] in [".jpg", ".png", ".npy"] \
-                                   and imgName in tmpDict)]
+                self.listImg = [imgName for imgName in os.listdir(pathdb)
+                                if (os.path.splitext(imgName)[1] in [".jpg",
+                                                                     ".png", ".npy"] and imgName in tmpDict)]
             else:
                 self.loadAttribDict(attribDictPath, pathdb, specificAttrib)
 
@@ -72,14 +69,16 @@ class AttribDataset(Dataset):
             self.loadImageFolder(pathdb)
         else:
             self.attribDict = None
-            self.listImg = [ imgName for imgName in os.listdir(pathdb) \
-                               if os.path.splitext(imgName)[1] in [".jpg", ".png", ".npy"]]
+            self.listImg = [imgName for imgName in os.listdir(pathdb)
+                            if os.path.splitext(imgName)[1] in [".jpg", ".png",
+                                                                ".npy"]]
 
         if pathMask is not None:
             print("Path mask found " + pathMask)
             self.pathMask = pathMask
-            self.listImg = [ imgName for imgName in self.listImg  \
-                             if os.path.isfile(os.path.join(pathMask, os.path.splitext(imgName)[0] + "_mask.jpg"))]
+            self.listImg = [imgName for imgName in self.listImg
+                            if os.path.isfile(os.path.join(pathMask,
+                                                           os.path.splitext(imgName)[0] + "_mask.jpg"))]
 
         if len(self.listImg) == 0:
             raise AttributeError("Empty dataset")
@@ -87,7 +86,6 @@ class AttribDataset(Dataset):
         self.buildStatsOnDict()
 
         print("%d images found" % len(self))
-
 
     def __len__(self):
         return len(self.listImg)
@@ -111,7 +109,7 @@ class AttribDataset(Dataset):
                 if value not in self.stats[category]:
                     self.stats[category][value] = 0
 
-                self.stats[category][value] +=1
+                self.stats[category][value] += 1
 
     def loadAttribDict(self,
                        dictPath,
@@ -127,8 +125,8 @@ class AttribDataset(Dataset):
             - dictPath (string): path to a json file describing the dictionnary.
                                  If None, no attribute will be loaded
             - dbDir (string): path to the directory containing the dataset
-            - specificAttrib (list of string): if not None, specify which attributes
-                                               should be selected
+            - specificAttrib (list of string): if not None, specify which
+                                               attributes should be selected
         """
 
         self.attribDict = {}
@@ -145,7 +143,8 @@ class AttribDataset(Dataset):
                 if specificAttrib is None:
                     self.attribDict[fileName] = deepcopy(attrib)
                 else:
-                    self.attribDict[fileName] = { k : attrib[k] for k in specificAttrib}
+                    self.attribDict[fileName] = {
+                        k: attrib[k] for k in specificAttrib}
 
                 for attribName, attribVal in self.attribDict[fileName].items():
                     if attribName not in attribList:
@@ -167,7 +166,8 @@ class AttribDataset(Dataset):
             self.shiftAttrib[attribName] = self.totAttribSize
             self.totAttribSize += 1
 
-            self.shiftAttribVal[attribName] = { name : c for c,name in enumerate(attribVals)}
+            self.shiftAttribVal[attribName] = {
+                name: c for c, name in enumerate(attribVals)}
 
         # Img list
         self.listImg = list(self.attribDict.keys())
@@ -183,13 +183,13 @@ class AttribDataset(Dataset):
         listDir = [dirName for dirName in os.listdir(pathdb)
                    if os.path.isdir(os.path.join(pathdb, dirName))]
 
-        imgExt  = [".jpg", ".png", ".JPEG"]
+        imgExt = [".jpg", ".png", ".JPEG"]
 
         self.attribDict = {}
 
         self.totAttribSize = 1
-        self.shiftAttrib = {"Main" : 0}
-        self.shiftAttribVal = {"Main" : {}}
+        self.shiftAttrib = {"Main": 0}
+        self.shiftAttribVal = {"Main": {}}
 
         for index, dirName in enumerate(listDir):
 
@@ -215,7 +215,7 @@ class AttribDataset(Dataset):
             img = self.transform(img)
 
         # Build the attribute tensor
-        attr = [ 0 for i in range(self.totAttribSize)]
+        attr = [0 for i in range(self.totAttribSize)]
 
         if self.hasAttrib:
             attribVals = self.attribDict[imgName]
@@ -226,7 +226,8 @@ class AttribDataset(Dataset):
             attr = [0]
 
         if self.pathMask is not None:
-            mask_path = os.path.join(self.pathMask, os.path.splitext(imgName)[0] + "_mask.jpg")
+            mask_path = os.path.join(
+                self.pathMask, os.path.splitext(imgName)[0] + "_mask.jpg")
             mask = pil_loader(mask_path)
             mask = Transforms.Grayscale(1)(mask)
             mask = self.transform(mask)
@@ -250,13 +251,15 @@ class AttribDataset(Dataset):
 
         return self.attribDict[imgName]
 
-    def getKeyOrders(self, equlizationWeights = False):
+    def getKeyOrders(self, equlizationWeights=False):
         r"""
-        If the dataset is labelled, give the order in which the attributes are given
+        If the dataset is labelled, give the order in which the attributes are
+        given
 
         Returns:
 
-            A dictionary output[key] = { "order" : int , "values" : list of string}
+            A dictionary output[key] = { "order" : int , "values" : list of
+            string}
         """
 
         if self.attribDict is None:
@@ -265,12 +268,12 @@ class AttribDataset(Dataset):
         if equlizationWeights:
 
             if self.stats is None:
-                raise ValueError("The weight equalization can only be performed \
-                                 on labelled datasets")
+                raise ValueError("The weight equalization can only be \
+                                 performed on labelled datasets")
 
             return buildKeyOrder(self.shiftAttrib,
                                  self.shiftAttribVal,
-                                 stats = self.stats)
+                                 stats=self.stats)
         return buildKeyOrder(self.shiftAttrib,
                              self.shiftAttribVal,
-                             stats = None)
+                             stats=None)
