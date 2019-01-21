@@ -1,3 +1,4 @@
+import pytest
 from math import exp, log
 import torch
 from ..loss_criterions.ac_criterion import ACGanCriterion
@@ -45,8 +46,4 @@ def test():
     expectedResult = (a+b+(c+d)/4)/2
     result = test.getLoss(testTensor, testTarget)
 
-    if abs(result.item() - expectedResult) > 0.001:
-        print("Invalid loss")
-        return False
-
-    return True
+    assert abs(result.item() - expectedResult) <= 0.001
