@@ -248,6 +248,8 @@ def loadPartOfStateDict(module, state_dict, forbiddenLayers=None):
     to one of the forbidden layers
     """
     own_state = module.state_dict()
+    if forbiddenLayers is None:
+        forbiddenLayers = []
     for name, param in state_dict.items():
         if name.split(".")[0] in forbiddenLayers:
             continue
@@ -256,6 +258,37 @@ def loadPartOfStateDict(module, state_dict, forbiddenLayers=None):
             param = param.data
 
         own_state[name].copy_(param)
+
+
+def loadStateDictCompatible(module, state_dict):
+    r"""
+    Load the input state dict to the module except for the weights corresponding
+    to one of the forbidden layers
+    """
+    own_state = module.state_dict()
+    for name, param in state_dict.items():
+        if isinstance(param, torch.nn.Parameter):
+            # backwards compatibility for serialized parameters
+            param = param.data
+
+        if name in own_state:
+            own_state[name].copy_(param)
+            continue
+
+        # Else see if the input name is a prefix
+        suffixes = ["bias", "weight"]
+        found = False
+        for suffix in suffixes:
+            indexEnd = name.find(suffix)
+            if indexEnd > 0:
+                newKey = name[:indexEnd] + "module." + suffix
+                if newKey in own_state:
+                    own_state[newKey].copy_(param)
+                    found = True
+                    break
+
+        if not found:
+            raise AttributeError("Unknow key " + name)
 
 
 def loadmodule(package, name, prefix='..'):

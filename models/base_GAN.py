@@ -8,7 +8,8 @@ import torch.optim as optim
 from .utils.config import BaseConfig, updateConfig
 from .loss_criterions import base_loss_criterions
 from .loss_criterions.ac_criterion import ACGanCriterion
-from .utils.utils import loadPartOfStateDict, finiteCheck
+from .utils.utils import loadPartOfStateDict, finiteCheck, \
+    loadStateDictCompatible
 
 
 def getNArgs(x):
@@ -46,8 +47,8 @@ class BaseGAN():
                            in the availanle GPUs
             kInnerD (int): number of iterations for the discriminator network
                            during the training stage
-            kInnerG (int): number of iterations for the generator network during
-                           the training stage
+            kInnerG (int): number of iterations for the generator network
+                           during the training stage
             lambdaGP (float): if > 0, weight of the gradient penalty (WGANGP)
             epsilonD (float): if > 0, penalty on |D(X)|**2
             baseLearningRate (float): target learning rate.
@@ -56,8 +57,9 @@ class BaseGAN():
                               * 'MSE' : mean square loss. It's not advised to
                                 have lambdaGP != 0 in this case
                               * 'WGANGP': cross entroipy loss.
-            attribKeysOrder (dict): if not None, activate AC-GAN. In this case, both the generator and
-                                   the discrimator are trained on abelled data.
+            attribKeysOrder (dict): if not None, activate AC-GAN. In this case,
+                                    both the generator and the discrimator are
+                                    trained on abelled data.
         """
 
         if lossMode not in ['MSE', 'WGANGP', 'DCGAN']:
@@ -173,8 +175,8 @@ class BaseGAN():
     def optimizeParameters(self, input_batch, inputLabels=None):
         r"""
         Update the discrimator D using the given "real" inputs.
-        After self.config.kInnerD steps of optimization, the generator G will be
-        updated kInnerG times.
+        After self.config.kInnerD steps of optimization, the generator G will
+        be updated kInnerG times.
 
         Args:
             input (torch.tensor): input batch of real data
@@ -513,11 +515,13 @@ class BaseGAN():
                     self.netG, in_state['netG'], ["formatLayer"])
                 self.getOriginalG().initFormatLayer(self.config.latentVectorDim)
             else:
-                self.netG.load_state_dict(in_state['netG'])
+                # Replace me by a standard loadStatedict for open-sourcing TODO
+                loadStateDictCompatible(self.netG, in_state['netG'])
                 if 'avgG' in in_state:
                     print("Average network found !")
                     self.buildAvG()
-                    self.avgG.module.load_state_dict(in_state['avgG'])
+                    # Replace me by a standard loadStatedict for open-sourcing
+                    loadStateDictCompatible(self.avgG.module, in_state['avgG'])
                     buildAvG = False
 
         if loadD:
@@ -537,7 +541,8 @@ class BaseGAN():
                     self.lossCriterion.sizeDecisionLayer
                     + self.config.categoryVectorDim)
             else:
-                self.netD.load_state_dict(in_state['netD'])
+                # Replace me by a standard loadStatedict for open-sourcing TODO
+                loadStateDictCompatible(self.netD, in_state['netD'])
 
             if makeRGBTransfer:
                 self.netD.switch2RGBInput()
@@ -572,9 +577,8 @@ class BaseGAN():
 
         batchSize = input.size(0)
         alpha = torch.rand(batchSize, 1)
-
-        alpha = alpha.expand(batchSize, input.nelement() /
-                             batchSize).contiguous().view(input.size())
+        alpha = alpha.expand(batchSize, int(input.nelement() /
+                                            batchSize)).contiguous().view(input.size())
         alpha = alpha.to(self.device)
         interpolates = alpha * input + ((1 - alpha) * fake)
 
