@@ -37,7 +37,7 @@ And wait for a few days. Your checkpoints will be dumped in output_networks/cele
 For celebaHQ:
 
 ```
-python setup.py celeba_cropped $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET -f
+python setup.py celebaHQ $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET -f
 python train.py PGAN -c config_celebaHQ.json --restart -n celebaHQ
 ```
 
