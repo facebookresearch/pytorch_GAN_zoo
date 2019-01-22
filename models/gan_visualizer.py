@@ -16,6 +16,7 @@ from .datasets.attrib_dataset import pil_loader
 from .utils.utils import printProgressBar
 from .datasets.hd5 import H5Dataset
 
+
 class GANVisualizer():
     r"""
     """
@@ -97,7 +98,7 @@ class GANVisualizer():
                             export_mask=False):
 
         num_device = self.model.n_devices
-        size = self.model.getSize()
+        size = self.model.getSize()[0]
 
         maxBatchSize = max(1, int(256 / math.log(size, 2)))
         remaining = nVisual
