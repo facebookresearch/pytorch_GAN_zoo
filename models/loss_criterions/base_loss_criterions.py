@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 
+
 class BaseLossWrapper:
     r"""
     Loss criterion class. Must define 4 members:
@@ -28,13 +29,15 @@ class BaseLossWrapper:
         """
         pass
 
+
 class MSE(BaseLossWrapper):
     r"""
     Mean Square error loss.
     """
+
     def __init__(self, device):
         self.generationActivation = F.tanh
-        self.sizeDecisionLayer  = 1
+        self.sizeDecisionLayer = 1
 
         BaseLossWrapper.__init__(self, device)
 
@@ -49,10 +52,11 @@ class WGANGP(BaseLossWrapper):
     r"""
     Paper WGANGP loss : linear activation for the generator.
     """
+
     def __init__(self, device):
 
         self.generationActivation = None
-        self.sizeDecisionLayer  = 1
+        self.sizeDecisionLayer = 1
 
         BaseLossWrapper.__init__(self, device)
 
@@ -66,15 +70,17 @@ class DCGAN(BaseLossWrapper):
     r"""
     Cross entropy loss.
     """
+
     def __init__(self, device):
 
         self.generationActivation = F.tanh
-        self.sizeDecisionLayer  = 1
+        self.sizeDecisionLayer = 1
 
         BaseLossWrapper.__init__(self, device)
 
     def getCriterion(self, input, status):
         size = input.size()[0]
         value = int(status)
-        reference = torch.tensor([value], dtype = torch.float).expand(size).to(self.device)
+        reference = torch.tensor(
+            [value], dtype=torch.float).expand(size).to(self.device)
         return F.binary_cross_entropy(F.sigmoid(input[:, :self.sizeDecisionLayer]), reference)

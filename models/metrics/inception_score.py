@@ -6,10 +6,11 @@ import torch.nn.functional as F
 
 import sys
 
+
 class InceptionScore():
     def __init__(self,
-                 classifier = None,
-                 pathPredictions = None,
+                 classifier=None,
+                 pathPredictions=None,
                  verbose=True):
 
         self.verbose = verbose
@@ -41,7 +42,7 @@ class InceptionScore():
         # Sum soft max
         self.sumSoftMax += F.softmax(y, dim=1).sum(dim=0)
 
-        #N items
+        # N items
         self.nItems += y.size()[0]
 
     def getScore(self):

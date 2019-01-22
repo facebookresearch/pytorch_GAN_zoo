@@ -8,9 +8,10 @@ import torchvision.transforms as Transforms
 
 from ..datasets.hd5 import H5Dataset
 from ..utils.utils import loadmodule, getLastCheckPoint, getVal, \
-                          getNameAndPackage, prepareClassifier, \
-                          printProgressBar, saveScore, parse_state_name
+    getNameAndPackage, prepareClassifier, \
+    printProgressBar, saveScore, parse_state_name
 from utils.image_transform import NumpyResize
+
 
 def getModelName(pathConfig):
 
@@ -21,31 +22,33 @@ def getModelName(pathConfig):
 
     return pathConfig[:-18]
 
+
 def updateParser(parser):
 
-    parser.add_argument('-f','--featureExtractor', help="Partition's value",
+    parser.add_argument('-f', '--featureExtractor', help="Partition's value",
                         type=str, dest="featureExtractor")
     parser.add_argument("-C", "--categoryName", dest="categoryName",
                         type=str, help="Class to classify")
 
     return parser
 
+
 def buildLabelConverted(keyOrdersSource, targetMatch):
 
     return [targetMatch[x] for x in keyOrdersSource]
 
 
-def test(parser, visualisation = None):
+def test(parser, visualisation=None):
 
     # Parameters
     parser = updateParser(parser)
     kwargs = vars(parser.parse_args())
 
-    name =  getVal(kwargs,"name", None)
+    name = getVal(kwargs, "name", None)
     if name is None:
         raise ValueError("You need to input a name")
 
-    trainingConfig = getVal(kwargs,"config", None)
+    trainingConfig = getVal(kwargs, "config", None)
     if trainingConfig is None:
         raise ValueError("You need to input a configuration file")
 
@@ -60,15 +63,15 @@ def test(parser, visualisation = None):
     if categoryName is None:
         raise ValueError("You need to input a categoryName")
 
-    pathPartition  = wholeConfig.get("pathPartition", None)
+    pathPartition = wholeConfig.get("pathPartition", None)
     partitionValue = wholeConfig.get("partitionValue", None)
-    pathAttrib     = wholeConfig.get("pathAttrib", None)
+    pathAttrib = wholeConfig.get("pathAttrib", None)
 
     partitionValue = getVal(kwargs, "partition_value", None)
-    pathAttrib     = getVal(kwargs, "statsFile", pathAttrib)
-    pathVal        = getVal(kwargs, "valDatasetPath", None)
-    pathPartVal    = getVal(kwargs, "valPartitionPath", None)
-    checkPointDir  = os.path.join(kwargs["dir"], modelLabel)
+    pathAttrib = getVal(kwargs, "statsFile", pathAttrib)
+    pathVal = getVal(kwargs, "valDatasetPath", None)
+    pathPartVal = getVal(kwargs, "valPartitionPath", None)
+    checkPointDir = os.path.join(kwargs["dir"], modelLabel)
 
     specificAttrib = [categoryName]
 
@@ -76,32 +79,34 @@ def test(parser, visualisation = None):
     refSize = 224
     db_transform = Transforms.Compose([NumpyResize(refSize),
                                        Transforms.ToTensor(),
-                                       Transforms.Normalize(mean =(0.485, 0.456, 0.406),
-                                                            std  = (0.229, 0.224, 0.225))
+                                       Transforms.Normalize(mean=(0.485, 0.456, 0.406),
+                                                            std=(0.229, 0.224, 0.225))
                                        ])
 
     if os.path.splitext(pathDB)[1] == '.h5':
         dataset = H5Dataset(pathDB,
-                            transform = db_transform,
-                            partition_path = pathPartition,
-                            partition_value = partitionValue,
-                            stats_file = pathAttrib,
-                            specificAttrib = specificAttrib)
+                            transform=db_transform,
+                            partition_path=pathPartition,
+                            partition_value=partitionValue,
+                            stats_file=pathAttrib,
+                            specificAttrib=specificAttrib)
     else:
         dataset = AttribDataset(pathdb=pathDB,
-                                transform = db_transform,
-                                attribDictPath = pathAttrib,
-                                specificAttrib = specificAttrib)
+                                transform=db_transform,
+                                attribDictPath=pathAttrib,
+                                specificAttrib=specificAttrib)
 
     dbLoader = torch.utils.data.DataLoader(dataset,
-                                batch_size= 16,
-                                shuffle=True,
-                                num_workers= torch.cuda.device_count())
+                                           batch_size=16,
+                                           shuffle=True,
+                                           num_workers=torch.cuda.device_count())
 
-    pathClassifier = os.path.join(checkPointDir, name) + "_ganTrained_" + categoryName + ".pt"
+    pathClassifier = os.path.join(
+        checkPointDir, name) + "_ganTrained_" + categoryName + ".pt"
 
     modelState = torch.load(pathClassifier)
-    classifierType = loadmodule('torchvision.models', modelState["modelType"], prefix ='')
+    classifierType = loadmodule(
+        'torchvision.models', modelState["modelType"], prefix='')
     outFeatures = modelState["outFeatures"]
     refSize = modelState["size"]
 
@@ -120,7 +125,8 @@ def test(parser, visualisation = None):
     accuracy = 0
 
     keyOrders = dataset.getKeyOrders()[categoryName]
-    labelConverter = buildLabelConverted(keyOrders["values"], classifierDict["match"])
+    labelConverter = buildLabelConverted(
+        keyOrders["values"], classifierDict["match"])
 
     for data, labels in dbLoader:
 
@@ -128,11 +134,12 @@ def test(parser, visualisation = None):
 
         preds = classifier(data).detach()
         preds = torch.argmax(preds, dim=1)
-        convertedLabels = torch.tensor([labelConverter[x] for x in labels], device =torch.device("cuda:0") )
+        convertedLabels = torch.tensor(
+            [labelConverter[x] for x in labels], device=torch.device("cuda:0"))
 
         accuracy += float(torch.sum(preds == convertedLabels).item())
 
-        r +=1
+        r += 1
         if r >= nRuns:
             break
 

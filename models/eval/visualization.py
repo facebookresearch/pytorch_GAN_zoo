@@ -6,7 +6,7 @@ import torch
 
 from ..gan_visualizer import GANVisualizer
 from ..utils.utils import loadmodule, getLastCheckPoint, getVal, \
-                          getNameAndPackage
+    getNameAndPackage
 
 
 def getModelName(pathConfig):

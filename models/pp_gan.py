@@ -6,8 +6,8 @@ from copy import deepcopy
 from .progressive_gan import ProgressiveGAN
 from .networks.progressive_conv_net import GNet, DNet
 from .networks.product_net import ProductNetwork, \
-                                  PRODUCT_NETWORK_ANALYSIS_MODE, \
-                                  PRODUCT_NETWORK_FULL_MODE
+    PRODUCT_NETWORK_ANALYSIS_MODE, \
+    PRODUCT_NETWORK_FULL_MODE
 from .utils.config import BaseConfig
 from .utils.product_module import buildMaskSplit
 

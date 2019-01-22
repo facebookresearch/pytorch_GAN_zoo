@@ -13,8 +13,9 @@ from ..gan_visualizer import GANVisualizer
 from ..progressive_gan import ProgressiveGAN
 from ..networks.constant_net import FeatureTransform
 from ..utils.utils import loadmodule, getLastCheckPoint, getVal, \
-                          getNameAndPackage, prepareClassifier, \
-                          printProgressBar, saveScore, parse_state_name
+    getNameAndPackage, prepareClassifier, \
+    printProgressBar, saveScore, parse_state_name
+
 
 def updateParser(parser):
 
@@ -25,16 +26,18 @@ def updateParser(parser):
 
     return parser
 
+
 def generateImagesFomConstraints(model, labels, labelName):
 
     output = []
     for label in labels:
-        constraints = {labelName : label}
+        constraints = {labelName: label}
         input = model.buildNoiseDataWithConstraints(1, constraints)
         output.append(input)
 
     output = torch.cat(output, dim=0)
-    return model.test(output, getAvG = True).detach()
+    return model.test(output, getAvG=True).detach()
+
 
 def train(model,
           generator,
@@ -57,11 +60,13 @@ def train(model,
 
     for run in range(nRuns):
 
-        labels = random.choices(labelWeights["values"], weights = labelWeights["weights"], k = batchSize)
-        images = generateImagesFomConstraints(generator, labels,labelWeights["name"])
+        labels = random.choices(
+            labelWeights["values"], weights=labelWeights["weights"], k=batchSize)
+        images = generateImagesFomConstraints(
+            generator, labels, labelWeights["name"])
 
         labelInt = torch.tensor([labelWeights["match"][label] for label in labels],
-                                dtype= torch.long, device = device)
+                                dtype=torch.long, device=device)
 
         images = imageTransform(images)
 
@@ -72,12 +77,12 @@ def train(model,
         optimizer.step()
 
         preds = torch.argmax(outputs, dim=1)
-        accuracy+= float(torch.sum(preds == labelInt.data).item())
+        accuracy += float(torch.sum(preds == labelInt.data).item())
 
         if run % runLog == (runLog-1):
             accuracy /= runLog*batchSize
-            print("Iter %d accuracy %f" %(run, accuracy))
-            lastAc= accuracy
+            print("Iter %d accuracy %f" % (run, accuracy))
+            lastAc = accuracy
             accuracy = 0
 
         if run % epochSize == (epochSize - 1):
@@ -85,7 +90,8 @@ def train(model,
 
     return model, lastAc
 
-def test(parser, visualisation = None):
+
+def test(parser, visualisation=None):
 
     # Parameters
     parser = updateParser(parser)
@@ -93,11 +99,11 @@ def test(parser, visualisation = None):
 
     refSize = 224
 
-    name =  getVal(kwargs,"name", None)
+    name = getVal(kwargs, "name", None)
     if name is None:
         raise ValueError("You need to input a name")
 
-    module = getVal(kwargs,"module", None)
+    module = getVal(kwargs, "module", None)
     if module is None:
         raise ValueError("You need to input a module")
 
@@ -109,17 +115,18 @@ def test(parser, visualisation = None):
     if categoryName is None:
         raise ValueError("You need to input a categoryName")
 
-    scale              = getVal(kwargs, "scale", None)
-    iter               = getVal(kwargs, "iter", None)
-    checkPointDir      = os.path.join(kwargs["dir"], modelLabel)
-    nImgs              = getVal(kwargs, "nImgs", 70000)
-    checkpointData     = getLastCheckPoint(checkPointDir,
-                                           name,
-                                           scale = scale,
-                                           iter = iter)
+    scale = getVal(kwargs, "scale", None)
+    iter = getVal(kwargs, "iter", None)
+    checkPointDir = os.path.join(kwargs["dir"], modelLabel)
+    nImgs = getVal(kwargs, "nImgs", 70000)
+    checkpointData = getLastCheckPoint(checkPointDir,
+                                       name,
+                                       scale=scale,
+                                       iter=iter)
 
     if checkpointData is None:
-        raise FileNotFoundError("Not checkpoint found for model " + name + " at directory " + dir)
+        raise FileNotFoundError(
+            "Not checkpoint found for model " + name + " at directory " + dir)
 
     modelConfig, pathModel, _ = checkpointData
 
@@ -131,9 +138,9 @@ def test(parser, visualisation = None):
 
     packageStr, modelTypeStr = getNameAndPackage(module)
     modelType = loadmodule(packageStr, modelTypeStr)
-    generator = modelType(useGPU = True,
-                      storeAVG = True,
-                      **configData)
+    generator = modelType(useGPU=True,
+                          storeAVG=True,
+                          **configData)
 
     generator.load(pathModel)
 
@@ -142,7 +149,8 @@ def test(parser, visualisation = None):
         statsDict = statsDict[categoryName]
 
     nFeatures = len(statsDict)
-    labelWeights = {"values":[], "weights":[], "match":{}, "name":categoryName}
+    labelWeights = {"values": [], "weights": [],
+                    "match": {}, "name": categoryName}
 
     for label, value in statsDict.items():
         labelWeights["match"][label] = len(labelWeights["weights"])
@@ -161,22 +169,25 @@ def test(parser, visualisation = None):
     # Criterion
     criterion = torch.nn.CrossEntropyLoss().to(torch.device("cuda:0"))
 
-    #optimizer
+    # optimizer
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()),
-                betas = [0.9, 0.99], lr = 1e-2)
+                                 betas=[0.9, 0.99], lr=1e-2)
 
     # Scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1, gamma=0.1, last_epoch=-1)
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer, 1, gamma=0.1, last_epoch=-1)
 
     mean = [2 * x - 1 for x in [0.485, 0.456, 0.406]]
-    std = [ 2 * x for x in [0.229, 0.224, 0.225]]
-    upsamplingModule = torch.nn.DataParallel(FeatureTransform(mean, std, size = refSize)).to(torch.device("cuda:0"))
+    std = [2 * x for x in [0.229, 0.224, 0.225]]
+    upsamplingModule = torch.nn.DataParallel(FeatureTransform(
+        mean, std, size=refSize)).to(torch.device("cuda:0"))
 
-    model, last_ac = train(model, generator, criterion, optimizer, scheduler, upsamplingModule, labelWeights, num_imgs=nImgs)
+    model, last_ac = train(model, generator, criterion, optimizer,
+                           scheduler, upsamplingModule, labelWeights, num_imgs=nImgs)
 
     output_path = modelConfig[:-18] + "_ganTrained_" + categoryName + ".pt"
     outputDict = {"modelType": strModel,
-                  "state_dict" : model.module.state_dict(),
+                  "state_dict": model.module.state_dict(),
                   "outFeatures": nFeatures,
                   "size": refSize,
                   "accuracy": last_ac,
