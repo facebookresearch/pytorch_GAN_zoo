@@ -141,7 +141,7 @@ class GANVisualizer():
 
     def showEqualized(self, size):
 
-        eqVector, _ = torch.zeros(1, self.model.config.latentVectorDim) + 1.0
+        eqVector, _ = torch.ones(1, self.model.config.latentVectorDim)
         eqVector[:] = 1
 
         outEq = self.model.test(eqVector)
@@ -193,7 +193,7 @@ class GANVisualizer():
             angles[parameterIndex] = currVal
 
         outSize = (size, size)
-        cond = torch.zeros(nSteps, M-N, 1, 1) + 1
+        cond = torch.ones(nSteps, M-N, 1, 1)
 
         inputs = torch.cat((inputs, cond), dim=1)
         outImg = self.model.test(inputs, getAvG=True)
