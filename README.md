@@ -147,6 +147,7 @@ Where $CONFIGURATION_FILE is the training configuration file called by train.py 
 You can add optional arguments:
 -s $SCALE : specify the scale at which the evaluation should be done (if not set, take the highest one)
 -i $ITER : specify the iteration to evaluate (if not set, all checkpoints will be evaluated in descending order)
+--selfNoise : returns the typical noise of the SWD distance for each resolution
 
 ### Inspirational generation
 
