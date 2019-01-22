@@ -1,8 +1,6 @@
 import os
 import json
 
-import time
-
 import torch
 import torchvision.transforms as Transforms
 
@@ -11,7 +9,7 @@ from ..utils.utils import printProgressBar
 from ..datasets.attrib_dataset import AttribDataset
 from ..datasets.hd5 import H5Dataset
 from ..utils.utils import getVal, loadmodule, getLastCheckPoint, \
-                          parse_state_name, getNameAndPackage
+    parse_state_name, getNameAndPackage, saveScore
 from ..utils.image_transform import NumpyResize
 
 
@@ -151,33 +149,26 @@ def test(parser, visualisation=None):
     score = SWDMetric.getScore()
 
     # Saving the results
-    outPath = os.path.join(checkPointDir, name + "_swd.json")
-    flagPath = outPath + ".flag"
+    if name is not None:
 
-    while os.path.isfile(flagPath):
-        time.sleep(1)
+        outPath = os.path.join(checkPointDir, name + "_swd.json")
+        if kwargs['selfNoise']:
+            saveScore(outPath, score,
+                      scale, "inner noise")
+        else:
+            saveScore(outPath, score,
+                      scale, iter)
 
-    open(flagPath, 'a').close()
-    if os.path.isfile(outPath):
-        with open(outPath, 'rb') as file:
-            outResults = json.load(file)
-
-        if not isinstance(outResults, dict):
-            outResults = {}
-    else:
-        outResults = {}
-
-    if str(scale) not in outResults:
-        print("coin")
-        outResults[str(scale)] = {}
-
-    outResults[str(scale)][str(iter)] = score
-
-    with open(outPath, 'w') as file:
-        json.dump(outResults, file, indent=2)
-
-    os.remove(flagPath)
-
+    # Now printing the results
     print("")
-    print("score (from highest res to lowest): " + str(score))
-    print("")
+
+    resolution = ['resolution '] + \
+        [str(int(size / (2**factor))) for factor in range(depthPyramid)]
+    resolution[-1] += ' (background)'
+
+    strScores = ['score'] + ["{:10.6f}".format(s) for s in score]
+
+    formatCommand = ' '.join(['{:>16}' for x in range(depthPyramid + 1)])
+
+    print(formatCommand.format(*resolution))
+    print(formatCommand.format(*strScores))
