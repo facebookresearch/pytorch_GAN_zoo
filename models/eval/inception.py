@@ -9,35 +9,37 @@ import torchvision.transforms as Transforms
 
 from ..metrics.inception_score import InceptionScore
 from ..utils.utils import printProgressBar, getVal, loadmodule, \
-                          getLastCheckPoint, parse_state_name,  \
-                          getNameAndPackage, saveScore, prepareClassifier
+    getLastCheckPoint, parse_state_name,  \
+    getNameAndPackage, saveScore, prepareClassifier
 
 from ..networks.constant_net import FeatureTransform
 import sys
 
-def test(parser, visualisation = None):
+
+def test(parser, visualisation=None):
 
     miniBatchSize = 16
-    parser.add_argument('-f','--featureExtractor', help="Partition's value",
+    parser.add_argument('-f', '--featureExtractor', help="Partition's value",
                         type=str, dest="featureExtractor")
 
     kwargs = vars(parser.parse_args())
     # Parameters
-    name =  getVal(kwargs,"name", None)
+    name = getVal(kwargs, "name", None)
     if name is None:
         raise ValueError("You need to input a name")
 
-    module = getVal(kwargs,"module", None)
+    module = getVal(kwargs, "module", None)
     if module is None:
         raise ValueError("You need to input a module")
 
-    pathClassifier= getVal(kwargs, "featureExtractor", None)
+    pathClassifier = getVal(kwargs, "featureExtractor", None)
     if pathClassifier is None:
         raise ValueError("You need to give a feature extractor")
 
     # Load the classifier
     modelState = torch.load(pathClassifier)
-    classifierType = loadmodule('torchvision.models', modelState["modelType"], prefix ='')
+    classifierType = loadmodule(
+        'torchvision.models', modelState["modelType"], prefix='')
     outFeatures = modelState["outFeatures"]
     refSize = modelState["size"]
 
@@ -48,21 +50,22 @@ def test(parser, visualisation = None):
     classifier.load_state_dict(modelState["state_dict"])
     classifier = torch.nn.DataParallel(classifier).to(torch.device("cuda:0"))
 
-    #Mandatory fields
-    scale              = getVal(kwargs, "scale", None)
-    iter               = getVal(kwargs, "iter", None)
+    # Mandatory fields
+    scale = getVal(kwargs, "scale", None)
+    iter = getVal(kwargs, "iter", None)
 
-    checkPointDir      = os.path.join(kwargs["dir"], modelLabel)
-    checkpointData     = getLastCheckPoint(checkPointDir, name, scale = scale, iter = iter)
-
+    checkPointDir = os.path.join(kwargs["dir"], modelLabel)
+    checkpointData = getLastCheckPoint(
+        checkPointDir, name, scale=scale, iter=iter)
 
     if checkpointData is None:
         print(scale, iter)
         if scale is not None or iter is not None:
-            raise FileNotFoundError("Not checkpoint found for model " + name \
-                                    + " at directory " + dir + " for scale " + \
+            raise FileNotFoundError("Not checkpoint found for model " + name
+                                    + " at directory " + dir + " for scale " +
                                     str(scale) + " at iteration " + str(iter))
-        raise FileNotFoundError("Not checkpoint found for model " + name + " at directory " + dir)
+        raise FileNotFoundError(
+            "Not checkpoint found for model " + name + " at directory " + dir)
 
     modelConfig, pathModel, _ = checkpointData
 
@@ -74,8 +77,8 @@ def test(parser, visualisation = None):
 
     modelPackage, modelName = getNameAndPackage(module)
     modelType = loadmodule(modelPackage, modelName)
-    model = modelType(useGPU = True,
-                      storeAVG = True,
+    model = modelType(useGPU=True,
+                      storeAVG=True,
                       **configData)
 
     model.load(pathModel)
@@ -83,8 +86,9 @@ def test(parser, visualisation = None):
     InceptionMetric = InceptionScore(classifier)
 
     mean = [2 * x - 1 for x in [0.485, 0.456, 0.406]]
-    std = [ 2 * x for x in [0.229, 0.224, 0.225]]
-    upsamplingModule = nn.DataParallel(FeatureTransform(mean, std, size = refSize)).to(torch.device("cuda:0"))
+    std = [2 * x for x in [0.229, 0.224, 0.225]]
+    upsamplingModule = nn.DataParallel(FeatureTransform(
+        mean, std, size=refSize)).to(torch.device("cuda:0"))
 
     numWorkers = 2
     device = torch.device("cuda:0")
@@ -94,7 +98,8 @@ def test(parser, visualisation = None):
 
     for i in range(nMiniBatches):
 
-        inputFake = model.test(model.buildNoiseData(miniBatchSize)[0]).to(device)
+        inputFake = model.test(
+            model.buildNoiseData(miniBatchSize)[0]).to(device)
 
         visualisation.publishTensors(inputFake.cpu(), (256, 256))
         inputFake = upsamplingModule(inputFake)

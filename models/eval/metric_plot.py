@@ -5,21 +5,23 @@ import numpy as np
 
 from ..utils.utils import loadmodule, getLastCheckPoint, getVal, getNameAndPackage
 
-def test(parser, visualisation = None):
+
+def test(parser, visualisation=None):
 
     # Parameters
     kwargs = vars(parser.parse_args())
 
-    name =  getVal(kwargs,"name", None)
+    name = getVal(kwargs, "name", None)
     if name is None:
         raise ValueError("You need to input a name")
 
     if visualisation is None:
         raise ValueError("A visualizer is mandatory for this evaluation")
 
-    checkPointDir      = os.path.join(kwargs["dir"], modelLabel)s
+    checkPointDir = os.path.join(kwargs["dir"], modelLabel)s
 
-    suffixes = {"SWD" : "_swd", "NN" : "_nn_metric", "INCEPTION": "_inception_metric"}
+    suffixes = {"SWD": "_swd", "NN": "_nn_metric",
+                "INCEPTION": "_inception_metric"}
 
     for key, value in suffixes.items():
 
@@ -48,17 +50,16 @@ def test(parser, visualisation = None):
 
             for attrib in attribs:
 
-                env_name = name + "_" + key + "_scale_" + scale + "_" + os.path.basename(attrib)
+                env_name = name + "_" + key + "_scale_" + \
+                    scale + "_" + os.path.basename(attrib)
                 visualisation.delete_env(env_name)
 
-
                 locIter = []
-                outYData = [ [] for x in range(nData)]
+                outYData = [[] for x in range(nData)]
 
-                iterations = [ int(x) for x in data[scale].keys()]
+                iterations = [int(x) for x in data[scale].keys()]
 
                 iterations.sort()
-
 
                 for iteration in iterations:
 
@@ -76,13 +77,13 @@ def test(parser, visualisation = None):
                             continue
 
                         for i in range(nData):
-                            outYData[i].append(data[scale][str(iteration)][attrib][i])
-
+                            outYData[i].append(
+                                data[scale][str(iteration)][attrib][i])
 
                 for i in range(nData):
                     plotName = key + " " + str(i)
                     visualisation.publishLinePlot([(plotName, outYData[i])], locIter,
-                                                    name = plotName,
-                                                    env = env_name)
+                                                  name=plotName,
+                                                  env=env_name)
 
                     print(scale, plotName, sum(outYData[i]) / len(outYData[i]))
