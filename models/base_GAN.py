@@ -1,4 +1,3 @@
-import sys
 from copy import deepcopy
 
 import os
@@ -7,19 +6,19 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as f
 
-import math
-
 from .utils.config import BaseConfig, updateConfig
 from .loss_criterions import base_loss_criterions
 from .loss_criterions.ac_criterion import ACGanCriterion
-from .utils.utils import loadPartOfStateDict, finiteCheck
+from .utils.utils import loadPartOfStateDict, finiteCheck, \
+    loadStateDictCompatible
+
 
 def compute_gdpp(phi_fake, phi_real):
     def compute_diversity(phi):
         phi = f.normalize(phi, p=2, dim=1)
         S_B = torch.mm(phi, phi.t())
-        eig_vals, eig_vecs = torch.eig(S_B, eigenvectors=True)
-        return eig_vals[:, 0], eig_vecs
+        eig_vals, eig_vecs = torch.symeig(S_B, eigenvectors=True)
+        return eig_vals, eig_vecs
 
     def normalize_min_max(eig_vals):
         min_v, max_v = torch.min(eig_vals), torch.max(eig_vals)
@@ -27,21 +26,25 @@ def compute_gdpp(phi_fake, phi_real):
 
     fake_eig_vals, fake_eig_vecs = compute_diversity(phi_fake)
     real_eig_vals, real_eig_vecs = compute_diversity(phi_real)
+
     # Scaling factor to make the two losses operating in comparable ranges.
     magnitude_loss = 0.0001 * f.mse_loss(target=real_eig_vals, input=fake_eig_vals)
     structure_loss = -torch.sum(torch.mul(fake_eig_vecs, real_eig_vecs), 0)
     normalized_real_eig_vals = normalize_min_max(real_eig_vals)
     weighted_structure_loss = torch.sum(torch.mul(normalized_real_eig_vals, structure_loss))
-    return magnitude_loss + weighted_structure_loss
+    gdpp_loss = magnitude_loss + weighted_structure_loss
+    gdpp_loss.backward(retain_graph=True)
+    return gdpp_loss.item()
 
 def getNArgs(x):
 
     sizeX = x.size()
     out = 1
     for s in sizeX:
-        out*=s
+        out *= s
 
     return out
+
 
 class BaseGAN():
     r"""Abstract class: the basic framework for GAN training.
@@ -65,28 +68,35 @@ class BaseGAN():
         r"""
         Args:
             dimLatentVector (int): dimension of the latent vector in the model
-            useGPU (bool): set to true if the computation should be distribued in the availanle GPUs
-            kInnerD (int): number of iterations for the discriminator network during the training stage
-            kInnerG (int): number of iterations for the generator network during the training stage
+            useGPU (bool): set to true if the computation should be distribued
+                           in the availanle GPUs
+            kInnerD (int): number of iterations for the discriminator network
+                           during the training stage
+            kInnerG (int): number of iterations for the generator network
+                           during the training stage
             lambdaGP (float): if > 0, weight of the gradient penalty (WGANGP)
             epsilonD (float): if > 0, penalty on |D(X)|**2
             baseLearningRate (float): target learning rate.
-            lossMode (string): loss used by the model. Must be one of the following options
-                              * 'MSE' : mean square loss. It's not advised to have lambdaGP != 0 in this case
+            lossMode (string): loss used by the model. Must be one of the
+                               following options
+                              * 'MSE' : mean square loss. It's not advised to
+                                have lambdaGP != 0 in this case
                               * 'WGANGP': cross entroipy loss.
-            attribKeysOrder (dict): if not None, activate AC-GAN. In this case, both the generator and
-                                   the discrimator are trained on abelled data.
-            GDPP (bool): set to true if Generative Determinantal Point Process loss is activated                       
+            attribKeysOrder (dict): if not None, activate AC-GAN. In this case,
+                                    both the generator and the discrimator are
+                                    trained on abelled data.
         """
 
-        if lossMode not in ['MSE', 'WGANGP', 'DCGAN', 'LeCunGAN']:
-            raise ValueError("lossMode should be one of the following : ['MSE', 'WGANGP', 'DCGAN', 'LeCunGAN']")
+        if lossMode not in ['MSE', 'WGANGP', 'DCGAN']:
+            raise ValueError(
+                "lossMode should be one of the following : ['MSE', 'WGANGP', \
+                'DCGAN']")
 
-        if not 'config' in vars(self):
+        if 'config' not in vars(self):
             self.config = BaseConfig()
 
-        if not 'trainTmp' in vars(self):
-            self.trainTmp =  BaseConfig()
+        if 'trainTmp' not in vars(self):
+            self.trainTmp = BaseConfig()
 
         self.useGPU = useGPU and torch.cuda.is_available()
         if self.useGPU:
@@ -97,7 +107,7 @@ class BaseGAN():
             self.n_devices = 1
 
         # Latent vector dimension
-        self.config.noiseVectorDim =dimLatentVector
+        self.config.noiseVectorDim = dimLatentVector
 
         # Output image dimension
         self.config.dimOutput = dimOutput
@@ -108,14 +118,26 @@ class BaseGAN():
         self.config.weightConditionG = weightConditionG
         self.config.weightConditionD = weightConditionD
         self.initializeACCriterion()
+
+        # GDPP
         self.config.GDPP = GDPP
 
+        if GDPP:
+            print("GDPP on")
+
         self.config.latentVectorDim = self.config.noiseVectorDim \
-                                      + self.config.categoryVectorDim
+            + self.config.categoryVectorDim
 
         # Loss criterion
         self.config.lossCriterion = lossMode
-        self.lossCriterion = getattr(base_loss_criterions, lossMode)(self.device)
+        self.lossCriterion = getattr(
+            base_loss_criterions, lossMode)(self.device)
+
+        # WGAN-GP
+        self.config.lambdaGP = lambdaGP
+
+        # Weight on D's output
+        self.config.epsilonD = epsilonD
 
         # Initialize the generator and the discriminator
         self.netD = self.getNetD()
@@ -137,14 +159,9 @@ class BaseGAN():
         # Losses
         self.resetTmpLosses()
 
-        #WGAN-GP
-        self.config.lambdaGP = lambdaGP
-
-        # Weight on D's output
-        self.config.epsilonD = epsilonD
 
     # used in test time, no backprop
-    def test(self, input, getAvG = False, toCPU = True):
+    def test(self, input, getAvG=False, toCPU=True):
         r"""
         Generate some data given the input latent vector.
 
@@ -182,16 +199,17 @@ class BaseGAN():
         self.trainTmp.lossD = 0
         self.trainTmp.lossG = 0
 
-        self.trainTmp.lossEpsilon = 0.
+        self.trainTmp.lossEpsilon = 0.0
         self.trainTmp.lossACD = 0.0
         self.trainTmp.lossACG = 0.0
         self.trainTmp.lossGrad = 0.0
+        self.trainTmp.lossGDPP = 0.0
 
-    def optimizeParameters(self, input_batch, inputLabels = None):
+    def optimizeParameters(self, input_batch, inputLabels=None):
         r"""
         Update the discrimator D using the given "real" inputs.
-        After self.config.kInnerD steps of optimization, the generator G will be updated
-        kInnerG times.
+        After self.config.kInnerD steps of optimization, the generator G will
+        be updated kInnerG times.
 
         Args:
             input (torch.tensor): input batch of real data
@@ -211,43 +229,38 @@ class BaseGAN():
         self.optimizerD.zero_grad()
 
         # #1 Real data
-        predRealD, phi_D_real = self.netD.forward(self.real_input)
+        predRealD = self.netD.forward(self.real_input)
         lossD = self.lossCriterion.getCriterion(predRealD, True)
 
         # #2 Fake data
         inputLatent, targetRandCat = self.buildNoiseData(n_samples)
-        predFakeG = self.netG(inputLatent)
+        predFakeG = self.netG(inputLatent).detach()
 
-        if isinstance(predFakeG, list):
-            for item in predFakeG:
-                item.detach()
-        else:
-            predFakeG.detach()
-
-        predFakeD, phi_D_fake = self.netD(predFakeG)
+        predFakeD = self.netD(predFakeG)
         lossD += self.lossCriterion.getCriterion(predFakeD, False)
 
         if self.config.lambdaGP > 0:
-            tmp = lossD.item()
-            lossD += self.getGradientPenalty(self.real_input, predFakeG)
-            self.trainTmp.lossGrad += (lossD.item() -tmp)
+            self.trainTmp.lossGrad += self.getGradientPenalty(self.real_input, predFakeG)
 
         if self.config.epsilonD > 0:
             tmp = lossD.item()
-            lossD+= (predRealD[:, :self.lossCriterion.sizeDecisionLayer]** 2).sum() * self.config.epsilonD
+            lossD += (predRealD[:, :self.lossCriterion.sizeDecisionLayer]
+                      ** 2).sum() * self.config.epsilonD
             self.trainTmp.lossEpsilon += (lossD.item() - tmp)
 
         if self.config.attribKeysOrder:
             tmp = lossD.item()
-            lossD += self.config.weightConditionD * self.getLossACDCriterion(predRealD, self.realLabels) \
-                   +  self.config.weightConditionD * self.getLossACDCriterion(predFakeD, targetRandCat)
+            lossD += self.config.weightConditionD \
+                * self.getLossACDCriterion(predRealD, self.realLabels) \
+                + self.config.weightConditionD * \
+                self.getLossACDCriterion(predFakeD, targetRandCat)
 
             self.trainTmp.lossACD += (lossD.item() - tmp)
 
         lossD.backward()
-        self.trainTmp.lossD+= lossD.item()
+        self.trainTmp.lossD += lossD.item()
 
-        self.trainTmp.currentKd+=1
+        self.trainTmp.currentKd += 1
         finiteCheck(self.netD.module.parameters())
         self.optimizerD.step()
 
@@ -265,26 +278,26 @@ class BaseGAN():
                 inputNoise, targetCatNoise = self.buildNoiseData(n_samples)
                 predFakeG = self.netG(inputNoise)
 
-                predFakeD, phi_G_fake = self.netD(predFakeG)
+                predFakeD, phi_G_fake = self.netD(predFakeG, getFeature = True)
                 lossGFake = self.lossCriterion.getCriterion(predFakeD, True)
 
                 if self.config.GDPP:
-                    #print("GDPP on")
-                    loss_GDPP = compute_gdpp(phi_D_real, phi_G_fake).item()
-                    #print(lossGFake,loss_GDPP)
-                    lossGFake = lossGFake+loss_GDPP # we need also to try the ablatio of  compute_gdpp(phi_D_real, phi_D_fake)
-                
+                    _, phi_D_real = self.netD.forward(self.real_input, getFeature = True)
+                    self.trainTmp.lossGDPP += compute_gdpp(phi_D_real, phi_G_fake)
+
                 self.trainTmp.lossG+= lossGFake.item()
                 self.auxiliaryLossesGeneration()
 
-                self.trainTmp.lossACG += self.updateLossACGeneration(predFakeD, targetCatNoise)
+                self.trainTmp.lossACG += self.updateLossACGeneration(
+                    predFakeD, targetCatNoise)
                 lossGFake.backward()
 
                 finiteCheck(self.netG.module.parameters())
                 self.optimizerG.step()
 
             # Update the moving average if relevant
-            for p, avg_p in zip(self.netG.module.parameters(), self.avgG.module.parameters()):
+            for p, avg_p in zip(self.netG.module.parameters(),
+                                self.avgG.module.parameters()):
                 avg_p.mul_(0.999).add_(0.001, p.data)
 
             self.trainTmp.lossG /= self.config.kInnerG
@@ -294,8 +307,8 @@ class BaseGAN():
         """
 
         if self.config.weightConditionD != 0 and not self.config.attribKeysOrder:
-            raise AttributeError("If the weight on the conditional term isn't "\
-                                 "null, then a attribute dictionnery should be"\
+            raise AttributeError("If the weight on the conditional term isn't "
+                                 "null, then a attribute dictionnery should be"
                                  " defined")
 
         if self.config.weightConditionG != 0 and not self.config.attribKeysOrder:
@@ -335,9 +348,10 @@ class BaseGAN():
             return 0
 
         predFakeD = predD[:, self.lossCriterion.sizeDecisionLayer:]
-        loss = self.config.weightConditionG * self.ACGANCriterion.getLoss(predFakeD, targetCatNoise)
+        loss = self.config.weightConditionG * \
+            self.ACGANCriterion.getLoss(predFakeD, targetCatNoise)
 
-        loss.backward(retain_graph = True)
+        loss.backward(retain_graph=True)
         return loss.item()
 
     def auxiliaryLossesGeneration(self):
@@ -346,7 +360,7 @@ class BaseGAN():
         """
         return
 
-    def updateSolversDevice(self, buildAvG = True):
+    def updateSolversDevice(self, buildAvG=True):
         r"""
         Move the current networks and solvers to the GPU.
         This function must be called each time netG or netD is modified
@@ -368,7 +382,7 @@ class BaseGAN():
         self.optimizerD.zero_grad()
         self.optimizerG.zero_grad()
 
-    def buildNoiseData(self, n_samples, sameCriterion = False):
+    def buildNoiseData(self, n_samples, sameCriterion=False):
         r"""
         Build a batch of latent vectors for the generator.
 
@@ -376,7 +390,8 @@ class BaseGAN():
             n_samples (int): number of vector in the batch
         """
 
-        inputLatent = torch.randn(n_samples, self.config.noiseVectorDim).to(self.device)
+        inputLatent = torch.randn(
+            n_samples, self.config.noiseVectorDim).to(self.device)
 
         if self.config.attribKeysOrder:
 
@@ -391,7 +406,7 @@ class BaseGAN():
 
             targetRandCat = targetRandCat.to(self.device)
             latentRandCat = latentRandCat.to(self.device)
-            inputLatent = torch.cat((inputLatent, latentRandCat), dim = 1)
+            inputLatent = torch.cat((inputLatent, latentRandCat), dim=1)
 
             return inputLatent, targetRandCat
 
@@ -399,10 +414,11 @@ class BaseGAN():
 
     def buildNoiseDataWithConstraints(self, n, labels):
 
-        constrainPart = self.ACGANCriterion.generateConstraintsFromVector(n, labels)
+        constrainPart = self.ACGANCriterion.generateConstraintsFromVector(
+            n, labels)
         inputLatent = torch.randn((n, self.config.noiseVectorDim, 1, 1))
 
-        return torch.cat((inputLatent, constrainPart), dim = 1)
+        return torch.cat((inputLatent, constrainPart), dim=1)
 
     def getOriginalG(self):
         r"""
@@ -446,7 +462,7 @@ class BaseGAN():
         """
         pass
 
-    def getStateDict(self, saveTrainTmp = False):
+    def getStateDict(self, saveTrainTmp=False):
         r"""
         Get the model's parameters
         """
@@ -456,9 +472,9 @@ class BaseGAN():
         # Get the discrimator's state
         stateD = self.getOriginalD().state_dict()
 
-        out_state = { 'config': self.config,
-                      'netG': stateG,
-                      'netD': stateD}
+        out_state = {'config': self.config,
+                     'netG': stateG,
+                     'netD': stateD}
 
         # Average GAN
         out_state['avgG'] = self.avgG.module.state_dict()
@@ -468,7 +484,7 @@ class BaseGAN():
 
         return out_state
 
-    def save(self, path, saveTrainTmp = False):
+    def save(self, path, saveTrainTmp=False):
         r"""
         Save the model at the given location.
 
@@ -478,7 +494,7 @@ class BaseGAN():
             - saveTrainTmp (bool): set to True if you want to conserve
                                     the training parameters
         """
-        torch.save(self.getStateDict(saveTrainTmp = saveTrainTmp), path)
+        torch.save(self.getStateDict(saveTrainTmp=saveTrainTmp), path)
 
     def updateConfig(self, config):
         r"""
@@ -496,10 +512,10 @@ class BaseGAN():
 
     def load(self,
              path,
-             loadG = True,
-             loadD = True,
-             loadConfig = True,
-             finetuning= False):
+             loadG=True,
+             loadD=True,
+             loadConfig=True,
+             finetuning=False):
         r"""
         Load a model saved with the @method save() function
 
@@ -514,7 +530,8 @@ class BaseGAN():
             updateConfig(self.config, in_state['config'])
             if self.config.lossCriterion == 'WGANGP2':
                 self.config.lossCriterion = 'WGANGP'
-            self.lossCriterion = getattr(base_loss_criterions, self.config.lossCriterion)(self.device)
+            self.lossCriterion = getattr(
+                base_loss_criterions, self.config.lossCriterion)(self.device)
             self.initializeACCriterion()
 
         # Re-initialize G and D with the loaded configuration
@@ -523,19 +540,22 @@ class BaseGAN():
         if loadG:
             self.netG = self.getNetG()
             if finetuning:
-                loadPartOfStateDict(self.netG, in_state['netG'], ["formatLayer"])
+                loadPartOfStateDict(
+                    self.netG, in_state['netG'], ["formatLayer"])
                 self.getOriginalG().initFormatLayer(self.config.latentVectorDim)
             else:
-                self.netG.load_state_dict(in_state['netG'])
+                # Replace me by a standard loadStatedict for open-sourcing TODO
+                loadStateDictCompatible(self.netG, in_state['netG'])
                 if 'avgG' in in_state:
                     print("Average network found !")
                     self.buildAvG()
-                    self.avgG.module.load_state_dict(in_state['avgG'])
+                    # Replace me by a standard loadStatedict for open-sourcing
+                    loadStateDictCompatible(self.avgG.module, in_state['avgG'])
                     buildAvG = False
 
         if loadD:
 
-            #Possibility to convert a B&W discriminator into a color one
+            # Possibility to convert a B&W discriminator into a color one
             makeRGBTransfer = False
             if self.config.dimOutput == 3 and in_state['config'].dimOutput == 1:
                 self.config.dimOutput = 1
@@ -544,10 +564,14 @@ class BaseGAN():
             self.netD = self.getNetD()
 
             if finetuning:
-                loadPartOfStateDict(self.netD, in_state['netD'], ["decisionLayer"])
-                self.getOriginalD().initDecisionLayer(self.lossCriterion.sizeDecisionLayer + self.config.categoryVectorDim)
+                loadPartOfStateDict(
+                    self.netD, in_state['netD'], ["decisionLayer"])
+                self.getOriginalD().initDecisionLayer(
+                    self.lossCriterion.sizeDecisionLayer
+                    + self.config.categoryVectorDim)
             else:
-                self.netD.load_state_dict(in_state['netD'])
+                # Replace me by a standard loadStatedict for open-sourcing TODO
+                loadStateDictCompatible(self.netD, in_state['netD'])
 
             if makeRGBTransfer:
                 self.netD.switch2RGBInput()
@@ -568,7 +592,7 @@ class BaseGAN():
         """
         return
 
-    def getGradientPenalty(self, input, fake, network = None):
+    def getGradientPenalty(self, input, fake):
         r"""
         Build the gradient penalty as described in
         "Improved Training of Wasserstein GANs"
@@ -582,72 +606,57 @@ class BaseGAN():
 
         batchSize = input.size(0)
         alpha = torch.rand(batchSize, 1)
+        alpha = alpha.expand(batchSize, int(input.nelement() /
+                                            batchSize)).contiguous().view(input.size())
+        alpha = alpha.to(self.device)
+        interpolates = alpha * input + ((1 - alpha) * fake)
 
-        if isinstance(fake, list):
-            pyramid= buildHierarchicalPyramid(input)
-            interpolates = []
+        interpolates = torch.autograd.Variable(
+            interpolates, requires_grad=True)
 
-            nImgs = len(fake)
+        decisionInterpolate = self.netD(interpolates)[:, 0].sum()
 
-            for i in range(nImgs):
-                locAlpha = alpha.expand(batchSize, pyramid[i].nelement()/batchSize).contiguous().view(pyramid[i].size())
-                locAlpha = locAlpha.to(self.device)
-                interpolates.append(locAlpha * pyramid[i] + ((1 - locAlpha) * fake[i]))
-                interpolates[i] = torch.autograd.Variable(interpolates[i], requires_grad=True)
-        else:
-            alpha = alpha.expand(batchSize, int(input.nelement()/batchSize)).contiguous().view(input.size())
-            alpha = alpha.to(self.device)
-            interpolates = alpha * input + ((1 - alpha) * fake)
+        gradients = torch.autograd.grad(outputs=decisionInterpolate,
+                                        inputs=interpolates,
+                                        grad_outputs=torch.ones(
+                                            decisionInterpolate.size()).to(self.device),
+                                        create_graph=True, retain_graph=True,
+                                        only_inputs=True)
 
-            interpolates = torch.autograd.Variable(interpolates, requires_grad=True)
+        gradients = gradients[0].view(batchSize, -1)
+        gradients = (gradients * gradients).sum(dim=1).sqrt()
+        gradient_penalty = (((gradients - 1.0)**2)).sum()* self.config.lambdaGP
 
-        if network is None:
-            pred, phi = self.netD(interpolates)
-            decisionInterpolate = pred[:, 0].sum()
-        else:
-            decisionInterpolate = network(interpolates)[:, 0].sum()
+        gradient_penalty.backward(retain_graph=True)
 
-        gradients = torch.autograd.grad(outputs=decisionInterpolate, inputs=interpolates,
-                                  grad_outputs=torch.ones(decisionInterpolate.size()).to(self.device),
-                                  create_graph=True, retain_graph=True,
-                                  only_inputs=True)
-
-        if len(gradients) > 1:
-            tmp = [grad.view(batchSize, -1) for grad in gradients]
-            gradients = torch.cat(tmp, dim =1)
-        else:
-            gradients = gradients[0].view(batchSize, -1)
-
-        gradients = (gradients * gradients).sum(dim = 1).sqrt()
-
-        gradient_penalty = (((gradients - 1.0)**2)).sum()
-
-        return gradient_penalty * self.config.lambdaGP
+        return gradient_penalty.item()
 
     def gradientDescentOnInput(self,
                                input,
                                featureExtractors,
                                imageTransforms,
-                               weights = None,
-                               visualizer = None,
-                               lambdaD = 0.03,
-                               nSteps = 6000,
-                               randomSearch= False,
-                               lr = 1,
-                               outPathSave = None):
+                               weights=None,
+                               visualizer=None,
+                               lambdaD=0.03,
+                               nSteps=6000,
+                               randomSearch=False,
+                               lr=1,
+                               outPathSave=None):
 
         if visualizer is not None:
             visualizer.publishTensors(input, (128, 128))
 
-        refNoise = torch.autograd.Variable(self.buildNoiseData(input.size(0))[0], requires_grad=True).to(self.device)
-
-        #Detect categories
-        varNoise = torch.randn((input.size(0), self.config.noiseVectorDim + self.config.categoryVectorDim, 1, 1), requires_grad=True, device = self.device)
+        # Detect categories
+        varNoise = torch.randn((input.size(0),
+                                self.config.noiseVectorDim +
+                                self.config.categoryVectorDim,
+                                1, 1),
+                               requires_grad=True, device=self.device)
 
         optimNoise = optim.Adam([varNoise],
-                  betas = [0., 0.99], lr = lr)
+                                betas=[0., 0.99], lr=lr)
 
-        noiseOut = self.test(varNoise, getAvG = True, toCPU = False)
+        noiseOut = self.test(varNoise, getAvG=True, toCPU=False)
 
         if visualizer is not None:
             visualizer.publishTensors(noiseOut.cpu(), (128, 128))
@@ -663,35 +672,40 @@ class BaseGAN():
             weights = [1.0 for i in range(nExtractors)]
 
         if len(imageTransforms) != nExtractors:
-            raise ValueError("The number of image transforms should match the number of feature extractors")
+            raise ValueError(
+                "The number of image transforms should match the number of \
+                feature extractors")
         if len(weights) != nExtractors:
-            raise ValueError("The number of weights should match the number of feature extractors")
+            raise ValueError(
+                "The number of weights should match the number of feature\
+                 extractors")
 
         featuresIn = []
 
         for i in range(nExtractors):
 
             if len(featureExtractors[i]._modules) > 0:
-                featureExtractors[i] = nn.DataParallel(featureExtractors[i]).train().to(self.device)
+                featureExtractors[i] = nn.DataParallel(
+                    featureExtractors[i]).train().to(self.device)
 
+            imageTransforms[i] = nn.DataParallel(
+                imageTransforms[i]).to(self.device)
 
-            imageTransforms[i] = nn.DataParallel(imageTransforms[i]).to(self.device)
-
-            featuresIn.append(featureExtractors[i](imageTransforms[i](input.to(self.device))).detach())
+            featuresIn.append(featureExtractors[i](
+                imageTransforms[i](input.to(self.device))).detach())
 
         lr = 1
-        lastLoss = -1
 
         optimalVector = None
         optimalLoss = None
 
-        epochStep = int(nSteps /3)
+        epochStep = int(nSteps / 3)
         gradientDecay = 0.1
 
         def resetVar(newVal):
             varNoise = newVal
             optimNoise = optim.Adam([varNoise],
-                                    betas = [0., 0.99], lr = lr)
+                                    betas=[0., 0.99], lr=lr)
 
         for iter in range(nSteps):
 
@@ -700,16 +714,18 @@ class BaseGAN():
             self.optimizerD.zero_grad()
 
             if randomSearch:
-                varNoise = torch.randn((input.size(0), self.config.noiseVectorDim + self.config.categoryVectorDim, 1, 1), requires_grad=True, device = self.device)
+                varNoise = torch.randn((input.size(0),
+                                        self.config.noiseVectorDim +
+                                        self.config.categoryVectorDim,
+                                        1, 1),
+                                       requires_grad=True, device=self.device)
 
             noiseOut = self.avgG(varNoise)
             sumLoss = 0
 
-            loss = ((varNoise**2).mean(dim=1) -1 )**2
-            loss.backward(retain_graph= True)
+            loss = ((varNoise**2).mean(dim=1) - 1)**2
+            loss.backward(retain_graph=True)
             sumLoss += loss.item()
-
-            size = noiseOut.size(2), noiseOut.size(3)
 
             for i in range(nExtractors):
                 featureOut = featureExtractors[i](imageTransforms[i](noiseOut))
@@ -717,24 +733,22 @@ class BaseGAN():
                 loss = weights[i] * diff.mean()
                 sumLoss += loss.item()
 
-                retain_graph = i < nExtractors -1
-
                 if not randomSearch:
-                    loss.backward(retain_graph= True)
+                    loss.backward(retain_graph=True)
 
-            loss = -lambdaD * self.netD(noiseOut)[0,0]
-            sumLoss+=loss.item()
+            loss = -lambdaD * self.netD(noiseOut)[0, 0]
+            sumLoss += loss.item()
 
             if not randomSearch:
                 loss.backward()
 
-            sumLoss+=loss.item()
+            sumLoss += loss.item()
 
             if not randomSearch:
                 optimNoise.step()
 
             if optimalLoss is None or sumLoss < optimalLoss:
-                optimalVector= deepcopy(varNoise)
+                optimalVector = deepcopy(varNoise)
                 optimalLoss = sumLoss
 
             if iter % 100 == 0:
@@ -743,20 +757,24 @@ class BaseGAN():
 
                     if outPathSave is not None:
                         index_str = str(int(iter/100))
-                        outPath = os.path.join(outPathSave,index_str + ".jpg")
-                        visualizer.saveTensor(noiseOut.cpu(), (noiseOut.size(2), noiseOut.size(3)), outPath)
+                        outPath = os.path.join(outPathSave, index_str + ".jpg")
+                        visualizer.saveTensor(
+                            noiseOut.cpu(),
+                            (noiseOut.size(2), noiseOut.size(3)),
+                            outPath)
 
-                print("%d : %f" %(iter, sumLoss))
+                print("%d : %f" % (iter, sumLoss))
 
-            if iter % epochStep == (epochStep -1):
-                lr*= gradientDecay
+            if iter % epochStep == (epochStep - 1):
+                lr *= gradientDecay
                 resetVar(optimalVector)
 
         varNoise = optimalVector
-        output = self.test(varNoise, getAvG = True, toCPU = True).detach()
+        output = self.test(varNoise, getAvG=True, toCPU=True).detach()
 
         if visualizer is not None:
-            visualizer.publishTensors(output.cpu(), (output.size(2), output.size(3)))
+            visualizer.publishTensors(
+                output.cpu(), (output.size(2), output.size(3)))
 
-        print("optimal loss %f"  % optimalLoss)
+        print("optimal loss %f" % optimalLoss)
         return output, varNoise, optimalLoss

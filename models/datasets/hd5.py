@@ -1,13 +1,8 @@
 import json
-
-import tables
 import torch
 import h5py
 
 import copy
-
-import torchvision
-import torchvision.transforms as Transforms
 
 from .utils.db_stats import buildKeyOrder
 
@@ -16,12 +11,12 @@ class H5Dataset(torch.utils.data.Dataset):
 
     def __init__(self,
                  file_path,
-                 partition_path = None,
-                 partition_value = None,
-                 transform = None,
+                 partition_path=None,
+                 partition_value=None,
+                 transform=None,
                  specificAttrib=None,
-                 stats_file = None,
-                 pathDBMask = None):
+                 stats_file=None,
+                 pathDBMask=None):
         super(H5Dataset, self).__init__()
 
         self.path = file_path
@@ -50,14 +45,13 @@ class H5Dataset(torch.utils.data.Dataset):
         self.pathDBMask = pathDBMask
         self.maskFile = None
 
-
     def __getitem__(self, index):
 
         if self.h5_file is None:
-            self.h5_file = h5py.File(self.path,'r')
+            self.h5_file = h5py.File(self.path, 'r')
 
             if self.partition_path is not None:
-                self.partition_file = h5py.File(self.partition_path,'r')
+                self.partition_file = h5py.File(self.partition_path, 'r')
 
         if self.partition_file is not None:
             index = self.partition_file[self.partition_value][index]
@@ -84,7 +78,7 @@ class H5Dataset(torch.utils.data.Dataset):
         if self.pathDBMask is not None:
 
             if self.maskFile is None:
-                self.maskFile = h5py.File(self.pathDBMask,'r')
+                self.maskFile = h5py.File(self.pathDBMask, 'r')
 
             mask = self.maskFile["mask"][index]
             mask = self.transform(mask)
@@ -98,17 +92,17 @@ class H5Dataset(torch.utils.data.Dataset):
     def __len__(self):
         if self.partition_path is None:
             with h5py.File(self.path, 'r') as db:
-                lens=len(db['input_image'])
+                lens = len(db['input_image'])
         else:
             with h5py.File(self.partition_path, 'r') as db:
-                lens=len(db[self.partition_value])
+                lens = len(db[self.partition_value])
         return lens
 
     def getName(self, index):
 
         if self.partition_path is not None:
             if self.partition_file is None:
-                self.partition_file = h5py.File(self.partition_path,'r')
+                self.partition_file = h5py.File(self.partition_path, 'r')
 
             return self.partition_file[self.partition_value][index]
 
@@ -123,7 +117,7 @@ class H5Dataset(torch.utils.data.Dataset):
             return
 
         if self.attribKeys is None:
-            self.attribKeys = [ x for x in self.statsData.keys()]
+            self.attribKeys = [x for x in self.statsData.keys()]
 
         self.attribShift = {}
         self.attribShiftVal = {}
@@ -133,10 +127,12 @@ class H5Dataset(torch.utils.data.Dataset):
         for key in self.attribKeys:
 
             self.attribShift[key] = self.totAttribSize
-            self.attribShiftVal[key] = { name : c for c,name in enumerate(list(self.statsData[key].keys()))}
-            self.totAttribSize +=1
+            self.attribShiftVal[key] = {
+                name: c
+                for c, name in enumerate(list(self.statsData[key].keys()))}
+            self.totAttribSize += 1
 
-    def getKeyOrders(self, equlizationWeights = False):
+    def getKeyOrders(self, equlizationWeights=False):
 
         if equlizationWeights:
             raise ValueError("Equalization weight not implemented yet")

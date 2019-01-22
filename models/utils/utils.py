@@ -5,37 +5,39 @@ import math
 
 import torch
 
-import numpy as np
-
-import scipy
-import scipy.misc
 
 def isinf(tensor):
-    r"""Returns a new tensor with boolean elements representing if each element is `+/-INF` or not.
+    r"""Returns a new tensor with boolean elements representing if each element
+    is `+/-INF` or not.
 
     Arguments:
         tensor (Tensor): A tensor to check
 
     Returns:
-        Tensor: A ``torch.ByteTensor`` containing a 1 at each location of `+/-INF` elements and 0 otherwise
+        Tensor: A ``torch.ByteTensor`` containing a 1 at each location of
+        `+/-INF` elements and 0 otherwise
 
     Example::
 
-        >>> torch.isinf(torch.Tensor([1, float('inf'), 2, float('-inf'), float('nan')]))
+        >>> torch.isinf(torch.Tensor([1, float('inf'), 2,
+                            float('-inf'), float('nan')]))
         tensor([ 0,  1,  0,  1,  0], dtype=torch.uint8)
     """
     if not isinstance(tensor, torch.Tensor):
         raise ValueError("The argument is not a tensor", str(tensor))
     return tensor.abs() == math.inf
 
+
 def isnan(tensor):
-    r"""Returns a new tensor with boolean elements representing if each element is `NaN` or not.
+    r"""Returns a new tensor with boolean elements representing if each element
+    is `NaN` or not.
 
     Arguments:
         tensor (Tensor): A tensor to check
 
     Returns:
-        Tensor: A ``torch.ByteTensor`` containing a 1 at each location of `NaN` elements.
+        Tensor: A ``torch.ByteTensor`` containing a 1 at each location of `NaN`
+        elements.
 
     Example::
 
@@ -46,6 +48,7 @@ def isnan(tensor):
         raise ValueError("The argument is not a tensor", str(tensor))
     return tensor != tensor
 
+
 def finiteCheck(parameters):
     if isinstance(parameters, torch.Tensor):
         parameters = [parameters]
@@ -53,10 +56,11 @@ def finiteCheck(parameters):
 
     for p in parameters:
         infGrads = isinf(p.grad.data)
-        p.grad.data[infGrads] =0
+        p.grad.data[infGrads] = 0
 
         nanGrads = isnan(p.grad.data)
         p.grad.data[nanGrads] = 0
+
 
 def prepareClassifier(module, outFeatures):
 
@@ -66,16 +70,18 @@ def prepareClassifier(module, outFeatures):
 
     return model
 
+
 def getMinOccurence(inputDict, value, default):
 
     keys = list(inputDict.keys())
-    outKeys = [ x for x in keys if x <= value]
+    outKeys = [x for x in keys if x <= value]
     outKeys.sort()
 
     if len(outKeys) == 0:
         return default
 
     return inputDict[outKeys[-1]]
+
 
 def getNameAndPackage(strCode):
 
@@ -85,10 +91,11 @@ def getNameAndPackage(strCode):
     if strCode == 'PPGAN':
         return "pp_gan", "PPGAN"
 
-    if strCode =="DCGAN":
+    if strCode == "DCGAN":
         return "DCGAN", "DCGAN"
 
     raise ValueError("Unrecognized code " + strCode)
+
 
 def parse_state_name(path):
     r"""
@@ -104,7 +111,7 @@ def parse_state_name(path):
     if len(data) < 3:
         return None
 
-    #Iteration
+    # Iteration
     if data[-1][0] == "i" and data[-1][1:].isdigit():
         iteration = int(data[-1][1:])
     else:
@@ -118,6 +125,7 @@ def parse_state_name(path):
     name = "_".join(data[:-2])
 
     return name, scale, iteration
+
 
 def parse_config_name(path):
     r"""
@@ -134,7 +142,8 @@ def parse_config_name(path):
 
     return path[:-18]
 
-def getLastCheckPoint(dir, name, scale = None, iter = None):
+
+def getLastCheckPoint(dir, name, scale=None, iter=None):
     r"""
     Get the last checkpoint of the model with name @param name detected in the
     directory (@param dir)
@@ -152,9 +161,9 @@ def getLastCheckPoint(dir, name, scale = None, iter = None):
         return None
 
     listFiles = [f for f in os.listdir(dir) if (
-                os.path.splitext(f)[1] == ".pt" and
-                parse_state_name(f) != None and
-                parse_state_name(f)[0] == name)]
+        os.path.splitext(f)[1] == ".pt" and
+        parse_state_name(f) is not None and
+        parse_state_name(f)[0] == name)]
 
     if scale is not None:
         listFiles = [f for f in listFiles if parse_state_name(f)[1] == scale]
@@ -162,7 +171,8 @@ def getLastCheckPoint(dir, name, scale = None, iter = None):
     if iter is not None:
         listFiles = [f for f in listFiles if parse_state_name(f)[2] == iter]
 
-    listFiles.sort(reverse = True, key = lambda x : (parse_state_name(x)[1], parse_state_name(x)[2]))
+    listFiles.sort(reverse=True, key=lambda x: (
+        parse_state_name(x)[1], parse_state_name(x)[2]))
 
     if len(listFiles) == 0:
         return None
@@ -175,6 +185,7 @@ def getLastCheckPoint(dir, name, scale = None, iter = None):
 
     return trainConfig, pathModel, pathTmpData
 
+
 def getVal(kwargs, key, default):
 
     out = kwargs.get(key, default)
@@ -182,6 +193,7 @@ def getVal(kwargs, key, default):
         return default
 
     return out
+
 
 def toStrKey(item):
 
@@ -192,14 +204,22 @@ def toStrKey(item):
     out = out.replace("'", "")
     return out
 
-def num_flat_features(x):
-        size = x.size()[1:]  # all dimensions except the batch dimension
-        num_features = 1
-        for s in size:
-            num_features *= s
-        return num_features
 
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '#'):
+def num_flat_features(x):
+    size = x.size()[1:]  # all dimensions except the batch dimension
+    num_features = 1
+    for s in size:
+        num_features *= s
+    return num_features
+
+
+def printProgressBar(iteration,
+                     total,
+                     prefix='',
+                     suffix='',
+                     decimals=1,
+                     length=100,
+                     fill='#'):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -207,34 +227,71 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
         total       - Required  : total iterations (Int)
         prefix      - Optional  : prefix string (Str)
         suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        decimals    - Optional  : positive number of decimals in percent
+                                  complete (Int)
         length      - Optional  : character length of bar (Int)
         fill        - Optional  : bar fill character (Str)
     """
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    percent = ("{0:." + str(decimals) + "f}").format(100 *
+                                                     (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + '-' * (length - filledLength)
-    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = '\r')
+    print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end='\r')
     # Print New Line on Complete
     if iteration == total:
         print()
 
-def loadPartOfStateDict(module, state_dict, forbiddenLayers = None):
+
+def loadPartOfStateDict(module, state_dict, forbiddenLayers=None):
     r"""
     Load the input state dict to the module except for the weights corresponding
     to one of the forbidden layers
     """
     own_state = module.state_dict()
+    if forbiddenLayers is None:
+        forbiddenLayers = []
     for name, param in state_dict.items():
         if name.split(".")[0] in forbiddenLayers:
-             continue
+            continue
         if isinstance(param, torch.nn.Parameter):
             # backwards compatibility for serialized parameters
             param = param.data
 
         own_state[name].copy_(param)
 
-def loadmodule(package, name, prefix ='..'):
+
+def loadStateDictCompatible(module, state_dict):
+    r"""
+    Load the input state dict to the module except for the weights corresponding
+    to one of the forbidden layers
+    """
+    own_state = module.state_dict()
+    for name, param in state_dict.items():
+        if isinstance(param, torch.nn.Parameter):
+            # backwards compatibility for serialized parameters
+            param = param.data
+
+        if name in own_state:
+            own_state[name].copy_(param)
+            continue
+
+        # Else see if the input name is a prefix
+        suffixes = ["bias", "weight"]
+        found = False
+        for suffix in suffixes:
+            indexEnd = name.find(suffix)
+            if indexEnd > 0:
+                newKey = name[:indexEnd] + "module." + suffix
+                if newKey in own_state:
+                    own_state[newKey].copy_(param)
+                    found = True
+                    break
+
+        if not found:
+            raise AttributeError("Unknow key " + name)
+
+
+def loadmodule(package, name, prefix='..'):
     r"""
     A dirty hack to load a module from a string input
 
@@ -245,9 +302,10 @@ def loadmodule(package, name, prefix ='..'):
     Returns:
         A pointer to the loaded module
     """
-    strCmd = "from "+ prefix + package + " import " + name + " as module"
+    strCmd = "from " + prefix + package + " import " + name + " as module"
     exec(strCmd)
     return eval('module')
+
 
 def saveScore(outPath, outValue, *args):
 
