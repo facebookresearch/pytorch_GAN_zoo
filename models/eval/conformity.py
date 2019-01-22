@@ -131,8 +131,6 @@ def test(parser, visualisation = None):
     for currIndexLabel in range(nLabels):
 
         labelName = labels[currIndexLabel]
-        #if labelName in ["b'id_gridfs_5'", "b'id_gridfs_6'"]:
-        #    continue
 
         nextStep = stepsRun[currIndexLabel + 1]
 
@@ -157,11 +155,6 @@ def test(parser, visualisation = None):
                 confusion[currIndexLabel, p] += torch.sum(preds == p).item()
 
             nImages += batchSize
-
-            #visualisation.publishTensors(images, (128,128))
-            #print(preds)
-            #print(constraints)
-            #break
 
         delta = float(nImages - start)
         meanProba = sumProba / delta

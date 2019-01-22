@@ -16,10 +16,9 @@ from .datasets.attrib_dataset import pil_loader
 from .utils.utils import printProgressBar
 from .datasets.hd5 import H5Dataset
 
-PI = 3.14159265359
-
-
 class GANVisualizer():
+    r"""
+    """
 
     def __init__(self,
                  pathGan,
@@ -74,7 +73,6 @@ class GANVisualizer():
         for i in range(nsteps):
 
             refVal = currVal
-            #noiseData[i] *=  math.sin(currVal)
             noiseData[i][parameterIndex] = refVal
 
             currVal += stepVal
@@ -142,12 +140,10 @@ class GANVisualizer():
 
     def showEqualized(self, size):
 
-        noiseData, _ = self.model.buildNoiseData(1)
-        eqVector = torch.zeros(noiseData.size()) + 1.0
+        eqVector, _ = torch.zeros(1, self.model.config.latentVectorDim) + 1.0
+        eqVector[:] = 1
 
-        outNoise = self.model.test(noiseData)
         outEq = self.model.test(eqVector)
-
         outSize = (size, size)
 
         self.visualizer.publishTensors(
@@ -187,7 +183,7 @@ class GANVisualizer():
         angles[parameterIndex] = 0
         currVal = 0
 
-        step = 2.0 * PI / (float(nSteps) - 2.0)
+        step = 2.0 * math.pi / (float(nSteps) - 2.0)
 
         for i in range(nSteps):
 
@@ -216,14 +212,6 @@ class GANVisualizer():
             outImg, outSize,
             caption="test",
             env=env)
-
-    def generateRandomConstraints(self):
-
-        output = torch.zeros(nImages, M-N)
-
-        for member, values in self.keyShift.item():
-
-            l = len(values)
 
     def plotLosses(self, pathLoss, name="Data", clear=True):
 
