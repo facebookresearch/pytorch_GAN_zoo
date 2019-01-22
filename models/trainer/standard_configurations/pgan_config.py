@@ -91,5 +91,5 @@ _C.attribKeysOrder = None
 
 _C.equalizeLabels = False
 
-#GDPP
+#Activate GDPP loss ?
 _C.GDPP = False

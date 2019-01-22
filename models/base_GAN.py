@@ -4,37 +4,14 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as f
 
 from .utils.config import BaseConfig, updateConfig
 from .loss_criterions import base_loss_criterions
 from .loss_criterions.ac_criterion import ACGanCriterion
+from .loss_criterions.GDPP_loss import GDPPLoss
 from .utils.utils import loadPartOfStateDict, finiteCheck, \
     loadStateDictCompatible
 
-
-def compute_gdpp(phi_fake, phi_real):
-    def compute_diversity(phi):
-        phi = f.normalize(phi, p=2, dim=1)
-        S_B = torch.mm(phi, phi.t())
-        eig_vals, eig_vecs = torch.symeig(S_B, eigenvectors=True)
-        return eig_vals, eig_vecs
-
-    def normalize_min_max(eig_vals):
-        min_v, max_v = torch.min(eig_vals), torch.max(eig_vals)
-        return (eig_vals - min_v) / (max_v - min_v)
-
-    fake_eig_vals, fake_eig_vecs = compute_diversity(phi_fake)
-    real_eig_vals, real_eig_vecs = compute_diversity(phi_real)
-
-    # Scaling factor to make the two losses operating in comparable ranges.
-    magnitude_loss = 0.0001 * f.mse_loss(target=real_eig_vals, input=fake_eig_vals)
-    structure_loss = -torch.sum(torch.mul(fake_eig_vecs, real_eig_vecs), 0)
-    normalized_real_eig_vals = normalize_min_max(real_eig_vals)
-    weighted_structure_loss = torch.sum(torch.mul(normalized_real_eig_vals, structure_loss))
-    gdpp_loss = magnitude_loss + weighted_structure_loss
-    gdpp_loss.backward(retain_graph=True)
-    return gdpp_loss.item()
 
 def getNArgs(x):
 
@@ -52,18 +29,18 @@ class BaseGAN():
 
     def __init__(self,
                  dimLatentVector,
-                 dimOutput = 3,
-                 useGPU = True,
-                 kInnerD = 1,
-                 kInnerG = 1,
-                 lambdaGP = 0.,
-                 epsilonD = 0.,
-                 baseLearningRate = 0.001,
-                 lossMode = 'WGANGP',
-                 attribKeysOrder = None,
-                 weightConditionD= 0.0,
-                 weightConditionG = 0.0,
-                 GDPP = False,
+                 dimOutput=3,
+                 useGPU=True,
+                 kInnerD=1,
+                 kInnerG=1,
+                 lambdaGP=0.,
+                 epsilonD=0.,
+                 baseLearningRate=0.001,
+                 lossMode='WGANGP',
+                 attribKeysOrder=None,
+                 weightConditionD=0.0,
+                 weightConditionG=0.0,
+                 GDPP=False,
                  **kwargs):
         r"""
         Args:
@@ -159,8 +136,8 @@ class BaseGAN():
         # Losses
         self.resetTmpLosses()
 
-
     # used in test time, no backprop
+
     def test(self, input, getAvG=False, toCPU=True):
         r"""
         Generate some data given the input latent vector.
@@ -240,7 +217,8 @@ class BaseGAN():
         lossD += self.lossCriterion.getCriterion(predFakeD, False)
 
         if self.config.lambdaGP > 0:
-            self.trainTmp.lossGrad += self.getGradientPenalty(self.real_input, predFakeG)
+            self.trainTmp.lossGrad += self.getGradientPenalty(
+                self.real_input, predFakeG)
 
         if self.config.epsilonD > 0:
             tmp = lossD.item()
@@ -278,14 +256,15 @@ class BaseGAN():
                 inputNoise, targetCatNoise = self.buildNoiseData(n_samples)
                 predFakeG = self.netG(inputNoise)
 
-                predFakeD, phi_G_fake = self.netD(predFakeG, getFeature = True)
+                predFakeD, phiGFake = self.netD(predFakeG, getFeature=True)
                 lossGFake = self.lossCriterion.getCriterion(predFakeD, True)
 
                 if self.config.GDPP:
-                    _, phi_D_real = self.netD.forward(self.real_input, getFeature = True)
-                    self.trainTmp.lossGDPP += compute_gdpp(phi_D_real, phi_G_fake)
+                    _, phiDReal = self.netD.forward(self.real_input,
+                                                    getFeature=True)
+                    self.trainTmp.lossGDPP += GDPPLoss(phiDReal, phiGFake)
 
-                self.trainTmp.lossG+= lossGFake.item()
+                self.trainTmp.lossG += lossGFake.item()
                 self.auxiliaryLossesGeneration()
 
                 self.trainTmp.lossACG += self.updateLossACGeneration(
@@ -306,12 +285,14 @@ class BaseGAN():
         r"""
         """
 
-        if self.config.weightConditionD != 0 and not self.config.attribKeysOrder:
+        if self.config.weightConditionD != 0 and \
+                not self.config.attribKeysOrder:
             raise AttributeError("If the weight on the conditional term isn't "
                                  "null, then a attribute dictionnery should be"
                                  " defined")
 
-        if self.config.weightConditionG != 0 and not self.config.attribKeysOrder:
+        if self.config.weightConditionG != 0 and \
+                not self.config.attribKeysOrder:
             raise AttributeError("If the weight on the conditional term isn't \
                                  null, then a attribute dictionnery should be \
                                  defined")
@@ -587,8 +568,8 @@ class BaseGAN():
 
     def loadAuxiliaryData(self, in_state):
         r"""
-        For children classes, in any supplementary data should be loaded from an
-        input state dictionary, it should be defined here.
+        For children classes, in any supplementary data should be loaded from
+        an input state dictionary, it should be defined here.
         """
         return
 
@@ -600,8 +581,8 @@ class BaseGAN():
         Args:
 
             - input (Tensor): batch of real data
-            - fake (Tensor): batch of generated data. Must have the same size as
-            the input
+            - fake (Tensor): batch of generated data. Must have the same size
+              as the input
         """
 
         batchSize = input.size(0)
@@ -625,7 +606,8 @@ class BaseGAN():
 
         gradients = gradients[0].view(batchSize, -1)
         gradients = (gradients * gradients).sum(dim=1).sqrt()
-        gradient_penalty = (((gradients - 1.0)**2)).sum()* self.config.lambdaGP
+        gradient_penalty = (((gradients - 1.0)**2)).sum() * \
+            self.config.lambdaGP
 
         gradient_penalty.backward(retain_graph=True)
 
