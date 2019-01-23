@@ -41,8 +41,6 @@ def update_parser(parser):
 
 def test(parser, visualisation=None):
 
-    parser.add_argument('-f', '--featureExtractor', help="Partition's value",
-                        type=str, dest="featureExtractor")
     update_parser(parser)
 
     kwargs = vars(parser.parse_args())
@@ -64,7 +62,7 @@ def test(parser, visualisation=None):
         raise ValueError("You need to give a feature extractor")
 
     # Mandatory fields
-    checkPointDir = os.path.join(kwargs["dir"], modelLabel)
+    checkPointDir = os.path.join(kwargs["dir"], name)
     scale = getVal(kwargs, "scale", None)
     iter = getVal(kwargs, "iter", None)
 
@@ -128,8 +126,10 @@ def test(parser, visualisation=None):
         nnSearch, names = pickle.load(file)
 
     if kwargs['showNN']:
+        print("Retriving 10 neighbors for visualization")
         visualizer.visualizeNN(10, 5, featureExtractor,
                                imgTransform, nnSearch, names, pathDB)
+        print("Ready, please check out visdom main environement")
     else:
 
         outMetric = visualizer.exportNN(
