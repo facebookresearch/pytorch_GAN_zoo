@@ -89,7 +89,7 @@ def test(parser, visualisation=None):
     iter = getVal(kwargs, "iter", None)
     nRuns = getVal(kwargs, "nRuns", 1)
 
-    checkPointDir = os.path.join(kwargs["dir"], modelLabel)
+    checkPointDir = os.path.join(kwargs["dir"], name)
     checkpointData = getLastCheckPoint(checkPointDir,
                                        name,
                                        scale=scale,

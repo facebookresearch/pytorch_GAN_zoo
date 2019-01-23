@@ -499,8 +499,6 @@ class BaseGAN():
         # Step one : load the configuration
         if loadConfig:
             updateConfig(self.config, in_state['config'])
-            if self.config.lossCriterion == 'WGANGP2':
-                self.config.lossCriterion = 'WGANGP'
             self.lossCriterion = getattr(
                 base_loss_criterions, self.config.lossCriterion)(self.device)
             self.initializeACCriterion()

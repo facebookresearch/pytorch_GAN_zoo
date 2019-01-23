@@ -70,7 +70,6 @@ class NumpyToTensor(object):
 
         return Transforms.functional.to_tensor(img)
 
-
 def pil_loader(path):
     imgExt = os.path.splitext(path)[1]
     if imgExt == ".npy":
@@ -82,3 +81,9 @@ def pil_loader(path):
     with open(path, 'rb') as f:
         img = Image.open(f)
         return img.convert('RGB')
+
+def standardTransform(size):
+    return Transforms.Compose([NumpyResize(size),
+                               Transforms.ToTensor(),
+                               Transforms.Normalize((0.5, 0.5, 0.5),
+                                                    (0.5, 0.5, 0.5))])
