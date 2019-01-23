@@ -8,14 +8,24 @@ Several GAN implementations:
 ## Requirements
 
 This project requires:
-- pytorch (fair_env_latest_py3 version)
+- pytorch
+- torchvision
 - numpy
 - scipy
 
 Optional:
 - visdom
 
-FAIR setup:
+If you don't already have pytorch or torchvision please have a look at https://pytorch.org/ as the installation command may vary depending on your OS and your version of CUDA.
+
+You cam install all other dependencies with pip by running:
+
+```
+pip install -r requirements.txt
+```
+
+
+## FAIR setup:
 
 Before running the project on the FAIR cluster, don't forget to setup the environment
 
