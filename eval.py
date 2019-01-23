@@ -27,6 +27,8 @@ if __name__ == "__main__":
                         type=str, dest="partition_value")
     parser.add_argument("-A", "--statsFile", dest="statsFile",
                         type=str, help="Path to the statistics file")
+    parser.add_argument('-f', '--featureExtractor', help="Partition's value",
+                        type=str, dest="featureExtractor")
 
     args, unknown = parser.parse_known_args()
 

@@ -270,7 +270,7 @@ class GANVisualizer():
 
         vectorOut = []
 
-        size = self.model.getSize()
+        size = self.model.getSize()[0]
 
         transform = Transforms.Compose([Transforms.Resize((size, size)),
                                         Transforms.ToTensor(),
