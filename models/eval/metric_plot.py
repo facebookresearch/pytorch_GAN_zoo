@@ -18,7 +18,7 @@ def test(parser, visualisation=None):
     if visualisation is None:
         raise ValueError("A visualizer is mandatory for this evaluation")
 
-    checkPointDir = os.path.join(kwargs["dir"], modelLabel)s
+    checkPointDir = os.path.join(kwargs["dir"], name)
 
     suffixes = {"SWD": "_swd", "NN": "_nn_metric",
                 "INCEPTION": "_inception_metric"}
@@ -57,7 +57,7 @@ def test(parser, visualisation=None):
                 locIter = []
                 outYData = [[] for x in range(nData)]
 
-                iterations = [int(x) for x in data[scale].keys()]
+                iterations = [int(x) for x in data[scale].keys() if x.isdigit()]
 
                 iterations.sort()
 
