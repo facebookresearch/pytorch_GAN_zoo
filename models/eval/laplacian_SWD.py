@@ -10,7 +10,7 @@ from ..datasets.attrib_dataset import AttribDataset
 from ..datasets.hd5 import H5Dataset
 from ..utils.utils import getVal, loadmodule, getLastCheckPoint, \
     parse_state_name, getNameAndPackage, saveScore
-from ..utils.image_transform import NumpyResize
+from ..utils.image_transform import standardTransform
 
 
 def test(parser, visualisation=None):
@@ -82,19 +82,15 @@ def test(parser, visualisation=None):
     with open(trainingConfig, 'rb') as file:
         wholeConfig = json.load(file)
 
-    pathPartition = wholeConfig.get("pathPartition", None)
+    pathPartition  = wholeConfig.get("pathPartition", None)
     partitionValue = wholeConfig.get("partitionValue", None)
-
+    attribDict     = wholeConfig.get('pathAttrib', None)
     partitionValue = getVal(kwargs, "partition_value", None)
 
     # Training dataset properties
     pathDB = wholeConfig["pathDB"]
-    attribDict = wholeConfig.get('pathAttrib', None)
     size = 2**(2 + scale)
-    db_transform = Transforms.Compose([NumpyResize((size, size)),
-                                       Transforms.ToTensor(),
-                                       Transforms.Normalize((0.5, 0.5, 0.5),
-                                                            (0.5, 0.5, 0.5))])
+    db_transform = standardTransform((size, size))
 
     if os.path.splitext(pathDB)[1] == '.h5':
         dataset = H5Dataset(pathDB,
@@ -106,13 +102,13 @@ def test(parser, visualisation=None):
                                 transform=db_transform,
                                 attribDictPath=attribDict)
 
-    # Metric parameters
-    nImagesSampled = min(len(dataset), 16000)
     batchSize = 16
-    maxBatch = nImagesSampled / batchSize
-
     dbLoader = torch.utils.data.DataLoader(dataset, batch_size=batchSize,
                                            num_workers=2, shuffle=True)
+
+    # Metric parameters
+    nImagesSampled = min(len(dataset), 16000)
+    maxBatch = nImagesSampled / batchSize
 
     if kwargs['selfNoise']:
 
