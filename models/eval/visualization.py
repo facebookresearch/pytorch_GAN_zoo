@@ -31,7 +31,11 @@ def updateParser(parser, labels):
                         help="Path to some latent vectors to interpolate")
     parser.add_argument('--random_interpolate', action='store_true',
                         help="Save a random interpolation")
-
+    parser.add_argument('--save_dataset', type=str, dest="output_dataset",
+                        help="Save a dataset at the given location")
+    parser.add_argument('--size_dataset', type=int, dest="size_dataset",
+                        default=10000,
+                        help="Size of the dataset to be saved")
     return parser
 
 
@@ -50,6 +54,7 @@ def test(parser, visualisation=None):
 
     scale = getVal(kwargs, "scale", None)
     iter = getVal(kwargs, "iter", None)
+
     checkPointDir = os.path.join(kwargs["dir"], name)
     checkpointData = getLastCheckPoint(checkPointDir,
                                        name,
@@ -126,5 +131,10 @@ def test(parser, visualisation=None):
             visualizer.saveInterpolation(
                 100, interpolationVectors[img],
                 interpolationVectors[indexNext], path)
+
+    outputDatasetPath = getVal(kwargs, "output_dataset", None)
+    if outputDatasetPath is not None:
+        print("Exporting a fake dataset at path " + outputDatasetPath)
+        visualizer.exportDB(outputDatasetPath, kwargs["size_dataset"])
 
     visualizer.plotLosses(pathLoss, name)
