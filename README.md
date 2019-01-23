@@ -24,7 +24,6 @@ You cam install all other dependencies with pip by running:
 pip install -r requirements.txt
 ```
 
-
 ## FAIR setup:
 
 Before running the project on the FAIR cluster, don't forget to setup the environment
