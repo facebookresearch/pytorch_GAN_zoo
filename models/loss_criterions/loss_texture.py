@@ -68,12 +68,23 @@ def extractIndexedLayers(sequence,
 
 class LossTexture(torch.nn.Module):
     r"""
+    An implenetation of style transfer's (http://arxiv.org/abs/1703.06868) like
+    loss.
     """
 
     def __init__(self,
                  device,
                  modelName,
                  scalesOut):
+        r"""
+        Args:
+            - device (torch.device): torch.device("cpu") or
+                                     torch.device("cuda:0")
+            - modelName (string): name of the torchvision.models model. For
+                                  example vgg19
+            - scalesOut (list): index of the scales to extract. In the Style
+                                transfer paper it was [1,2,3,4]
+        """
 
         super(LossTexture, self).__init__()
         scalesOut.sort()
@@ -119,7 +130,9 @@ class LossTexture(torch.nn.Module):
 
             if mask is not None:
                 locMask = (1. + F.upsample(mask,
-                                           size=(image.size(2) * self.reductionFactor[i], image.size(3) * self.reductionFactor[i]), mode='bilinear')) * 0.5
+                                           size=(image.size(2) * self.reductionFactor[i],
+                                                 image.size(3) * self.reductionFactor[i]),
+                                           mode='bilinear')) * 0.5
                 locMask = locMask.view(locMask.size(0), locMask.size(1), -1)
 
                 totVal = locMask.sum(dim=2)
@@ -131,9 +144,8 @@ class LossTexture(torch.nn.Module):
             else:
                 meanReals = fullSequence[i].mean(dim=2)
                 varReals = (
-                    (fullSequence[i]*fullSequence[i]).mean(dim=2)) - meanReals*meanReals
-                #varReals = torch.clamp(varReals, min=0)
-                #varReals = torch.sqrt(varReals)
+                    (fullSequence[i]*fullSequence[i]).mean(dim=2))\
+                     - meanReals*meanReals
 
             outFeatures.append(meanReals)
             outFeatures.append(varReals)
