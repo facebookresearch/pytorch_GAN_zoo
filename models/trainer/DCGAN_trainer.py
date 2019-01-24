@@ -14,9 +14,14 @@ class DCGANTrainer(GANTrainer):
     A trainer structure for the DCGAN and DCGAN product models
     """
 
+    _defaultConfig = _C
+
+    def getDefaultConfig(self):
+        return PPGANTrainer._defaultConfig
+
     def __init__(self,
                  pathdb,
-                 nEpoch,
+                 nEpoch = 3,
                  **kwargs):
         r"""
         Args:
@@ -43,12 +48,9 @@ class DCGANTrainer(GANTrainer):
             self.model = DCGANProduct(self.modelConfig.dimLatentVectorShape,
                                       self.modelConfig.dimLatentVectorTexture,
                                       useGPU=self.useGPU,
-                                      storeAVG=self.storeAVG,
                                       **vars(self.modelConfig))
         else:
-            self.model = DCGAN(self.modelConfig.dimLatentVector,
-                               useGPU=self.useGPU,
-                               storeAVG=self.storeAVG,
+            self.model = DCGAN(useGPU=self.useGPU,
                                **vars(self.modelConfig))
 
     def train(self):

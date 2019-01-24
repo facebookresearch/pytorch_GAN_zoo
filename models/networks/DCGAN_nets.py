@@ -61,11 +61,14 @@ class GNet(nn.Module):
             dimLatentVector, currDepth, 4, 1, 0, bias=False)
 
     def forward(self, input):
-        x = self.formatLayer(input)
+
+        x = input.view(-1, input.size(1), 1, 1)
+        x = self.formatLayer(x)
         x = self.main(x)
 
         if self.outputAcctivation is None:
             return x
+
         return self.outputAcctivation(x)
 
 
@@ -112,8 +115,13 @@ class DNet(nn.Module):
         self.decisionLayer = nn.Conv2d(
             self.dimFeatureMap, sizeDecisionLayer, 4, 1, 0, bias=False)
         self.decisionLayer.apply(weights_init)
+        self.sizeDecisionLayer = sizeDecisionLayer
 
-    def forward(self, input):
+    def forward(self, input, getFeature = False):
         x = self.main(input)
+
+        if getFeature:
+            return self.decisionLayer(x).view(-1, self.sizeDecisionLayer), x
+
         x = self.decisionLayer(x)
-        return x.view(-1, num_flat_features(x))
+        return x.view(-1, self.sizeDecisionLayer)
