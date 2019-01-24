@@ -12,6 +12,7 @@ This project requires:
 - torchvision
 - numpy
 - scipy
+- h5py
 
 Optional:
 - visdom

@@ -92,3 +92,6 @@ _C.equalizedlR = True
 _C.attribKeysOrder = None
 
 _C.equalizeLabels = False
+
+#Activate GDPP loss ?
+_C.GDPP = False

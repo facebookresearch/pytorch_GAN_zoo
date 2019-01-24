@@ -1,5 +1,7 @@
 import os
 
+import torch
+import torch.nn
 import torch.nn.functional as F
 
 from .standard_configurations.pgan_config import _C

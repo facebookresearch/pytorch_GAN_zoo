@@ -8,6 +8,7 @@ import torch.optim as optim
 from .utils.config import BaseConfig, updateConfig
 from .loss_criterions import base_loss_criterions
 from .loss_criterions.ac_criterion import ACGanCriterion
+from .loss_criterions.GDPP_loss import GDPPLoss
 from .utils.utils import loadPartOfStateDict, finiteCheck, \
     loadStateDictCompatible
 
@@ -39,6 +40,7 @@ class BaseGAN():
                  attribKeysOrder=None,
                  weightConditionD=0.0,
                  weightConditionG=0.0,
+                 GDPP=False,
                  **kwargs):
         r"""
         Args:
@@ -94,6 +96,12 @@ class BaseGAN():
         self.config.weightConditionD = weightConditionD
         self.initializeACCriterion()
 
+        # GDPP
+        self.config.GDPP = GDPP
+
+        if GDPP:
+            print("GDPP on")
+
         self.config.latentVectorDim = self.config.noiseVectorDim \
             + self.config.categoryVectorDim
 
@@ -101,6 +109,12 @@ class BaseGAN():
         self.config.lossCriterion = lossMode
         self.lossCriterion = getattr(
             base_loss_criterions, lossMode)(self.device)
+
+        # WGAN-GP
+        self.config.lambdaGP = lambdaGP
+
+        # Weight on D's output
+        self.config.epsilonD = epsilonD
 
         # Initialize the generator and the discriminator
         self.netD = self.getNetD()
@@ -122,13 +136,8 @@ class BaseGAN():
         # Losses
         self.resetTmpLosses()
 
-        # WGAN-GP
-        self.config.lambdaGP = lambdaGP
-
-        # Weight on D's output
-        self.config.epsilonD = epsilonD
-
     # used in test time, no backprop
+
     def test(self, input, getAvG=False, toCPU=True):
         r"""
         Generate some data given the input latent vector.
@@ -167,10 +176,11 @@ class BaseGAN():
         self.trainTmp.lossD = 0
         self.trainTmp.lossG = 0
 
-        self.trainTmp.lossEpsilon = 0.
+        self.trainTmp.lossEpsilon = 0.0
         self.trainTmp.lossACD = 0.0
         self.trainTmp.lossACG = 0.0
         self.trainTmp.lossGrad = 0.0
+        self.trainTmp.lossGDPP = 0.0
 
     def optimizeParameters(self, input_batch, inputLabels=None):
         r"""
@@ -201,21 +211,14 @@ class BaseGAN():
 
         # #2 Fake data
         inputLatent, targetRandCat = self.buildNoiseData(n_samples)
-        predFakeG = self.netG(inputLatent)
-
-        if isinstance(predFakeG, list):
-            for item in predFakeG:
-                item.detach()
-        else:
-            predFakeG.detach()
+        predFakeG = self.netG(inputLatent).detach()
 
         predFakeD = self.netD(predFakeG)
         lossD += self.lossCriterion.getCriterion(predFakeD, False)
 
         if self.config.lambdaGP > 0:
-            tmp = lossD.item()
-            lossD += self.getGradientPenalty(self.real_input, predFakeG)
-            self.trainTmp.lossGrad += (lossD.item() - tmp)
+            self.trainTmp.lossGrad += self.getGradientPenalty(
+                self.real_input, predFakeG)
 
         if self.config.epsilonD > 0:
             tmp = lossD.item()
@@ -253,8 +256,13 @@ class BaseGAN():
                 inputNoise, targetCatNoise = self.buildNoiseData(n_samples)
                 predFakeG = self.netG(inputNoise)
 
-                predFakeD = self.netD(predFakeG)
+                predFakeD, phiGFake = self.netD(predFakeG, getFeature=True)
                 lossGFake = self.lossCriterion.getCriterion(predFakeD, True)
+
+                if self.config.GDPP:
+                    _, phiDReal = self.netD.forward(self.real_input,
+                                                    getFeature=True)
+                    self.trainTmp.lossGDPP += GDPPLoss(phiDReal, phiGFake)
 
                 self.trainTmp.lossG += lossGFake.item()
                 self.auxiliaryLossesGeneration()
@@ -277,12 +285,14 @@ class BaseGAN():
         r"""
         """
 
-        if self.config.weightConditionD != 0 and not self.config.attribKeysOrder:
+        if self.config.weightConditionD != 0 and \
+                not self.config.attribKeysOrder:
             raise AttributeError("If the weight on the conditional term isn't "
                                  "null, then a attribute dictionnery should be"
                                  " defined")
 
-        if self.config.weightConditionG != 0 and not self.config.attribKeysOrder:
+        if self.config.weightConditionG != 0 and \
+                not self.config.attribKeysOrder:
             raise AttributeError("If the weight on the conditional term isn't \
                                  null, then a attribute dictionnery should be \
                                  defined")
@@ -556,8 +566,8 @@ class BaseGAN():
 
     def loadAuxiliaryData(self, in_state):
         r"""
-        For children classes, in any supplementary data should be loaded from an
-        input state dictionary, it should be defined here.
+        For children classes, in any supplementary data should be loaded from
+        an input state dictionary, it should be defined here.
         """
         return
 
@@ -569,8 +579,8 @@ class BaseGAN():
         Args:
 
             - input (Tensor): batch of real data
-            - fake (Tensor): batch of generated data. Must have the same size as
-            the input
+            - fake (Tensor): batch of generated data. Must have the same size
+              as the input
         """
 
         batchSize = input.size(0)
@@ -594,9 +604,12 @@ class BaseGAN():
 
         gradients = gradients[0].view(batchSize, -1)
         gradients = (gradients * gradients).sum(dim=1).sqrt()
-        gradient_penalty = (((gradients - 1.0)**2)).sum()
+        gradient_penalty = (((gradients - 1.0)**2)).sum() * \
+            self.config.lambdaGP
 
-        return gradient_penalty * self.config.lambdaGP
+        gradient_penalty.backward(retain_graph=True)
+
+        return gradient_penalty.item()
 
     def gradientDescentOnInput(self,
                                input,

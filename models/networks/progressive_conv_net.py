@@ -325,7 +325,7 @@ class DNet(nn.Module):
                                              equalized=self.equalizedlR,
                                              initBiasToZero=self.initBiasToZero)
 
-    def forward(self, x):
+    def forward(self, x, getFeature = False):
 
         # Alpha blending
         if self.alpha > 0 and len(self.fromRGBLayers) > 1:
@@ -363,7 +363,7 @@ class DNet(nn.Module):
         x = x.view(-1, num_flat_features(x))
         x = self.leakyRelu(self.groupScaleZero[1](x))
 
-        # And finally the decision
-        x = self.decisionLayer(x)
+        if not getFeature:
+            return self.decisionLayer(x)
 
-        return x
+        return self.decisionLayer(x), x
