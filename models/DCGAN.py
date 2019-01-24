@@ -51,7 +51,7 @@ class DCGAN(BaseGAN):
         dnet = DNet(self.config.dimOutput,
                     self.config.dimD,
                     self.lossCriterion.sizeDecisionLayer
-                        + self.config.categoryVectorDim,
+                    + self.config.categoryVectorDim,
                     depthModel=self.config.depth)
         return dnet
 

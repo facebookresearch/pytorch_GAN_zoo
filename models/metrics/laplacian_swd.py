@@ -1,40 +1,8 @@
-from copy import deepcopy
-
 import torch
 import torch.nn as nn
 
 import numpy as np
-
-from .SWD import SWD
 from ..utils.utils import printProgressBar
-
-import visdom
-
-vis = visdom.Visdom()
-
-
-import torchvision
-import torchvision.transforms as Transforms
-def resizeTensor(data, out_size_image):
-
-    out_data_size = (data.size()[0], data.size()[1], out_size_image[0], out_size_image[1])
-
-    outdata = torch.empty(out_data_size)
-    data = torch.clamp(data, min=-1, max=1)
-
-    interpolationMode = 0
-    if out_size_image[0] < data.size()[0] and out_size_image[1] < data.size()[1]:
-        interpolationMode = 2
-
-    transform = Transforms.Compose([Transforms.Normalize((-1., -1., -1.), (2, 2, 2)),
-                                    Transforms.ToPILImage(),
-                                    Transforms.Resize(out_size_image, interpolation = interpolationMode),
-                                    Transforms.ToTensor()])
-
-    for img in range(out_data_size[0]):
-        outdata[img] = transform(data[img])
-
-    return outdata
 
 
 def getDescriptorsForMinibatch(minibatch, patchSize, nPatches):
@@ -44,30 +12,37 @@ def getDescriptorsForMinibatch(minibatch, patchSize, nPatches):
 
     Returns:
 
-        A tensor of SxCxpatchSizexpatchSize where S = minibatch.size()[0] * nPatches
-        is the total number of patches extracted from the minibatch.
+        A tensor of SxCxpatchSizexpatchSize where
+        S = minibatch.size()[0] * nPatches is the total number of patches
+        extracted from the minibatch.
     """
     S = minibatch.size()
 
     maxX = S[2] - patchSize
     maxY = S[3] - patchSize
 
-    baseX = torch.range(0, patchSize - 1, dtype = torch.long).expand(S[0] * nPatches, patchSize) \
-            + torch.randint(0, maxX, (S[0] * nPatches, 1), dtype = torch.long)
-    baseY = torch.range(0, patchSize - 1, dtype = torch.long).expand(S[0] * nPatches, patchSize) \
-            + torch.randint(0, maxY, (S[0] * nPatches, 1), dtype = torch.long)
+    baseX = torch.arange(0, patchSize, dtype=torch.long).expand(S[0] * nPatches,
+                                                                patchSize) \
+        + torch.randint(0, maxX, (S[0] * nPatches, 1), dtype=torch.long)
+    baseY = torch.arange(0, patchSize, dtype=torch.long).expand(S[0] * nPatches,
+                                                                patchSize) \
+        + torch.randint(0, maxY, (S[0] * nPatches, 1), dtype=torch.long)
 
-    baseX = baseX.view(S[0], nPatches, 1, patchSize).expand(S[0], nPatches, patchSize, patchSize)
+    baseX = baseX.view(S[0], nPatches, 1, patchSize).expand(
+        S[0], nPatches, patchSize, patchSize)
     baseY = S[2] * baseY.view(S[0], nPatches, patchSize, 1)
     baseY = baseY.expand(S[0], nPatches, patchSize, patchSize)
 
     coords = baseX + baseY
-    coords = coords.view(S[0], nPatches, 1, patchSize, patchSize).expand(S[0], nPatches, S[1], patchSize, patchSize)
-    C = torch.range(0, S[1] -1, dtype = torch.long).view(1,S[1]).expand(nPatches * S[0],S[1])*S[2]*S[3]
-    coords = C.view(S[0], nPatches,S[1],1,1) + coords
+    coords = coords.view(S[0], nPatches, 1, patchSize, patchSize).expand(
+        S[0], nPatches, S[1], patchSize, patchSize)
+    C = torch.arange(0, S[1], dtype=torch.long).view(
+        1, S[1]).expand(nPatches * S[0], S[1])*S[2]*S[3]
+    coords = C.view(S[0], nPatches, S[1], 1, 1) + coords
     coords = coords.view(-1)
 
-    return (minibatch.contiguous().view(-1)[coords]).view(-1, S[1], patchSize, patchSize)
+    return (minibatch.contiguous().view(-1)[coords]).view(-1, S[1],
+                                                          patchSize, patchSize)
 
 
 def getMeanStdDesc(desc):
@@ -76,9 +51,12 @@ def getMeanStdDesc(desc):
     batch.
     """
     S = desc.size()
-    assert len(S) ==4
-    mean = torch.sum(desc.view(S[0], S[1], -1), dim = 2).sum(dim = 0) / (S[0] * S[3] * S[2])
-    var = torch.sum((desc*desc).view(S[0], S[1], -1), dim = 2).sum(dim = 0) / (S[0] * S[3] * S[2])
+    assert len(S) == 4
+    mean = torch.sum(desc.view(S[0], S[1], -1),
+                     dim=2).sum(dim=0) / (S[0] * S[3] * S[2])
+    var = torch.sum(
+        (desc*desc).view(S[0], S[1], -1), dim=2).sum(dim=0) / \
+        (S[0] * S[3] * S[2])
     var -= mean*mean
     var = var.clamp(min=0).sqrt().view(1, S[1]).expand(S[0], S[1])
     mean = (mean.view(1, S[1])).expand(S[0], S[1])
@@ -86,41 +64,52 @@ def getMeanStdDesc(desc):
     return mean.view(S[0], S[1], 1, 1), var.view(S[0], S[1], 1, 1)
 
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Laplacian pyramid generation, with LaplacianSWDMetric.convolution as input,
 # matches the corresponding openCV functions
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 
 def pyrDown(minibatch, convolution):
-    x= torch.nn.ReflectionPad2d(2)(minibatch)
+    x = torch.nn.ReflectionPad2d(2)(minibatch)
     return convolution(x)[:, :, ::2, ::2].detach()
+
 
 def pyrUp(minibatch, convolution):
     S = minibatch.size()
-    res = torch.zeros((S[0], S[1], S[2] * 2, S[3] * 2), dtype = minibatch.dtype).to(minibatch.device)
+    res = torch.zeros((S[0], S[1], S[2] * 2, S[3] * 2),
+                      dtype=minibatch.dtype).to(minibatch.device)
     res[:, :, ::2, ::2] = minibatch
-    res= torch.nn.ReflectionPad2d(2)(res)
+    res = torch.nn.ReflectionPad2d(2)(res)
     return 4 * convolution(res).detach()
 
-#-------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
+
 
 def sliced_wasserstein(A, B, dir_repeats, dirs_per_repeat):
     r"""
     NVIDIA's approximation of the SWD distance.
     """
-    assert A.ndim == 2 and A.shape == B.shape                           # (neighborhood, descriptor_component)
+    # (neighborhood, descriptor_component)
+    assert A.ndim == 2 and A.shape == B.shape
     results = []
     for repeat in range(dir_repeats):
-        dirs = np.random.randn(A.shape[1], dirs_per_repeat)             # (descriptor_component, direction)
-        dirs /= np.sqrt(np.sum(np.square(dirs), axis=0, keepdims=True)) # normalize descriptor components for each direction
+        # (descriptor_component, direction)
+        dirs = np.random.randn(A.shape[1], dirs_per_repeat)
+        # normalize descriptor components for each direction
+        dirs /= np.sqrt(np.sum(np.square(dirs), axis=0, keepdims=True))
         dirs = dirs.astype(np.float32)
-        projA = np.matmul(A, dirs)                                      # (neighborhood, direction)
+        # (neighborhood, direction)
+        projA = np.matmul(A, dirs)
         projB = np.matmul(B, dirs)
-        projA = np.sort(projA, axis=0)                                  # sort neighborhood projections for each direction
+        # sort neighborhood projections for each direction
+        projA = np.sort(projA, axis=0)
         projB = np.sort(projB, axis=0)
-        dists = np.abs(projA - projB)                                   # pointwise wasserstein distances
-        results.append(np.mean(dists))                                  # average over neighborhoods and directions
+        # pointwise wasserstein distances
+        dists = np.abs(projA - projB)
+        # average over neighborhoods and directions
+        results.append(np.mean(dists))
     return np.mean(results).item()
+
 
 def sliced_wasserstein_torch(A, B, dir_repeats, dirs_per_repeat):
     r"""
@@ -128,20 +117,28 @@ def sliced_wasserstein_torch(A, B, dir_repeats, dirs_per_repeat):
     """
     results = []
     for repeat in range(dir_repeats):
-        dirs = torch.randn(A.size()[1], dirs_per_repeat, device = A.device, dtype=torch.float32)             # (descriptor_component, direction)
-        dirs /= torch.sqrt(torch.sum(dirs*dirs, 0, keepdim=True)) # normalize descriptor components for each direction
-        projA = torch.matmul(A, dirs)                             # (neighborhood, direction)
+        # (descriptor_component, direction)
+        dirs = torch.randn(A.size()[1], dirs_per_repeat,
+                           device=A.device, dtype=torch.float32)
+        # normalize descriptor components for each direction
+        dirs /= torch.sqrt(torch.sum(dirs*dirs, 0, keepdim=True))
+        # (neighborhood, direction)
+        projA = torch.matmul(A, dirs)
         projB = torch.matmul(B, dirs)
-        projA = torch.sort(projA, dim=0)[0]                       # sort neighborhood projections for each direction
+        # sort neighborhood projections for each direction
+        projA = torch.sort(projA, dim=0)[0]
         projB = torch.sort(projB, dim=0)[0]
-        dists = torch.abs(projA - projB)                          # pointwise wasserstein distances
-        results.append(torch.mean(dists).item())                  # average over neighborhoods and directions
+        # pointwise wasserstein distances
+        dists = torch.abs(projA - projB)
+        # average over neighborhoods and directions
+        results.append(torch.mean(dists).item())
     return sum(results) / float(len(results))
+
 
 def finalize_descriptors(desc):
     if isinstance(desc, list):
         desc = np.concatenate(desc, axis=0)
-    assert desc.ndim == 4 # (neighborhood, channel, height, width)
+    assert desc.ndim == 4  # (neighborhood, channel, height, width)
     desc -= np.mean(desc, axis=(0, 2, 3), keepdims=True)
     desc /= np.std(desc, axis=(0, 2, 3), keepdims=True)
     desc = desc.reshape(desc.shape[0], -1)
@@ -153,6 +150,7 @@ class LaplacianSWDMetric:
     SWD metrics used on patches extracted from laplacian pyramids of the input
     images.
     """
+
     def __init__(self,
                  patchSize,
                  nDescriptorLevel,
@@ -187,7 +185,7 @@ class LaplacianSWDMetric:
             H: height
         """
         target = target.to(ref.device)
-        modes = [(ref, self.descriptorsRef) , (target, self.descriptorsTarget)]
+        modes = [(ref, self.descriptorsRef), (target, self.descriptorsTarget)]
 
         assert(ref.size() == target.size())
 
@@ -198,8 +196,8 @@ class LaplacianSWDMetric:
             pyramid = self.generateLaplacianPyramid(item, self.depthPyramid)
             for scale in range(self.depthPyramid):
                 dest[scale].append(getDescriptorsForMinibatch(pyramid[scale],
-                                                        self.patchSize,
-                                                        self.nDescriptorLevel).cpu().numpy())
+                                                              self.patchSize,
+                                                              self.nDescriptorLevel).cpu().numpy())
 
     def getScore(self):
         r"""
@@ -207,28 +205,6 @@ class LaplacianSWDMetric:
         descriptors.
         """
         output = []
-
-        #for scale in range(self.depthPyramid):
-
-            #self.descriptorsRef[scale] = torch.cat(self.descriptorsRef[scale], dim=0)
-            #self.descriptorsTarget[scale] = torch.cat(self.descriptorsTarget[scale], dim=0)
-
-            #mean, std = getMeanStdDesc(self.descriptorsRef[scale])
-
-            #self.descriptorsRef[scale]-= mean
-            #self.descriptorsRef[scale]/= std
-
-            #mean, std = getMeanStdDesc(self.descriptorsTarget[scale])
-
-            #self.descriptorsTarget[scale]-= mean
-            #self.descriptorsTarget[scale]/= std
-
-            #self.descriptorsTarget[scale] = self.descriptorsTarget[scale].view(self.descriptorsTarget[scale].size()[0], -1)
-            #self.descriptorsRef[scale] = self.descriptorsRef[scale].view(self.descriptorsRef[scale].size()[0], -1)
-
-            # For a reason I don't quite get yet, the SWD gradient descent don't give
-            # satisfying results, although the tests seem to validate the function
-            # in dimension 2. Further investigations should be made.
 
         descTarget = [finalize_descriptors(d) for d in self.descriptorsTarget]
         del self.descriptorsTarget
@@ -238,7 +214,8 @@ class LaplacianSWDMetric:
 
         for scale in range(self.depthPyramid):
             printProgressBar(scale, self.depthPyramid)
-            distance = sliced_wasserstein(descTarget[scale], descRef[scale], 4, 128)
+            distance = sliced_wasserstein(
+                descTarget[scale], descRef[scale], 4, 128)
             output.append(distance)
         printProgressBar(self.depthPyramid, self.depthPyramid)
 
@@ -281,9 +258,9 @@ class LaplacianSWDMetric:
             [4, 16, 24, 16, 4],
             [6, 24, 36, 24, 6],
             [4, 16, 24, 16, 4],
-            [1, 4,  6,  4,  1]], dtype = torch.float) / 256.0
+            [1, 4,  6,  4,  1]], dtype=torch.float) / 256.0
 
-        self.convolution = nn.Conv2d(3,3, (5,5))
+        self.convolution = nn.Conv2d(3, 3, (5, 5))
         self.convolution.weight.data.fill_(0)
         self.convolution.weight.data[0][0] = gaussianFilter
         self.convolution.weight.data[1][1] = gaussianFilter

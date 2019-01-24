@@ -6,7 +6,8 @@ _C = BaseConfig()
 # TODO : build something epoch based
 
 # Maximum number of iteration at each scale
-_C.maxIterAtScale = [48000, 96000, 96000, 96000, 96000, 96000, 96000, 96000, 200000]
+_C.maxIterAtScale = [48000, 96000, 96000,
+                     96000, 96000, 96000, 96000, 96000, 200000]
 
 # Blending mode.
 
@@ -24,10 +25,11 @@ _C.alphaJumpMode = "linear"
 # For each scale, iteration at wich the blending factor alpha should be
 # updated
 _C.iterAlphaJump = [[], [0, 1000, 2000], [0, 1000, 4000, 8000, 16000],
-                   [0, 2000, 4000, 8000]]
+                    [0, 2000, 4000, 8000]]
 
 # New value of the blending factor alpha during the update (see above)
-_C.alphaJumpVals = [ [], [1., 0.5, 0], [1, 0.75, 0.5, 0.25, 0.], [1., 0.75, 0.5, 0.]]
+_C.alphaJumpVals = [[], [1., 0.5, 0], [
+    1, 0.75, 0.5, 0.25, 0.], [1., 0.75, 0.5, 0.]]
 
 # If _C.alphaJumpMode == "linear", then the following fields should be completed
 
@@ -95,7 +97,7 @@ _C.dimOutput = 3
 _C.weightConditionG = 1.0
 _C.weightConditionD = 1.0
 
-#Equalized learning rate
+# Equalized learning rate
 _C.equalizedlR = True
 
 # If ACGAN, specifies which conditions should be transimitted to the shape
@@ -107,8 +109,8 @@ _C.keySplits = None
 _C.attribKeysOrder = None
 
 # Depth of a convolutional layer for each scale
-_C.depthScales = [[512, 256, 256], [512, 256, 256], [512,256, 256],
-  [512, 256, 256], [256, 256, 256], [128, 128, 128], [64, 64, 64], [32, 32, 32]]
+_C.depthScales = [[512, 256, 256], [512, 256, 256], [512, 256, 256],
+                  [512, 256, 256], [256, 256, 256], [128, 128, 128], [64, 64, 64], [32, 32, 32]]
 
 # Do we change the AC-GAN classification weights in order to equalize the
 # different class of the input dataset ?

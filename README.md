@@ -8,7 +8,8 @@ Several GAN implementations:
 ## Requirements
 
 This project requires:
-- pytorch (v1 or higher)
+- pytorch
+- torchvision
 - numpy
 - scipy
 - h5py
@@ -16,7 +17,15 @@ This project requires:
 Optional:
 - visdom
 
-FAIR setup:
+If you don't already have pytorch or torchvision please have a look at https://pytorch.org/ as the installation command may vary depending on your OS and your version of CUDA.
+
+You can install all other dependencies with pip by running:
+
+```
+pip install -r requirements.txt
+```
+
+## FAIR setup:
 
 Before running the project on the FAIR cluster, don't forget to setup the environment
 
@@ -146,8 +155,9 @@ python eval.py laplacian_SWD -c $CONFIGURATION_FILE -n $modelName -m $modelType
 ```
 Where $CONFIGURATION_FILE is the training configuration file called by train.py (see above)
 You can add optional arguments:
--s $SCALE : specify the scale at which the evaluation should be done (if not set, take the highest one)
--i $ITER : specify the iteration to evaluate (if not set, all checkpoints will be evaluated in descending order)
+- -s $SCALE : specify the scale at which the evaluation should be done (if not set, take the highest one)
+- -i $ITER : specify the iteration to evaluate (if not set, all checkpoints will be evaluated in descending order)
+- --selfNoise : returns the typical noise of the SWD distance for each resolution
 
 ### Inspirational generation
 

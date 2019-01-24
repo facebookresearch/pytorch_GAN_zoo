@@ -16,16 +16,24 @@ from .datasets.attrib_dataset import pil_loader
 from .utils.utils import printProgressBar
 from .datasets.hd5 import H5Dataset
 
-PI = 3.14159265359
-
 
 class GANVisualizer():
+    r"""
+    Several tools to export GAN generations
+    """
 
     def __init__(self,
                  pathGan,
                  pathConfig,
                  ganType,
                  visualizer):
+        r"""
+        Args
+            pathGan (string): path to the GAN to load
+            pathConfig (string): path to the GAN configuration
+            ganType (BaseGANClass): type of GAn to load
+            visualizer (visualizer class): either visualizer or np_visualizer
+        """
 
         with open(pathConfig, 'rb') as file:
             self.config = json.load(file)
@@ -43,6 +51,9 @@ class GANVisualizer():
         self.buildKeyShift()
 
     def buildKeyShift(self):
+        r"""
+        Inilialize the labels shift for labelled models
+        """
 
         if self.model.config.attribKeysOrder is None:
             return
@@ -60,47 +71,21 @@ class GANVisualizer():
             for index, item in enumerate(self.model.config.attribKeysOrder[f]["values"]):
                 self.keyShift[f][item] = baseShift + index
 
-    def exploreParameter(self, parameterIndex, size, nsteps=16):
-
-        nsteps = max(nsteps, 2)
-        noiseData, _ = self.model.buildNoiseData(1)
-
-        groupNoise = [noiseData.clone() for x in range(nsteps)]
-        noiseData = torch.cat(groupNoise, dim=0)
-        stepVal = (50) / (float(nsteps) - 2.0)
-
-        currVal = -25
-
-        for i in range(nsteps):
-
-            refVal = currVal
-            #noiseData[i] *=  math.sin(currVal)
-            noiseData[i][parameterIndex] = refVal
-
-            currVal += stepVal
-
-        outImg = self.model.test(noiseData, getAvG=True)
-        outSize = (size, size)
-
-        token = self.visualizer.publishTensors(
-            outImg, outSize,
-            caption="Parameter %d for -1 to 1" % parameterIndex,
-            env="visual")
-
-        self.visualizer.publishTensors(
-            outImg, outSize,
-            caption="Parameter %d for -1 to 1" % parameterIndex,
-            env="visual", window_token=token)
-
     def exportVisualization(self,
                             path,
                             nVisual=128,
-                            maxBatchSize=128,
                             export_mask=False):
+        r"""
+        Save an image gathering sevral generations
 
-        num_device = self.model.n_devices
-        size = self.model.getSize()
+        Args:
+            path (string): output path of the image
+            nVisual (int): number of generation to build
+            export_mask (bool): for decoupled model, export the mask as well
+                                as the full output
+        """
 
+        size = self.model.getSize()[0]
         maxBatchSize = max(1, int(256 / math.log(size, 2)))
         remaining = nVisual
         out = []
@@ -140,73 +125,57 @@ class GANVisualizer():
             self.visualizer.saveTensor(
                 toSave, (toSave.size()[2], toSave.size()[3]), pathShape)
 
-    def showEqualized(self, size):
+    def exportDB(self, path, nItems):
+        r"""
+        Save dataset of fake generations
 
-        noiseData, _ = self.model.buildNoiseData(1)
-        eqVector = torch.zeros(noiseData.size()) + 1.0
+        Args:
+            path (string): output path of the dataset
+            nItems (int): number of generation to build
+        """
 
-        outNoise = self.model.test(noiseData)
-        outEq = self.model.test(eqVector)
+        size = self.model.getSize()
+        maxBatchSize = max(1, int(256 / math.log(size[0], 2)))
+        remaining = nItems
 
-        outSize = (size, size)
+        index = 0
 
-        self.visualizer.publishTensors(
-            outEq, outSize,
-            caption="Unit vector",
-            env="visual")
+        if not os.path.isdir(path):
+            os.mkdir(path)
 
-    def generateSphere(self, parameterIndex, nSteps, size):
+        while remaining > 0:
+            currBatch = min(remaining, maxBatchSize)
+            noiseData, _ = self.model.buildNoiseData(currBatch)
+            img = self.model.test(noiseData, getAvG=True, toCPU=True)
 
-        M = self.model.config.latentVectorDim
-        N = self.model.config.noiseVectorDim
+            for i in range(currBatch):
+                imgPath = os.path.join(path, "gen_" + str(index) + ".jpg")
+                self.visualizer.saveTensor(img[i].view(1, 3, size[0], size[1]),
+                                           size, imgPath)
+                index+=1
 
-        random.seed()
-        angles = [random.random() for x in range(N)]
+            remaining-= currBatch
 
-        nSteps = max(nSteps, 2)
+    def generateImagesFomConstraints(self,
+                                     nImages,
+                                     constraints,
+                                     env="visual",
+                                     path=None):
+        r"""
+        Given label constraints, generate a set of images.
 
-        inputs = torch.zeros(nSteps, N, 1, 1)
+        Args:
+            nImages (int): number of images to generate
+            constraints (dict): set of constraints in the form of
+                                {attribute:label}. For example
 
-        def setSphericalCoords(angles, iStart, output):
-
-            output[iStart] = math.cos(angles[iStart])
-            sinProd = math.sin(angles[iStart])
-
-            for i in range(iStart + 1, N):
-
-                output[i] = sinProd * math.cos(angles[i])
-                sinProd *= math.sin(angles[i])
-
-            for i in range(iStart):
-
-                sinProd *= math.sin(angles[i])
-                output[i] = sinProd * math.cos(angles[i])
-
-            output[iStart - 1] = sinProd * math.sin(angles[iStart - 1])
-
-        angles[parameterIndex] = 0
-        currVal = 0
-
-        step = 2.0 * PI / (float(nSteps) - 2.0)
-
-        for i in range(nSteps):
-
-            setSphericalCoords(angles, parameterIndex, inputs[i])
-            currVal += step
-            angles[parameterIndex] = currVal
-
-        outSize = (size, size)
-        cond = torch.zeros(nSteps, M-N, 1, 1) + 1
-
-        inputs = torch.cat((inputs, cond), dim=1)
-        outImg = self.model.test(inputs, getAvG=True)
-
-        self.visualizer.publishTensors(
-            outImg, outSize,
-            caption="Rotation, angle %d" % parameterIndex,
-            env="visual")
-
-    def generateImagesFomConstraints(self, nImages, constraints, env="visual"):
+                                {"Gender": "Man",
+                                "Color": blue}
+            env (string): visdom only, visdom environement where the
+                          generations should be exported
+            path (string): if not None. Path wher the generations should be
+                           saved
+        """
 
         input = self.model.buildNoiseDataWithConstraints(nImages, constraints)
         outImg = self.model.test(input, getAvG=True)
@@ -217,15 +186,20 @@ class GANVisualizer():
             caption="test",
             env=env)
 
-    def generateRandomConstraints(self):
-
-        output = torch.zeros(nImages, M-N)
-
-        for member, values in self.keyShift.item():
-
-            l = len(values)
+        if path is not None:
+            self.visualizer.saveTensor(outImg, outSize, path)
 
     def plotLosses(self, pathLoss, name="Data", clear=True):
+        r"""
+        Plot some losses in visdom
+
+        Args:
+
+            pathLoss (string): path to the pickle file where the loss are
+                               stored
+            name (string): model name
+            clear (bool): if True clear the visdom environement before plotting
+        """
 
         with open(pathLoss, 'rb') as file:
             lossData = pkl.load(file)
@@ -255,6 +229,17 @@ class GANVisualizer():
                                                 env=locName)
 
     def saveInterpolation(self, N, vectorStart, vectorEnd, pathOut):
+        r"""
+        Given two latent vactors, export the interpolated generations between
+        them.
+
+        Args:
+
+            N (int): number of interpolation to make
+            vectorStart (torch.tensor): start latent vector
+            vectorEnd (torch.tensor): end latent vector
+            pathOut (string): path where the images sould be saved
+        """
 
         sizeStep = 1.0 / (N - 1)
         pathOut = os.path.splitext(pathOut)[0]
@@ -263,7 +248,6 @@ class GANVisualizer():
         vectorEnd = vectorEnd.view(1, -1, 1, 1)
 
         nZeros = int(math.log10(N) + 1)
-        print(nZeros)
 
         for i in range(N):
             path = pathOut + str(i).zfill(nZeros) + ".jpg"
@@ -274,25 +258,47 @@ class GANVisualizer():
             self.visualizer.saveTensor(
                 outImg, (outImg.size(2), outImg.size(3)), path)
 
-    def visualizeNN(self, N, k, featureExtractor, imgTransform, nnSearch, names, pathDB):
+    def visualizeNN(self,
+                    N,
+                    k,
+                    featureExtractor,
+                    imgTransform,
+                    nnSearch,
+                    names,
+                    pathDB):
+        r"""
+        Visualize the nearest neighbors of some random generations
+
+        Args:
+
+            N (int): number of generation to make
+            k (int): number of neighbors to fetch
+            featureExtractor (nn.Module): feature extractor
+            imgTransform (nn.Module): image transform module
+            nnSearch (np.KDTree): serach tree for the features
+            names (list): a match between an image index and its name
+        """
 
         batchSize = 16
         nImages = 0
 
         vectorOut = []
 
-        size = self.model.getSize()
+        size = self.model.getSize()[0]
 
         transform = Transforms.Compose([Transforms.Resize((size, size)),
                                         Transforms.ToTensor(),
-                                        Transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+                                        Transforms.Normalize((0.5, 0.5, 0.5),
+                                        (0.5, 0.5, 0.5))])
 
         dataset = None
 
         if os.path.splitext(pathDB)[1] == ".h5":
             dataset = H5Dataset(pathDB,
-                                transform=Transforms.Compose([Transforms.ToTensor(),
-                                                              Transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]))
+                                transform=Transforms.Compose(
+                                [Transforms.ToTensor(),
+                                Transforms.Normalize((0.5, 0.5, 0.5),
+                                                     (0.5, 0.5, 0.5))]))
 
         while nImages < N:
 
@@ -331,6 +337,17 @@ class GANVisualizer():
         self.visualizer.publishTensors(vectorOut, (224, 224), nrow=k + 1)
 
     def exportNN(self, N, k, featureExtractor, imgTransform, nnSearch):
+        r"""
+        Compute the nearest neighbors metric
+
+        Args:
+
+            N (int): number of generation to sample
+            k (int): number of nearest neighbors to fetch
+            featureExtractor (nn.Module): feature extractor
+            imgTransform (nn.Module): image transform module
+            nnSearch (np.KDTree): serach tree for the features
+        """
 
         batchSize = 16
         nImages = 0

@@ -8,13 +8,14 @@ def getClassStats(inputDict, className):
         if val not in outStats:
             outStats[val] = 0
 
-        outStats[val]+=1
+        outStats[val] += 1
 
     return outStats
 
+
 def buildDictStats(inputDict, classList):
 
-    locStats = {"total" : len(inputDict)}
+    locStats = {"total": len(inputDict)}
 
     for cat in classList:
 
@@ -22,10 +23,10 @@ def buildDictStats(inputDict, classList):
 
     return locStats
 
+
 def buildKeyOrder(shiftAttrib,
                   shiftAttribVal,
-                  stats = None):
-
+                  stats=None):
     r"""
     If the dataset is labelled, give the order in which the attributes are given
 
@@ -61,6 +62,7 @@ def buildKeyOrder(shiftAttrib,
 
             output[key]["weights"] = {}
             for item, value in stats[key].items():
-                output[key]["weights"][item] = min(MAX_VAL_EQUALIZATION, n / float(value + 1.0))
+                output[key]["weights"][item] = min(
+                    MAX_VAL_EQUALIZATION, n / float(value + 1.0))
 
     return output

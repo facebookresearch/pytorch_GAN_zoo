@@ -5,8 +5,9 @@ import sys
 import torch
 
 from ..gan_visualizer import GANVisualizer
-from ..progressive_gan import ProgressiveGAN
-from ..utils.utils import loadmodule, getLastCheckPoint, getVal, getNameAndPackage
+from ..utils.utils import loadmodule, getLastCheckPoint, getVal, \
+    getNameAndPackage
+
 
 def getModelName(pathConfig):
 
@@ -17,42 +18,52 @@ def getModelName(pathConfig):
 
     return pathConfig[:-18]
 
+
 def updateParser(parser, labels):
 
     for key in labels:
-        parser.add_argument('--' + key, type=str, help=str(labels[key]["values"]))
+        parser.add_argument('--' + key, type=str,
+                            help=str(labels[key]["values"]))
 
-    parser.add_argument('--showLabels', action = 'store_true')
-    parser.add_argument('--interpolate', type = str,
-                        dest='interpolationPath', help="Path to some latent vectors to interpolate")
-    parser.add_argument('--random_interpolate', action = 'store_true',
-                         help="Save a random interpolation")
-
+    parser.add_argument('--showLabels', action='store_true')
+    parser.add_argument('--interpolate', type=str,
+                        dest='interpolationPath',
+                        help="Path to some latent vectors to interpolate")
+    parser.add_argument('--random_interpolate', action='store_true',
+                        help="Save a random interpolation")
+    parser.add_argument('--save_dataset', type=str, dest="output_dataset",
+                        help="Save a dataset at the given location")
+    parser.add_argument('--size_dataset', type=int, dest="size_dataset",
+                        default=10000,
+                        help="Size of the dataset to be saved")
     return parser
 
-def test(parser, visualisation = None):
+
+def test(parser, visualisation=None):
 
     # Parameters
     kwargs = vars(parser.parse_known_args()[0])
 
-    name =  getVal(kwargs,"name", None)
+    name = getVal(kwargs, "name", None)
     if name is None:
         raise ValueError("You need to input a name")
 
-    module = getVal(kwargs,"module", None)
+    module = getVal(kwargs, "module", None)
     if module is None:
         raise ValueError("You need to input a module")
 
-    scale              = getVal(kwargs, "scale", None)
-    iter               = getVal(kwargs, "iter", None)
-    checkPointDir      = os.path.join(kwargs["dir"], modelLabel)
-    checkpointData     = getLastCheckPoint(checkPointDir,
-                                           name,
-                                           scale = scale,
-                                           iter = iter)
+    scale = getVal(kwargs, "scale", None)
+    iter = getVal(kwargs, "iter", None)
+
+    checkPointDir = os.path.join(kwargs["dir"], name)
+    checkpointData = getLastCheckPoint(checkPointDir,
+                                       name,
+                                       scale=scale,
+                                       iter=iter)
 
     if checkpointData is None:
-        raise FileNotFoundError("Not checkpoint found for model " + name + " at directory " + dir)
+        raise FileNotFoundError(
+            "Not checkpoint found for model " + name + " at directory " + dir)
 
     modelConfig, pathModel, _ = checkpointData
 
@@ -69,7 +80,7 @@ def test(parser, visualisation = None):
         parser.print_help()
         sys.exit()
 
-    interpolationPath  = getVal(kwargs, 'interpolationPath', None)
+    interpolationPath = getVal(kwargs, 'interpolationPath', None)
 
     pathLoss = os.path.join(checkPointDir, name + "_losses.pkl")
     pathOut = os.path.splitext(pathModel)[0] + "_fullavg.jpg"
@@ -78,10 +89,11 @@ def test(parser, visualisation = None):
     modelType = loadmodule(packageStr, modelTypeStr)
     exportMask = module in ["PPGAN"]
 
-    visualizer = GANVisualizer(pathModel, modelConfig, modelType, visualisation)
+    visualizer = GANVisualizer(
+        pathModel, modelConfig, modelType, visualisation)
 
     if interpolationPath is None and not kwargs['random_interpolate']:
-        visualizer.exportVisualization(pathOut, 256, export_mask = exportMask)
+        visualizer.exportVisualization(pathOut, 256, export_mask=exportMask)
 
     toPlot = {}
     for key in keysLabels:
@@ -89,7 +101,8 @@ def test(parser, visualisation = None):
             toPlot[key] = kwargs[key]
 
     if len(toPlot) > 0:
-        visualizer.generateImagesFomConstraints(16, toPlot, env = name + "_pictures")
+        visualizer.generateImagesFomConstraints(
+            16, toPlot, env=name + "_pictures")
 
     interpolationVectors = None
     if interpolationPath is not None:
@@ -115,6 +128,13 @@ def test(parser, visualisation = None):
 
             path = os.path.join(path, "")
 
-            visualizer.saveInterpolation(100, interpolationVectors[img], interpolationVectors[indexNext], path)
+            visualizer.saveInterpolation(
+                100, interpolationVectors[img],
+                interpolationVectors[indexNext], path)
+
+    outputDatasetPath = getVal(kwargs, "output_dataset", None)
+    if outputDatasetPath is not None:
+        print("Exporting a fake dataset at path " + outputDatasetPath)
+        visualizer.exportDB(outputDatasetPath, kwargs["size_dataset"])
 
     visualizer.plotLosses(pathLoss, name)

@@ -9,13 +9,15 @@ from ..gan_visualizer import GANVisualizer
 from ..progressive_gan import ProgressiveGAN
 from ..networks.constant_net import FeatureTransform
 from ..utils.utils import loadmodule, getLastCheckPoint, getVal, \
-                          getNameAndPackage, prepareClassifier, \
-                          printProgressBar, saveScore, parse_state_name
+    getNameAndPackage, prepareClassifier, \
+    printProgressBar, saveScore, parse_state_name
+
 
 def generateImagesFomConstraints(model, nImages, constraints):
 
     input = model.buildNoiseDataWithConstraints(nImages, constraints)
-    return model.test(input, getAvG = True).detach()
+    return model.test(input, getAvG=True).detach()
+
 
 def getModelName(pathConfig):
 
@@ -26,37 +28,38 @@ def getModelName(pathConfig):
 
     return pathConfig[:-18]
 
-def test(parser, visualisation = None):
+
+def test(parser, visualisation=None):
 
     # Parameters
-    parser.add_argument('-f','--featureExtractor', help="Partition's value",
+    parser.add_argument('-f', '--featureExtractor', help="Partition's value",
                         type=str, dest="featureExtractor")
     kwargs = vars(parser.parse_args())
 
-    name =  getVal(kwargs,"name", None)
+    name = getVal(kwargs, "name", None)
     if name is None:
         raise ValueError("You need to input a name")
 
-    module = getVal(kwargs,"module", None)
+    module = getVal(kwargs, "module", None)
     if module is None:
         raise ValueError("You need to input a module")
 
-    pathClassifier= getVal(kwargs, "featureExtractor", None)
+    pathClassifier = getVal(kwargs, "featureExtractor", None)
     if pathClassifier is None:
         raise ValueError("You need to give a feature extractor")
 
-    pathStats          = getVal(kwargs, "statsFile", None)
-    scale              = getVal(kwargs, "scale", None)
-    iter               = getVal(kwargs, "iter", None)
-    checkPointDir      = os.path.join(kwargs["dir"], modelLabel)
-    checkpointData     = getLastCheckPoint(checkPointDir,
-                                           name,
-                                           scale = scale,
-                                           iter = iter)
-
+    pathStats = getVal(kwargs, "statsFile", None)
+    scale = getVal(kwargs, "scale", None)
+    iter = getVal(kwargs, "iter", None)
+    checkPointDir = os.path.join(kwargs["dir"], modelLabel)
+    checkpointData = getLastCheckPoint(checkPointDir,
+                                       name,
+                                       scale=scale,
+                                       iter=iter)
 
     if checkpointData is None:
-        raise FileNotFoundError("Not checkpoint found for model " + name + " at directory " + dir)
+        raise FileNotFoundError(
+            "Not checkpoint found for model " + name + " at directory " + dir)
 
     modelConfig, pathModel, _ = checkpointData
 
@@ -68,14 +71,15 @@ def test(parser, visualisation = None):
 
     packageStr, modelTypeStr = getNameAndPackage(module)
     modelType = loadmodule(packageStr, modelTypeStr)
-    model = modelType(useGPU = True,
-                      storeAVG = True,
+    model = modelType(useGPU=True,
+                      storeAVG=True,
                       **configData)
 
     model.load(pathModel)
 
     modelState = torch.load(pathClassifier)
-    classifierType = loadmodule('torchvision.models', modelState["modelType"], prefix ='')
+    classifierType = loadmodule(
+        'torchvision.models', modelState["modelType"], prefix='')
     outFeatures = modelState["outFeatures"]
     refSize = modelState["size"]
 
@@ -84,8 +88,9 @@ def test(parser, visualisation = None):
     classifier = torch.nn.DataParallel(classifier).to(torch.device("cuda:0"))
 
     mean = [2 * x - 1 for x in [0.485, 0.456, 0.406]]
-    std = [ 2 * x for x in [0.229, 0.224, 0.225]]
-    upsamplingModule = torch.nn.DataParallel(FeatureTransform(mean, std, size = refSize)).to(torch.device("cuda:0"))
+    std = [2 * x for x in [0.229, 0.224, 0.225]]
+    upsamplingModule = torch.nn.DataParallel(FeatureTransform(
+        mean, std, size=refSize)).to(torch.device("cuda:0"))
 
     classifierDict = modelState["labels"]
     categoryName = list(classifierDict.keys())[0]
@@ -113,7 +118,7 @@ def test(parser, visualisation = None):
         for label in labels[:-1]:
             sizeLabel = statsDict[label]
             totSize = int((nRuns * sizeLabel) / nData)
-            currentStep+= totSize
+            currentStep += totSize
             stepsRun.append(currentStep)
 
     nImages = 0
@@ -126,17 +131,15 @@ def test(parser, visualisation = None):
     print(labels, stepsRun)
 
     confusion = torch.zeros(nLabels, nLabels)
-    confusionDict ={}
+    confusionDict = {}
 
     for currIndexLabel in range(nLabels):
 
         labelName = labels[currIndexLabel]
-        #if labelName in ["b'id_gridfs_5'", "b'id_gridfs_6'"]:
-        #    continue
 
         nextStep = stepsRun[currIndexLabel + 1]
 
-        constraints = {categoryName : labelName}
+        constraints = {categoryName: labelName}
         sumProba = 0
         sumValid = 0
 
@@ -146,11 +149,13 @@ def test(parser, visualisation = None):
 
             printProgressBar(nImages, nRuns)
 
-            images = generateImagesFomConstraints(model, batchSize, constraints)
-            probabilities = F.softmax(classifier(upsamplingModule(images)).detach(), dim=1)
+            images = generateImagesFomConstraints(
+                model, batchSize, constraints)
+            probabilities = F.softmax(classifier(
+                upsamplingModule(images)).detach(), dim=1)
             preds = torch.argmax(probabilities, dim=1)
 
-            sumProba += probabilities[:,currIndexLabel].sum().item()
+            sumProba += probabilities[:, currIndexLabel].sum().item()
             sumValid += torch.sum(preds == currIndexLabel).item()
 
             for p in range(nLabels):
@@ -158,22 +163,17 @@ def test(parser, visualisation = None):
 
             nImages += batchSize
 
-            #visualisation.publishTensors(images, (128,128))
-            #print(preds)
-            #print(constraints)
-            #break
-
         delta = float(nImages - start)
         meanProba = sumProba / delta
-        accuracy = sumValid /delta
+        accuracy = sumValid / delta
 
         confusion[currIndexLabel] /= delta
 
-        confusionDict[labelName] = {labels[k] : confusion[currIndexLabel, k].item() for k in range(nLabels) }#if labels[k] not in ["b'id_gridfs_5'", "b'id_gridfs_6'"]}
+        confusionDict[labelName] = {labels[k]: confusion[currIndexLabel, k].item() for k in range(
+            nLabels)}  # if labels[k] not in ["b'id_gridfs_5'", "b'id_gridfs_6'"]}
 
         toValids += sumValid
         outResults[labelName] = {"accuracy": accuracy, "meanProba": meanProba}
-
 
     printProgressBar(nRuns, nRuns)
 

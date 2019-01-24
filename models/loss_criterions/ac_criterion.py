@@ -9,14 +9,16 @@ import torch.nn.functional as F
 
 import numpy as np
 
+
 class ACGanCriterion:
     r"""
     Class implementing all tools necessary for a GAN to take into account class
     conditionning while generating a model (cf Odena's AC-GAN)
     """
+
     def __init__(self,
                  attribKeysOrder,
-                 allowMultiple = None):
+                 allowMultiple=None):
         r"""
         Args:
 
@@ -54,9 +56,11 @@ class ACGanCriterion:
             order = attribKeysOrder[key]["order"]
             self.keyOrder[order] = key
             self.attribSize[order] = len(attribKeysOrder[key]["values"])
-            self.labelsOrder[key] = { index : label for label, index in enumerate(attribKeysOrder[key]["values"])}
+            self.labelsOrder[key] = {index: label for label, index in enumerate(
+                attribKeysOrder[key]["values"])}
 
-        self.labelWeights = torch.tensor([1.0  for x in range(self.getInputDim())])
+        self.labelWeights = torch.tensor(
+            [1.0 for x in range(self.getInputDim())])
 
         for key in attribKeysOrder:
             order = attribKeysOrder[key]["order"]
@@ -64,7 +68,8 @@ class ACGanCriterion:
                 shift = sum(self.attribSize[:order])
 
                 for value, weight in attribKeysOrder[key]['weights'].items():
-                    self.labelWeights[shift + self.labelsOrder[key][value]] = weight
+                    self.labelWeights[shift +
+                                      self.labelsOrder[key][value]] = weight
 
         self.allowMultiple = [False for i in range(self.nAttrib)]
 
@@ -73,7 +78,7 @@ class ACGanCriterion:
                 self.allowMultiple[attribKeysOrder[item]["order"]] = True
 
         self.sizeOutput = sum([self.attribSize[i] if self.allowMultiple[i] else 1
-                         for i in range(self.nAttrib)])
+                               for i in range(self.nAttrib)])
 
         self.normalizationFactor = 1.0
 
@@ -97,7 +102,7 @@ class ACGanCriterion:
                 out = torch.tensor(w).view(n, C, 1, 1)
 
             vect.append(out)
-        return torch.cat(vect, dim = 1)
+        return torch.cat(vect, dim=1)
 
     def getAttribShift(self, index):
 
@@ -108,7 +113,7 @@ class ACGanCriterion:
     def getAllAttribShift(self):
 
         tot = len(self.attribSize)
-        return [ sum(self.attribSize[:x]) for x in range(tot)]
+        return [sum(self.attribSize[:x]) for x in range(tot)]
 
     def buildRandomCriterionTensor(self, sizeBatch):
         r"""
@@ -148,7 +153,7 @@ class ACGanCriterion:
                 inputLatent.append(y)
                 targetOut.append(torch.tensor(v).float().view(sizeBatch, 1))
 
-        return torch.cat(targetOut, dim = 1), torch.cat(inputLatent, dim=1)
+        return torch.cat(targetOut, dim=1), torch.cat(inputLatent, dim=1)
 
     def getInputDim(self):
         r"""
@@ -178,18 +183,19 @@ class ACGanCriterion:
             if self.allowMultiple[i]:
                 locTarget = target[:, shiftTarget:(shiftTarget+C)]
                 locLoss = F.multilabel_soft_margin_loss(locInput, locTarget)
-                shiftTarget+=C
+                shiftTarget += C
             else:
                 locTarget = target[:, shiftTarget]
-                locLoss = F.cross_entropy(locInput, locTarget.long(), weight = self.labelWeights[shiftInput:(shiftInput+C)])
-                shiftTarget+=1
+                locLoss = F.cross_entropy(locInput, locTarget.long(
+                ), weight=self.labelWeights[shiftInput:(shiftInput+C)])
+                shiftTarget += 1
 
-            loss+= locLoss
-            shiftInput+=C
+            loss += locLoss
+            shiftInput += C
 
         return loss * self.normalizationFactor
 
-    def getPredictionVector(self, rawValues, doClip = True):
+    def getPredictionVector(self, rawValues, doClip=True):
 
         shiftInput = 0
 
@@ -203,8 +209,8 @@ class ACGanCriterion:
 
             if doClip:
                 tmp = torch.argmax(locPred, dim=1, keepdim=False)
-                pred = torch.zeros(locPred.size(), device = rawValues.device)
-                pred[:, tmp] =1
+                pred = torch.zeros(locPred.size(), device=rawValues.device)
+                pred[:, tmp] = 1
 
                 output.append(pred)
 
