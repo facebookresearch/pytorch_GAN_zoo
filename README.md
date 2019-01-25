@@ -176,8 +176,8 @@ python eval.py laplacian_SWD -c $CONFIGURATION_FILE -n $modelName -m $modelType
 ```
 Where $CONFIGURATION_FILE is the training configuration file called by train.py (see above)
 You can add optional arguments:
-- -s $SCALE : specify the scale at which the evaluation should be done (if not set, take the highest one)
-- -i $ITER : specify the iteration to evaluate (if not set, all checkpoints will be evaluated in descending order)
+- -s $SCALE : specify the scale at which the evaluation should be done (if not set, will take the highest one)
+- -i $ITER : specify the iteration to evaluate (if not set, will take the highest one)
 - --selfNoise : returns the typical noise of the SWD distance for each resolution
 
 ### Inspirational generation
