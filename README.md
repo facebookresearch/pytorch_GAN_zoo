@@ -132,7 +132,19 @@ To this you can add a "config" entry giving overrides to the standard configurat
 Will override the learning rate and the mini-batch-size. Please note that if you specify a --baseLearningRate option in your command line, the command line will prevail. Depending on how you work you might prefer to have specific configuration files for each run or only rely on one configuration file and input your training parameters via the command line.
 
 Other fields are available on the configuration file, like:
-- pathAttribDict (string): path to a .json file matching each image with its attributes
+- pathAttribDict (string): path to a .json file matching each image with its attributes. To be more precise with a standard dataset, it is a dictionary with the following entries:
+
+```
+{
+  image_name1.jpg:{attribute1: label, attribute2, label ...}
+  image_name2.jpg:{attribute1: label, attribute2, label ...}
+  ...
+}
+```
+
+With a dataset in the fashionGen format (.h5) it's a dictionary summing up statistics on the class to be sampled.
+
+- imagefolderDataset (bool): set to true to handle datasets in the torchvision.datasets.ImageFolder format
 - selectedAttributes (list): if specified, learn only the given attributes during the training session
 - pathDBMask (string): for decoupled models, path of the mask database. The match between an image and its mask should be done as follow: $MASK_NAME = $IMAGE_NAME + "_mask.jpg"__
 - pathPartition (string): path to a partition of the training dataset
