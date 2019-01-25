@@ -121,7 +121,9 @@ class DNet(nn.Module):
         x = self.main(input)
 
         if getFeature:
-            return self.decisionLayer(x).view(-1, self.sizeDecisionLayer), x
+
+            return self.decisionLayer(x).view(-1, self.sizeDecisionLayer), \
+                   x.view(-1, self.dimFeatureMap * 16)
 
         x = self.decisionLayer(x)
         return x.view(-1, self.sizeDecisionLayer)

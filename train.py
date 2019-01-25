@@ -13,7 +13,8 @@ import json
 def getTrainer(name):
 
     match = {"PGAN": ("progressive_gan_trainer", "ProgressiveGANTrainer"),
-             "PPGAN": ("pp_gan_trainer", "PPGANTrainer")}
+             "PPGAN": ("pp_gan_trainer", "PPGANTrainer"),
+             "DCGAN": ("DCGAN_trainer", "DCGANTrainer")}
 
     if name not in match:
         raise AttributeError("Invalid module name")

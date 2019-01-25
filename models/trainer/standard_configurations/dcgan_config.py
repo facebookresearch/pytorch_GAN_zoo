@@ -1,4 +1,4 @@
-from ..utils.config import BaseConfig
+from ...utils.config import BaseConfig
 
 # Default configuration for ProgressiveGANTrainer
 _C = BaseConfig()
@@ -73,3 +73,8 @@ _C.dimGTexture = 64
 # If ACGAN, specifies which conditions should be transimitted to the shape
 # generator, and which ones should be given to the texture generator
 _C.keySplits = None
+
+#Activate GDPP loss ?
+_C.GDPP = False
+
+_C.nEpoch = 3
