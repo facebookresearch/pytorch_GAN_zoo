@@ -12,7 +12,7 @@ class DCGAN(BaseGAN):
     """
 
     def __init__(self,
-                 latentVectorDim=64,
+                 dimLatentVector=64,
                  dimG=64,
                  dimD=64,
                  depth=3,
@@ -35,7 +35,7 @@ class DCGAN(BaseGAN):
         self.config.dimD = dimD
         self.config.depth = depth
 
-        BaseGAN.__init__(self, latentVectorDim, **kwargs)
+        BaseGAN.__init__(self, dimLatentVector, **kwargs)
 
     def getNetG(self):
 
@@ -57,11 +57,12 @@ class DCGAN(BaseGAN):
 
     def getOptimizerD(self):
         return optim.Adam(filter(lambda p: p.requires_grad, self.netD.parameters()),
-                          betas=[0.1, 0.999], lr=self.config.learningRate)
+                          betas=[0.5, 0.999], lr=self.config.learningRate)
 
     def getOptimizerG(self):
         return optim.Adam(filter(lambda p: p.requires_grad, self.netG.parameters()),
-                          betas=[0.1, 0.999], lr=self.config.learningRate)
+                          betas=[0.5, 0.999], lr=self.config.learningRate)
 
     def getSize(self):
-        return 2**(self.config.depth + 3)
+        size = 2**(self.config.depth + 3)
+        return (size, size)

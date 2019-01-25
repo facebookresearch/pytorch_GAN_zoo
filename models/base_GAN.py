@@ -206,7 +206,7 @@ class BaseGAN():
         self.optimizerD.zero_grad()
 
         # #1 Real data
-        predRealD = self.netD.forward(self.real_input)
+        predRealD = self.netD(self.real_input)
         lossD = self.lossCriterion.getCriterion(predRealD, True)
 
         # #2 Fake data

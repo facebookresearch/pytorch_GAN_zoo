@@ -83,4 +83,4 @@ class DCGAN(BaseLossWrapper):
         value = int(status)
         reference = torch.tensor(
             [value], dtype=torch.float).expand(size).to(self.device)
-        return F.binary_cross_entropy(F.sigmoid(input[:, :self.sizeDecisionLayer]), reference)
+        return F.binary_cross_entropy(torch.sigmoid(input[:, :self.sizeDecisionLayer]), reference)

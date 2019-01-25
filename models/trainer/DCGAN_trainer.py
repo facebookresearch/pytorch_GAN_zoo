@@ -14,19 +14,21 @@ class DCGANTrainer(GANTrainer):
     A trainer structure for the DCGAN and DCGAN product models
     """
 
+    _defaultConfig = _C
+
+    def getDefaultConfig(self):
+        return PPGANTrainer._defaultConfig
+
     def __init__(self,
                  pathdb,
-                 nEpoch,
                  **kwargs):
         r"""
         Args:
 
             pathdb (string): path to the input dataset
-            nEpoch (int):    number of epoch
             **kwargs:        other arguments specific to the GANTrainer class
         """
 
-        self.nEpoch = nEpoch
         self.tokenWindowTexture = None
         self.tokenWindowMask = None
 
@@ -43,27 +45,37 @@ class DCGANTrainer(GANTrainer):
             self.model = DCGANProduct(self.modelConfig.dimLatentVectorShape,
                                       self.modelConfig.dimLatentVectorTexture,
                                       useGPU=self.useGPU,
-                                      storeAVG=self.storeAVG,
                                       **vars(self.modelConfig))
         else:
-            self.model = DCGAN(self.modelConfig.dimLatentVector,
-                               useGPU=self.useGPU,
-                               storeAVG=self.storeAVG,
+            self.model = DCGAN(useGPU=self.useGPU,
                                **vars(self.modelConfig))
 
     def train(self):
 
         shift = 0
+        if self.startIter >0:
+            shift+= self.startIter
+
         if self.checkPointDir is not None:
             pathBaseConfig = os.path.join(self.checkPointDir, self.modelLabel
                                           + "_train_config.json")
             self.saveBaseConfig(pathBaseConfig)
 
-        for epoch in range(self.nEpoch):
+        maxShift = int(self.modelConfig.nEpoch / len(self.getDBLoader(0)))
+
+        for epoch in range(self.modelConfig.nEpoch):
             dbLoader = self.getDBLoader(0)
             self.trainOnEpoch(dbLoader, 0, shiftIter=shift)
 
             shift += len(dbLoader)
+
+            if shift > maxShift:
+                break
+
+        label = self.modelLabel + ("_s%d_i%d" %
+                                   (0, shift))
+        self.saveCheckpoint(self.checkPointDir,
+                            label, 0, shift)
 
     def initializeWithPretrainNetworks(self,
                                        pathD,
