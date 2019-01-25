@@ -38,6 +38,8 @@ module load NCCL/2.2.13-cuda.9.0 && module load anaconda3 && source activate fai
 
 ## Quick training
 
+The setup.py script allows you to prepare your datasets and build their corresponding configuration files.
+
 If you want to waste no time and just launch a training session on celeba cropped
 
 ```
@@ -56,6 +58,21 @@ python train.py PGAN -c config_celebaHQ.json --restart -n celebaHQ
 
 Your checkpoints will be dumped in output_networks/celebaHQ. You should get 1024x1024 generations at the end.
 
+For fashionGen:
+
+```
+python setup.py fashionGen $PATH_TO_FASHIONGEN_RES_256 -o $OUTPUT_DIR
+python train.py PGAN -c config_fashionGen.json --restart -n fashionGen
+```
+
+The above command will train the fashionGen model up resolution 256x256. If you want to train fashionGen on a specific sub-dataset for example CLOTHING, run:
+
+```
+python train.py PGAN -c config_fashionGen.json --restart -n fashionGen -v CLOTHING
+```
+
+Four sub-datasets are available: CLOTHING, SHOES, BAGS and ACCESSORIES.
+
 ## Advanced guidelines
 
 ### How to run a training session ?
@@ -72,7 +89,7 @@ Where:
 2 - CONFIGURATION_FILE (mandatory): path to a training configuration file. This file is a json file containing at least a pathDB entry with the path to the training dataset. See below for more informations about this file.
 3 - RUN_NAME is the name you want to give to your training session. All checkpoints will be saved in $OUTPUT_DIRECTORY/$RUN_NAME. Default value is default
 4 - OUTPUT_DIRECTORY is the directory were all training sessions are saved. Default value is output_networks
-5 - OVERRIDES: you can overrides some of the models parameters defined in the configuration file in the command line. For example:
+5 - OVERRIDES: you can overrides some of the models parameters defined in "config" field of the configuration file (see below) in the command line. For example:
 
 ```
 python train.py PPGAN -c coin.json -n PAN --learningRate 0.2
@@ -111,7 +128,7 @@ To this you can add a "config" entry giving overrides to the standard configurat
 }
 ```
 
-Will override the learning rate and the mini-batch-size.
+Will override the learning rate and the mini-batch-size. Please note that if you specify a --baseLearningRate option in your command line, the command line will prevail. Depending on how you work you might prefer to have specific configuration files for each run or only rely on one configuration file and input your training parameters via the command line.
 
 Other fields are available on the configuration file, like:
 - pathAttribDict (string): path to a .json file matching each image with its attributes
@@ -176,12 +193,3 @@ Just run
 ```
 python eval.py metric_plot -n $modelName
 ```
-
-## cpp/ : C++ code for datasets transformations
-
-You will find here the C++ code that extracts the masks from the YSL dataset
-
-To extract the masks from the YSL dataset.
-
-1) compile the MaskMaker binary as shown in cpp/README.md
-2) Update mask_extraction.py with the relevant output paths and launch the script

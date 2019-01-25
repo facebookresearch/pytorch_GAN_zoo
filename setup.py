@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import h5py
 
 import numpy as np
 from scipy import misc
@@ -38,6 +39,89 @@ def celebaSetup(inputPath,
         saveImage(path, img)
 
     printProgressBar(nImgs, nImgs)
+
+
+def fashionGenSetup(fashionGenPath,
+                    outputPath):
+
+    basePath = os.path.splitext(outputPath)[0]
+
+    if not os.path.isdir(basePath):
+        os.mkdir(basePath)
+
+    outputPath = os.path.join(basePath, os.path.basename(basePath))
+
+    h5file = h5py.File(fashionGenPath)
+    imgKey = 'input_image'
+    validClasses = ["input_gender", "input_category", "input_pose"]
+    nImgs = h5file[imgKey].shape[0]
+
+    outIndexes = {}
+    statsPartition = {"GLOBAL": {"input_department": {},
+                                 "totalSize": 0}
+                      }
+
+    for attribute in validClasses:
+        statsPartition["GLOBAL"][attribute] = {}
+
+    partitionCategory = "input_department"
+
+    print("Building the partition..")
+
+    for index in range(nImgs):
+
+        rawVal = str(h5file[partitionCategory][index][0])
+        val = rawVal.replace("b'", "").replace("'", "")
+        strVal = str(val)
+
+        # Hand-made fix for the clothing dataset : some pose attributes
+        # corresponds only to miss-labelled data
+        if strVal == "CLOTHING" \
+                and str(h5file["input_pose"][index][0]) in \
+                ["b'id_gridfs_6'", "b'id_gridfs_5'"]:
+            continue
+
+        if strVal not in statsPartition:
+            statsPartition[strVal] = {attribute: {}
+                                      for attribute in validClasses}
+            statsPartition[strVal]["totalSize"] = 0
+            outIndexes[val] = []
+            statsPartition["GLOBAL"]["input_department"][rawVal] = 0
+
+        outIndexes[val].append(index)
+        statsPartition[strVal]["totalSize"] += 1
+        statsPartition["GLOBAL"]["input_department"][rawVal] += 1
+        statsPartition["GLOBAL"]["totalSize"] += 1
+
+        for attribute in validClasses:
+
+            label = str(h5file[attribute][index][0])
+
+            if label not in statsPartition[strVal][attribute]:
+                statsPartition[strVal][attribute][label] = 0
+            if label not in statsPartition["GLOBAL"][attribute]:
+                statsPartition["GLOBAL"][attribute][label] = 0
+
+            statsPartition[strVal][attribute][label] += 1
+            statsPartition["GLOBAL"][attribute][label] += 1
+
+        printProgressBar(index, nImgs)
+    printProgressBar(nImgs, nImgs)
+
+    h5file.close()
+
+    pathPartition = outputPath + "_partition.h5"
+    f = h5py.File(pathPartition, 'w')
+
+    for key, value in outIndexes.items():
+        f.create_dataset(key, data=np.array(value))
+    f.close()
+
+    pathStats = outputPath + "_stats.json"
+    with open(pathStats, 'w') as file:
+        json.dump(statsPartition, file, indent=2)
+
+    return pathPartition, pathStats
 
 
 def resizeDataset(inputPath, outputPath, maxSize):
@@ -93,7 +177,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Testing script')
     parser.add_argument('dataset_name', type=str,
                         help='Name of the dataset. Available options: celeba, \
-                        celeba_cropped, celebaHQ')
+                        celeba_cropped, celebaHQ, fashionGen')
     parser.add_argument('dataset_path', type=str,
                         help='Path to the input dataset')
     parser.add_argument('-o', help="If it applies, output dataset (mandadory \
@@ -112,7 +196,8 @@ if __name__ == "__main__":
     moveLastScale = False
     keepOriginalDataset = True
 
-    if args.dataset_name not in ['celeba', 'celeba_cropped', 'celebaHQ']:
+    if args.dataset_name not in ['celeba', 'celeba_cropped', 'celebaHQ',
+                                 'fashionGen']:
         raise AttributeError(args.dataset_name + " unknown datatset")
 
     if args.dataset_name in ['celeba', 'celeba_cropped']:
@@ -134,6 +219,31 @@ if __name__ == "__main__":
         maxSize = 1024
         moveLastScale = False
         keepOriginalDataset = True
+
+    if args.dataset_name == 'fashionGen':
+
+        if args.output_dataset is None:
+            raise AttributeError(
+                "Please provide and output path to dump the fashionGen \
+                partition")
+
+        if args.fast_training:
+            print("Ignoring the fast training parameter for fashionGen")
+            args.fast_training = False
+
+        pathPartition, pathStats = fashionGenSetup(args.dataset_path,
+                                                   args.output_dataset)
+
+        config = {"pathPartition": pathPartition,
+                  "pathAttribDict": pathStats,
+                  "pathDB": args.dataset_path,
+                  "config": {
+                      "maxIterAtScale": [20000, 40000, 40000,
+                                         40000, 40000, 80000,
+                                         80000],
+                      "weightConditionG": 1.0,
+                      "weightConditionD": 1.0}
+                  }
 
     if args.fast_training:
         if args.output_dataset is None:

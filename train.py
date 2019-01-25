@@ -56,8 +56,6 @@ if __name__ == "__main__":
                         on")
     parser.add_argument('-v', '--partitionValue', help="Partition's value",
                         type=str, dest="partition_value")
-    parser.add_argument('-A', '--statsFile', help="Statistsics file",
-                        type=str, dest="statsFile")
 
     # Retrieve the model we want to launch
     baseArgs, unknown = parser.parse_known_args()
@@ -118,9 +116,6 @@ if __name__ == "__main__":
 
     partitionValue = getVal(kwargs, "partition_value",
                             trainingConfig.get("partitionValue", None))
-    pathAttrib = getVal(kwargs, "statsFile",
-                        trainingConfig.get("pathAttribDict", None))
-    trainingConfig["pathAttribDict"] = pathAttrib
 
     GANTrainer = trainerModule(pathDB,
                                useGPU=True,
