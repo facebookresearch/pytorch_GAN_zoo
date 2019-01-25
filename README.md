@@ -1,11 +1,13 @@
 # Pytorch GAN Zoo
 
 Several GAN implementations:
-- Progressive Growiing of GAN (PGAN): https://arxiv.org/pdf/1710.10196.pdf
+- Progressive Growing of GAN (PGAN): https://arxiv.org/pdf/1710.10196.pdf
 - Decoupled progressive growing (PPGAN)
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf (incoming)
 
 ## Requirements
+
+Tested with cuda 9.0 and python 3.6.
 
 This project requires:
 - pytorch
@@ -16,6 +18,7 @@ This project requires:
 
 Optional:
 - visdom
+- magma-cuda90
 
 If you don't already have pytorch or torchvision please have a look at https://pytorch.org/ as the installation command may vary depending on your OS and your version of CUDA.
 
@@ -117,7 +120,7 @@ Other fields are available on the configuration file, like:
 - pathPartition (string): path to a partition of the training dataset
 - partitionValue (string): if pathPartition is specified, name of the partition to choose
 - miniBatchScheduler (dictionary): dictionary updating the size of the mini batch at different scale of the training
-                                  ex {"2":16, "7":8} meaning that the mini batch size will be 16 from scale 16 to 6 and 8 from scale 7
+                                  ex {"2":16, "7":8} meaning that the mini batch size will be 16 from scale 2 to 6 and 8 from scale 7
 - configScheduler (dictionary): dictionary updating the model configuration at different scale of the training
                                 ex {"2":{"baseLearningRate":0.1, "epsilonD":1}} meaning that the learning rate and epsilonD will be updated to 0.1 and 1 from scale 2 and beyond
 
