@@ -40,6 +40,12 @@ class H5Dataset(torch.utils.data.Dataset):
             with open(stats_file, 'rb') as file:
                 self.statsData = json.load(file)
 
+            if self.partition_value is None and "GLOBAL" in self.statsData:
+                self.statsData = self.statsData["GLOBAL"]
+
+            elif self.partition_value in self.statsData:
+                self.statsData = self.statsData[self.partition_value]
+
             self.buildAttribShift()
 
         self.pathDBMask = pathDBMask
@@ -117,7 +123,8 @@ class H5Dataset(torch.utils.data.Dataset):
             return
 
         if self.attribKeys is None:
-            self.attribKeys = [x for x in self.statsData.keys()]
+            self.attribKeys = [x for x in self.statsData.keys() if
+                               x != "totalSize"]
 
         self.attribShift = {}
         self.attribShiftVal = {}
