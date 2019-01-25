@@ -98,7 +98,7 @@ python train.py PPGAN -c coin.json -n PAN --learningRate 0.2
 
 Will force the learning rate to be 0.2 in the training whatever the configuration file coin.json specifies.
 
-To get all the possible overrides, please type:
+To get all the possible override options, please type:
 
 ```
 python train.py $MODEL_NAME --overrides
@@ -119,7 +119,7 @@ Where a dataset can be:
 - a folder with N subfolder and images in it
 - a .h5 file (cf fashionGen)
 
-To this you can add a "config" entry giving overrides to the standard configuration. See models/trainer/standard_configurations to see all possible overrides. For example:
+To this you can add a "config" entry giving overrides to the standard configuration. See models/trainer/standard_configurations to see all possible options. For example:
 
 ```
 {
@@ -174,6 +174,7 @@ Using the same kind of configuration file as above, just launch:
 ```
 python eval.py laplacian_SWD -c $CONFIGURATION_FILE -n $modelName -m $modelType
 ```
+
 Where $CONFIGURATION_FILE is the training configuration file called by train.py (see above)
 You can add optional arguments:
 - -s $SCALE : specify the scale at which the evaluation should be done (if not set, will take the highest one)

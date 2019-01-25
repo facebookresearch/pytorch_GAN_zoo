@@ -65,6 +65,154 @@ def updateParser(parser):
 
     return parser
 
+def gradientDescentOnInput(model,
+                           input,
+                           featureExtractors,
+                           imageTransforms,
+                           weights=None,
+                           visualizer=None,
+                           lambdaD=0.03,
+                           nSteps=6000,
+                           randomSearch=False,
+                           lr=1,
+                           outPathSave=None):
+
+    if visualizer is not None:
+        visualizer.publishTensors(input, (128, 128))
+
+    # Detect categories
+    varNoise = torch.randn((input.size(0),
+                            self.config.noiseVectorDim +
+                            self.config.categoryVectorDim,
+                            1, 1),
+                           requires_grad=True, device=self.device)
+
+    optimNoise = optim.Adam([varNoise],
+                            betas=[0., 0.99], lr=lr)
+
+    noiseOut = model.test(varNoise, getAvG=True, toCPU=False)
+
+    if visualizer is not None:
+        visualizer.publishTensors(noiseOut.cpu(), (128, 128))
+
+    if not isinstance(featureExtractors, list):
+        featureExtractors = [featureExtractors]
+    if not isinstance(imageTransforms, list):
+        imageTransforms = [imageTransforms]
+
+    nExtractors = len(featureExtractors)
+
+    if weights is None:
+        weights = [1.0 for i in range(nExtractors)]
+
+    if len(imageTransforms) != nExtractors:
+        raise ValueError(
+            "The number of image transforms should match the number of \
+            feature extractors")
+    if len(weights) != nExtractors:
+        raise ValueError(
+            "The number of weights should match the number of feature\
+             extractors")
+
+    featuresIn = []
+
+    for i in range(nExtractors):
+
+        if len(featureExtractors[i]._modules) > 0:
+            featureExtractors[i] = nn.DataParallel(
+                featureExtractors[i]).train().to(model.device)
+
+        imageTransforms[i] = nn.DataParallel(
+            imageTransforms[i]).to(model.device)
+
+        featuresIn.append(featureExtractors[i](
+            imageTransforms[i](input.to(model.device))).detach())
+
+    lr = 1
+
+    optimalVector = None
+    optimalLoss = None
+
+    epochStep = int(nSteps / 3)
+    gradientDecay = 0.1
+
+    def resetVar(newVal):
+        varNoise = newVal
+        optimNoise = optim.Adam([varNoise],
+                                betas=[0., 0.99], lr=lr)
+
+    for iter in range(nSteps):
+
+        optimNoise.zero_grad()
+        self.optimizerG.zero_grad()
+        self.optimizerD.zero_grad()
+
+        if randomSearch:
+            varNoise = torch.randn((input.size(0),
+                                    self.config.noiseVectorDim +
+                                    self.config.categoryVectorDim,
+                                    1, 1),
+                                   requires_grad=True, device=self.device)
+
+        noiseOut = model.avgG(varNoise)
+        sumLoss = 0
+
+        loss = ((varNoise**2).mean(dim=1) - 1)**2
+        loss.backward(retain_graph=True)
+        sumLoss += loss.item()
+
+        for i in range(nExtractors):
+            featureOut = featureExtractors[i](imageTransforms[i](noiseOut))
+            diff = ((featuresIn[i] - featureOut)**2)
+            loss = weights[i] * diff.mean()
+            sumLoss += loss.item()
+
+            if not randomSearch:
+                loss.backward(retain_graph=True)
+
+        loss = -lambdaD * self.netD(noiseOut)[0, 0]
+        sumLoss += loss.item()
+
+        if not randomSearch:
+            loss.backward()
+
+        sumLoss += loss.item()
+
+        if not randomSearch:
+            optimNoise.step()
+
+        if optimalLoss is None or sumLoss < optimalLoss:
+            optimalVector = deepcopy(varNoise)
+            optimalLoss = sumLoss
+
+        if iter % 100 == 0:
+            if visualizer is not None:
+                visualizer.publishTensors(noiseOut.cpu(), (128, 128))
+
+                if outPathSave is not None:
+                    index_str = str(int(iter/100))
+                    outPath = os.path.join(outPathSave, index_str + ".jpg")
+                    visualizer.saveTensor(
+                        noiseOut.cpu(),
+                        (noiseOut.size(2), noiseOut.size(3)),
+                        outPath)
+
+            print("%d : %f" % (iter, sumLoss))
+
+        if iter % epochStep == (epochStep - 1):
+            lr *= gradientDecay
+            resetVar(optimalVector)
+
+    varNoise = optimalVector
+    output = self.test(varNoise, getAvG=True, toCPU=True).detach()
+
+    if visualizer is not None:
+        visualizer.publishTensors(
+            output.cpu(), (output.size(2), output.size(3)))
+
+    print("optimal loss %f" % optimalLoss)
+    return output, varNoise, optimalLoss
+
 
 def test(parser, visualisation=None):
 

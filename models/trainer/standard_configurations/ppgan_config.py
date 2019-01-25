@@ -94,8 +94,8 @@ _C.batchAccumulation = 1
 _C.dimOutput = 3
 
 # In case of AC GAN, weight on the classification loss (per scale)
-_C.weightConditionG = 1.0
-_C.weightConditionD = 1.0
+_C.weightConditionG = 0.0
+_C.weightConditionD = 0.0
 
 # Equalized learning rate
 _C.equalizedlR = True
