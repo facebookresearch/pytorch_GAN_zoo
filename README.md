@@ -18,7 +18,7 @@ This project requires:
 
 Optional:
 - visdom
-- magma-cuda90
+
 
 If you don't already have pytorch or torchvision please have a look at https://pytorch.org/ as the installation command may vary depending on your OS and your version of CUDA.
 
