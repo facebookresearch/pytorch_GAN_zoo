@@ -37,6 +37,9 @@ def update_parser(parser):
     parser.add_argument('--showNN', action='store_true')
     parser.add_argument('--size', help="Image size",
                         type=int, dest="size", default=224)
+    parser.add_argument('-f', '--featureExtractor', help="Path to the feature \
+                        extractor",
+                        type=str, dest="featureExtractor")
 
 
 def test(parser, visualisation=None):

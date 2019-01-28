@@ -72,7 +72,10 @@ def updateParserWithConfig(parser, defaultConfig):
             parser.add_argument('--' + name, type=type(key), dest=name)
 
     parser.add_argument('--overrides',
-                        action='store_true')
+                        action='store_true',
+                        help= "For more information on attribute parameters, \
+                        please have a look at \
+                        models/trainer/standard_configurations")
     return parser
 
 

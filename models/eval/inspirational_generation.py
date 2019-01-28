@@ -1,26 +1,24 @@
 import os
-import torch
-import torchvision
 import json
-
-from ..gan_visualizer import GANVisualizer
-from ..utils.utils import loadmodule, getLastCheckPoint, getVal, getNameAndPackage
-from ..metrics.nn_score import buildFeatureExtractor
-from ..networks.constant_net import FeatureTransform
+from copy import deepcopy
 
 from PIL import Image
-import torchvision
-import torchvision.transforms as Transforms
-import torchvision.models as models
-from torch.utils.serialization import load_lua
-
+import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.optim as optim
+
+from ..gan_visualizer import GANVisualizer
+from ..utils.utils import loadmodule, getLastCheckPoint, getVal, \
+    getNameAndPackage
+from ..utils.image_transform import standardTransform
+from ..metrics.nn_score import buildFeatureExtractor
+from ..networks.constant_net import FeatureTransform
 
 
 def pil_loader(path):
 
-    # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
+    # open path as file to avoid ResourceWarning
+    # (https://github.com/python-pillow/Pillow/issues/835)
     with open(path, 'rb') as f:
         img = Image.open(f)
         return img.convert('RGB')
@@ -31,7 +29,7 @@ class IDModule(nn.Module):
     def __init__(self):
 
         super(IDModule, self).__init__()
-        #mself.dummy = nn.Conv2d(1,1,1,1)
+        # self.dummy = nn.Conv2d(1,1,1,1)
 
     def forward(self, x):
         return x
@@ -39,12 +37,14 @@ class IDModule(nn.Module):
 
 def updateParser(parser):
 
-    parser.add_argument('-f', '--featureExtractor', help="Partition's value", nargs='*',
+    parser.add_argument('-f', '--featureExtractor', help="Path to the feature \
+                        extractor", nargs='*',
                         type=str, dest="featureExtractor")
-    parser.add_argument('--inputImage', type=str, dest="inputImage",
+    parser.add_argument('--input_images', type=str, dest="inputImage",
                         help="Path to the input image.")
     parser.add_argument('-N', type=int, dest="nRuns",
-                        help="Number of gradient descent to run",
+                        help="Number of gradient descent to run at the same \
+                        time. Being too greedy may result in memory error.",
                         default=1)
     parser.add_argument('-l', type=float, dest="learningRate",
                         help="Learning rate",
@@ -56,14 +56,16 @@ def updateParser(parser):
     parser.add_argument('--nSteps', type=int, dest='nSteps',
                         help="Number of steps", default=6000)
     parser.add_argument('--weights', type=float, dest='weights',
-                        nargs='*', help="Weight of each classifier. Default value is one.\
-                        If specified, the number of weights must match.")
+                        nargs='*', help="Weight of each classifier. Default \
+                        value is one. If specified, the number of weights must\
+                        match the number of feature exatrcators.")
     parser.add_argument('--random_search', help='Random search',
                         action='store_true')
     parser.add_argument('--save_descent', help='Save descent',
                         action='store_true')
 
     return parser
+
 
 def gradientDescentOnInput(model,
                            input,
@@ -76,24 +78,54 @@ def gradientDescentOnInput(model,
                            randomSearch=False,
                            lr=1,
                            outPathSave=None):
+    r"""
+    Performs a similarity search with gradient descent.
+
+    Args:
+
+        model (BaseGAN): trained GAN model to use
+        input (tensor): inspiration images for the gradient descent. It should
+                        be a [NxCxWxH] tensor with N the number of image, C the
+                        number of color channels (typically 3), W the image
+                        width and H the image height
+        featureExtractors (nn.module): list of networks used to extract features
+                                       from an image
+        weights (list of float): if not None, weight to give to each feature
+                                 extractor in the loss criterion
+        visualizer (visualizer): if not None, visualizer to use to plot
+                                 intermediate results
+        lambdaD (float): weight of the realism loss
+        nSteps (int): number of steps to perform
+        randomSearch (bool): if true, replace tha gradient descent by a random
+                             search
+        lr (float): learning rate of the gradient descent
+        outPathSave (string): if not None, path to save the intermediate iterations
+                              of the gradient descent
+
+    Returns
+
+        output, optimalVector, optimalLoss
+
+        output (tensor): output images
+        optimalVector (tensor): latent vectors corresponding to the output
+                                images
+    """
+
+    print("Running for %d setps" % nSteps)
 
     if visualizer is not None:
         visualizer.publishTensors(input, (128, 128))
 
     # Detect categories
     varNoise = torch.randn((input.size(0),
-                            self.config.noiseVectorDim +
-                            self.config.categoryVectorDim,
-                            1, 1),
-                           requires_grad=True, device=self.device)
+                            model.config.noiseVectorDim +
+                            model.config.categoryVectorDim),
+                           requires_grad=True, device=model.device)
 
     optimNoise = optim.Adam([varNoise],
                             betas=[0., 0.99], lr=lr)
 
     noiseOut = model.test(varNoise, getAvG=True, toCPU=False)
-
-    if visualizer is not None:
-        visualizer.publishTensors(noiseOut.cpu(), (128, 128))
 
     if not isinstance(featureExtractors, list):
         featureExtractors = [featureExtractors]
@@ -136,54 +168,66 @@ def gradientDescentOnInput(model,
     epochStep = int(nSteps / 3)
     gradientDecay = 0.1
 
+    nImages = input.size(0)
+
     def resetVar(newVal):
+        print("Updating the optimizer with learning rate : %f" % lr)
         varNoise = newVal
         optimNoise = optim.Adam([varNoise],
                                 betas=[0., 0.99], lr=lr)
 
+    # String's format for loss output
+    formatCommand = ' '.join(['{:>4}' for x in range(nImages)])
+
     for iter in range(nSteps):
 
         optimNoise.zero_grad()
-        self.optimizerG.zero_grad()
-        self.optimizerD.zero_grad()
+        model.netG.zero_grad()
+        model.netD.zero_grad()
 
         if randomSearch:
-            varNoise = torch.randn((input.size(0),
-                                    self.config.noiseVectorDim +
-                                    self.config.categoryVectorDim,
-                                    1, 1),
-                                   requires_grad=True, device=self.device)
+            varNoise = torch.randn((nImages,
+                                    model.config.noiseVectorDim +
+                                    model.config.categoryVectorDim),
+                                   requires_grad=True, device=model.device)
 
         noiseOut = model.avgG(varNoise)
-        sumLoss = 0
+        sumLoss = torch.zeros(nImages, device=model.device)
 
-        loss = ((varNoise**2).mean(dim=1) - 1)**2
-        loss.backward(retain_graph=True)
-        sumLoss += loss.item()
+        loss = (((varNoise**2).mean(dim=1) - 1)**2)
+        sumLoss += loss.view(nImages)
+        loss.sum(dim=0).backward(retain_graph=True)
 
         for i in range(nExtractors):
             featureOut = featureExtractors[i](imageTransforms[i](noiseOut))
             diff = ((featuresIn[i] - featureOut)**2)
-            loss = weights[i] * diff.mean()
-            sumLoss += loss.item()
+            loss = weights[i] * diff.mean(dim=1)
+            sumLoss += loss
 
             if not randomSearch:
-                loss.backward(retain_graph=True)
+                retainGraph = (lambdaD > 0) or (i != nExtractors - 1)
+                loss.sum(dim=0).backward(retain_graph=retainGraph)
 
-        loss = -lambdaD * self.netD(noiseOut)[0, 0]
-        sumLoss += loss.item()
+        if lambdaD > 0:
 
-        if not randomSearch:
-            loss.backward()
+            loss = -lambdaD * model.netD(noiseOut)[:, 0]
+            sumLoss += loss
 
-        sumLoss += loss.item()
+            if not randomSearch:
+                loss.sum(dim=0).backward()
 
         if not randomSearch:
             optimNoise.step()
 
-        if optimalLoss is None or sumLoss < optimalLoss:
+        if optimalLoss is None:
             optimalVector = deepcopy(varNoise)
             optimalLoss = sumLoss
+
+        else:
+            optimalVector = torch.where(sumLoss.view(-1, 1) < optimalLoss.view(-1, 1),
+                                        varNoise, optimalVector).detach()
+            optimalLoss = torch.where(sumLoss < optimalLoss,
+                                      sumLoss, optimalLoss).detach()
 
         if iter % 100 == 0:
             if visualizer is not None:
@@ -197,21 +241,25 @@ def gradientDescentOnInput(model,
                         (noiseOut.size(2), noiseOut.size(3)),
                         outPath)
 
-            print("%d : %f" % (iter, sumLoss))
+            print(str(iter) + " : " + formatCommand.format(
+                *["{:10.6f}".format(sumLoss[i].item())
+                  for i in range(nImages)]))
 
         if iter % epochStep == (epochStep - 1):
             lr *= gradientDecay
             resetVar(optimalVector)
 
-    varNoise = optimalVector
-    output = self.test(varNoise, getAvG=True, toCPU=True).detach()
+    print(optimalVector.size(), varNoise.size())
+    output = model.test(optimalVector, getAvG=True, toCPU=True).detach()
 
     if visualizer is not None:
         visualizer.publishTensors(
             output.cpu(), (output.size(2), output.size(3)))
 
-    print("optimal loss %f" % optimalLoss)
-    return output, varNoise, optimalLoss
+    print("optimal losses : " + formatCommand.format(
+        *["{:10.6f}".format(optimalLoss[i].item())
+          for i in range(nImages)]))
+    return output, optimalVector, optimalLoss
 
 
 def test(parser, visualisation=None):
@@ -265,17 +313,11 @@ def test(parser, visualisation=None):
     # Load the image
     targetSize = visualizer.model.getSize()
 
-    baseTransform = Transforms.Compose([Transforms.Resize((targetSize, targetSize)),
-                                        Transforms.ToTensor(),
-                                        Transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    baseTransform = standardTransform(targetSize)
 
-    inputs = [imgPath]
-
-    for path in inputs:
-
-        img = pil_loader(path)
-        input = baseTransform(img)
-        input = input.view(1, input.size(0), input.size(1), input.size(2))
+    img = pil_loader(imgPath)
+    input = baseTransform(img)
+    input = input.view(1, input.size(0), input.size(1), input.size(2))
 
     pathsModel = getVal(kwargs, "featureExtractor", None)
     featureExtractors = []
@@ -283,7 +325,7 @@ def test(parser, visualisation=None):
 
     if weights is not None:
         if pathsModel is None or len(pathsModel) != len(weights):
-            raise ArgumentError(
+            raise AttributeError(
                 "The number of weights must match the number of models")
 
     if pathsModel is not None:
@@ -309,33 +351,35 @@ def test(parser, visualisation=None):
 
     basePath = os.path.join(basePath, os.path.basename(basePath))
 
+    print("All results will be saved in " + basePath)
+
     outDictData = {}
     outPathDescent = None
 
-    for i in range(nRuns):
+    fullInputs = torch.cat([input for x in range(nRuns)], dim=0)
 
-        if kwargs['save_descent']:
-            outPathDescent = os.path.join(
-                os.path.dirname(basePath), "descent_" + str(i))
-            if not os.path.isdir(outPathDescent):
-                os.mkdir(outPathDescent)
+    if kwargs['save_descent']:
+        outPathDescent = os.path.join(
+            os.path.dirname(basePath), "descent")
+        if not os.path.isdir(outPathDescent):
+            os.mkdir(outPathDescent)
 
-        img, vector, loss = visualizer.model.gradientDescentOnInput(input,
-                                                                    featureExtractors,
-                                                                    imgTransforms,
-                                                                    visualizer=visualisation,
-                                                                    lambdaD=kwargs['lambdaD'],
-                                                                    nSteps=kwargs['nSteps'],
-                                                                    weights=weights,
-                                                                    randomSearch=kwargs['random_search'],
-                                                                    lr=kwargs['learningRate'],
-                                                                    outPathSave=outPathDescent)
-        outVectorList.append(vector)
-        path = basePath + "_" + str(i) + ".jpg"
-        visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
-        outDictData[os.path.splitext(os.path.basename(path))[0]] = loss
+    img, outVectors, loss = gradientDescentOnInput(visualizer.model,
+                                                   fullInputs,
+                                                   featureExtractors,
+                                                   imgTransforms,
+                                                   visualizer=visualisation,
+                                                   lambdaD=kwargs['lambdaD'],
+                                                   nSteps=kwargs['nSteps'],
+                                                   weights=weights,
+                                                   randomSearch=kwargs['random_search'],
+                                                   lr=kwargs['learningRate'],
+                                                   outPathSave=outPathDescent)
+    path = basePath + ".jpg"
+    visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
+    outDictData[os.path.splitext(os.path.basename(path))[0]] = \
+        [x.item() for x in loss]
 
-    outVectors = torch.cat(outVectorList, dim=0)
     outVectors = outVectors.view(outVectors.size(0), -1)
     outVectors *= torch.rsqrt((outVectors**2).mean(dim=1, keepdim=True))
 
@@ -343,8 +387,9 @@ def test(parser, visualisation=None):
     barycenter *= torch.rsqrt((barycenter**2).mean())
     meanAngles = (outVectors * barycenter).mean(dim=1)
     meanDist = torch.sqrt(((barycenter-outVectors)**2).mean(dim=1)).mean(dim=0)
-    outDictData["Barycenter"] = {"meanDist": meanDist.item(
-    ), "stdAngles": meanAngles.std().item(), "meanAngles": meanAngles.mean().item()}
+    outDictData["Barycenter"] = {"meanDist": meanDist.item(),
+                                 "stdAngles": meanAngles.std().item(),
+                                 "meanAngles": meanAngles.mean().item()}
 
     path = basePath + "_data.json"
     outDictData["kwargs"] = kwargs
