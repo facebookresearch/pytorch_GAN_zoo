@@ -9,9 +9,11 @@ if __name__ == "__main__":
                         help='Name of the evaluation method to launch')
     parser.add_argument('--no_vis', help='Print more data',
                         action='store_true')
-    parser.add_argument('--np_vis', help=' Replace visdom by a numpy based visualizer (SLURM)',
+    parser.add_argument('--np_vis', help=' Replace visdom by a numpy based \
+                        visualizer (SLURM)',
                         action='store_true')
-    parser.add_argument('-m', '--module', help="Module to evaluate, available modules: PGAN, PPGAN, DCGAN",
+    parser.add_argument('-m', '--module', help="Module to evaluate, available\
+                        modules: PGAN, PPGAN, DCGAN",
                         type=str, dest="module")
     parser.add_argument('-n', '--name', help="Model's name",
                         type=str, dest="name")
@@ -27,8 +29,6 @@ if __name__ == "__main__":
                         type=str, dest="partition_value")
     parser.add_argument("-A", "--statsFile", dest="statsFile",
                         type=str, help="Path to the statistics file")
-    parser.add_argument('-f', '--featureExtractor', help="Partition's value",
-                        type=str, dest="featureExtractor")
 
     args, unknown = parser.parse_known_args()
 

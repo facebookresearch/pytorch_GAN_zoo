@@ -15,7 +15,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.model_name == 'st':
-        featureExtractor = LossTexture(torch.device("cpu"), "vgg19", [3,4,5])
+        featureExtractor = LossTexture(torch.device("cpu"), "vgg19", [3, 4, 5])
         featureExtractor.saveModel(args.output_path)
 
     else:

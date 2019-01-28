@@ -13,6 +13,9 @@ def test(parser, visualisation=None):
 
     parser.add_argument('--size', help="Image size",
                         type=int, dest="size", default=224)
+    parser.add_argument('-f', '--featureExtractor', help="Path of the feature \
+                        extractor",
+                        type=str, dest="featureExtractor")
 
     kwargs = vars(parser.parse_known_args()[0])
 
