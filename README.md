@@ -35,12 +35,12 @@ module load NCCL/2.2.13-cuda.9.0 & & module load anaconda3 & & source activate f
 
 ## Quick training
 
-The setup.py script allows you to prepare your datasets and build their corresponding configuration files.
+The datasets.py script allows you to prepare your datasets and build their corresponding configuration files.
 
 If you want to waste no time and just launch a training session on celeba cropped
 
 ```
-python setup.py celeba_cropped $PATH_TO_CELEBA/img_align_celeba/ -o $OUTPUT_DATASET
+python datasets.py celeba_cropped $PATH_TO_CELEBA/img_align_celeba/ -o $OUTPUT_DATASET
 python train.py PGAN -c config_celeba_cropped.json --restart -n celeba_cropped
 ```
 
@@ -49,7 +49,7 @@ And wait for a few days. Your checkpoints will be dumped in output_networks/cele
 For celebaHQ:
 
 ```
-python setup.py celebaHQ $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET - f
+python datasets.py celebaHQ $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET - f
 python train.py PGAN -c config_celebaHQ.json --restart -n celebaHQ
 ```
 
@@ -58,7 +58,7 @@ Your checkpoints will be dumped in output_networks/celebaHQ. You should get 1024
 For fashionGen:
 
 ```
-python setup.py fashionGen $PATH_TO_FASHIONGEN_RES_256 -o $OUTPUT_DIR
+python datasets.py fashionGen $PATH_TO_FASHIONGEN_RES_256 -o $OUTPUT_DIR
 python train.py PGAN -c config_fashionGen.json --restart -n fashionGen
 ```
 
@@ -73,7 +73,7 @@ Four sub-datasets are available: CLOTHING, SHOES, BAGS and ACCESSORIES.
 For the DTD texture dataset:
 
 ```
-python setup.py dtd $PATH_TO_DTD
+python datasets.py dtd $PATH_TO_DTD
 python train.py PGAN -c config_dtd.json --restart -n dtd
 ```
 
