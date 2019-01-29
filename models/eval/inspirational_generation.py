@@ -24,6 +24,16 @@ def pil_loader(path):
         return img.convert('RGB')
 
 
+def getFeatireSize(x):
+
+    s = x.size()
+    out=1
+    for p in s[1:]:
+        out*=p
+
+    return out
+
+
 class IDModule(nn.Module):
 
     def __init__(self):
@@ -32,7 +42,7 @@ class IDModule(nn.Module):
         # self.dummy = nn.Conv2d(1,1,1,1)
 
     def forward(self, x):
-        return x
+        return x.view(-1, getFeatireSize(x))
 
 
 def updateParser(parser):
