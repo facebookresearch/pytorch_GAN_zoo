@@ -177,7 +177,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Testing script')
     parser.add_argument('dataset_name', type=str,
                         help='Name of the dataset. Available options: celeba, \
-                        celeba_cropped, celebaHQ, fashionGen')
+                        celeba_cropped, celebaHQ, fashionGen, dtd')
     parser.add_argument('dataset_path', type=str,
                         help='Path to the input dataset')
     parser.add_argument('-o', help="If it applies, output dataset (mandadory \
@@ -197,7 +197,7 @@ if __name__ == "__main__":
     keepOriginalDataset = True
 
     if args.dataset_name not in ['celeba', 'celeba_cropped', 'celebaHQ',
-                                 'fashionGen']:
+                                 'fashionGen', 'dtd']:
         raise AttributeError(args.dataset_name + " unknown datatset")
 
     if args.dataset_name in ['celeba', 'celeba_cropped']:
@@ -244,6 +244,24 @@ if __name__ == "__main__":
                       "weightConditionG": 1.0,
                       "weightConditionD": 1.0}
                   }
+
+    if args.dataset_name == 'dtd':
+
+        maxSize = 256
+        config["pathDB"] = args.dataset_path
+        moveLastScale = False
+        config["imagefolderDataset"] = True
+        config["config"] = {"maxIterAtScale": [20000, 40000, 40000,
+                                               40000, 40000, 80000,
+                                               80000],
+                            "dimLatentVector": 256,
+                            "weightConditionG": 1.0,
+                            "weightConditionD": 1.0,
+                            "depthScales": [256, 256, 256, 256, 256, 128, 64]}
+
+        if args.fast_training:
+            print("Ignoring the fast training parameter for fashionGen")
+            args.fast_training = False
 
     if args.fast_training:
         if args.output_dataset is None:
