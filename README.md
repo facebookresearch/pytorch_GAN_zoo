@@ -70,6 +70,13 @@ python train.py PGAN -c config_fashionGen.json --restart -n fashionGen -v CLOTHI
 
 Four sub-datasets are available: CLOTHING, SHOES, BAGS and ACCESSORIES.
 
+For the DTD texture dataset:
+
+```
+python setup.py dtd $PATH_TO_DTD
+python train.py PGAN -c config_dtd.json --restart -n dtd
+```
+
 ## Advanced guidelines
 
 ### How to run a training session ?
@@ -221,3 +228,4 @@ python eval.py metric_plot  -n $modelName
 - Celeba: http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html
 - CelebaHQ: https://github.com/nperraud/download-celebA-HQ
 - fashionGen: https://fashion-gen.com/
+- DTD: https://www.robots.ox.ac.uk/~vgg/data/dtd/
