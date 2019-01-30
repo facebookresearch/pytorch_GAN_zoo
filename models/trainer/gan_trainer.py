@@ -137,11 +137,7 @@ class GANTrainer():
         self.lossIterEvaluation = lossIterEvaluation
 
         # Intern state
-        self.runningLossG = 0
-        self.runningLossD = 0
-        self.runningLossGrad = 0
-
-        self.runningLoss = {"stack": 0}
+        self.runningLoss = {}
 
         self.startScale = 0
         self.startIter = 0
@@ -154,36 +150,42 @@ class GANTrainer():
         """
         pass
 
-    def updateRunningLosses(self):
+    def updateRunningLosses(self, allLosses):
 
-        self.runningLoss["stack"] += 1
-
-        for name, value in vars(self.model.trainTmp).items():
-
-            if name[:4] != "loss":
-                continue
+        for name, value in allLosses.items():
 
             if name not in self.runningLoss:
-                self.runningLoss[name] = 0
+                self.runningLoss[name] = [0, 0]
 
-            self.runningLoss[name] += value
+            self.runningLoss[name][0]+= value
+            self.runningLoss[name][1]+=1
 
     def resetRunningLosses(self):
 
-        for item in self.runningLoss:
-            self.runningLoss[item] = 0
+        self.runningLoss = {}
 
-    def updateLossProfile(self):
+    def updateLossProfile(self, iter):
 
-        stack = self.runningLoss["stack"]
+        nPrevIter = len(self.lossProfile[-1]["iter"])
+        self.lossProfile[-1]["iter"].append(iter)
 
-        for item, value in self.runningLoss.items():
-            if item == "stack":
+        newKeys = set(self.runningLoss.keys())
+        existingKeys = set(self.lossProfile[-1].keys())
+
+        toComplete = existingKeys - newKeys
+
+        for item in newKeys:
+
+            if item not in existingKeys:
+                self.lossProfile[-1][item] = [None for x in range(nPrevIter)]
+
+            value, stack = self.runningLoss[item]
+            self.lossProfile[-1][item].append(value /float(stack))
+
+        for item in toComplete:
+            if item in ["scale", "iter"]:
                 continue
-            if item not in self.lossProfile[-1]:
-                self.lossProfile[-1][item] = []
-
-            self.lossProfile[-1][item].append(value / float(stack))
+            self.lossProfile[-1][item].append(None)
 
     def readTrainConfig(self, config):
         r"""
@@ -224,21 +226,20 @@ class GANTrainer():
 
         if pathTmpConfig is not None:
             tmpConfig = json.load(open(pathTmpConfig, 'rb'))
-            self.runningLossG = tmpConfig["runningLossG"]
-            self.runningLossD = tmpConfig["runningLossD"]
             self.startScale = tmpConfig["scale"]
             self.startIter = tmpConfig["iter"]
+            self.runningLoss = tmpConfig.get("runningLoss", {})
 
             tmpPathLossLog = tmpConfig.get("lossLog", None)
 
         if tmpPathLossLog is None:
             self.lossProfile = [
-                {"iter": [], "G": [], "D": [], "scale": self.startScale}]
+                {"iter": [], "scale": self.startScale}]
         elif not os.path.isfile(tmpPathLossLog):
             print("WARNING : couldn't find the loss logs at " +
                   tmpPathLossLog + " resetting the losses")
             self.lossProfile = [
-                {"iter": [], "G": [], "D": [], "scale": self.startScale}]
+                {"iter": [], "scale": self.startScale}]
         else:
             self.lossProfile = pkl.load(open(tmpPathLossLog, 'rb'))
             self.lossProfile = self.lossProfile[:(self.startScale + 1)]
@@ -247,8 +248,10 @@ class GANTrainer():
                 indexStop = next(x[0] for x in enumerate(self.lossProfile[-1]["iter"])
                                  if x[1] > self.startIter)
                 self.lossProfile[-1]["iter"] = self.lossProfile[-1]["iter"][:indexStop]
-                self.lossProfile[-1]["G"] = self.lossProfile[-1]["G"][:indexStop]
-                self.lossProfile[-1]["D"] = self.lossProfile[-1]["D"][:indexStop]
+
+                for item in self.lossProfile[-1]:
+                    self.lossProfile[-1][item] = \
+                        self.lossProfile[-1][item][:indexStop]
 
         # Read the training configuration
         if not finetune:
@@ -321,12 +324,11 @@ class GANTrainer():
 
         # Tmp Configuration
         pathTmpConfig = os.path.join(outDir, outLabel + "_tmp_config.json")
-        outConfig = {'runningLossG': self.runningLossG,
-                     'runningLossD': self.runningLossD,
-                     'scale': scale,
+        outConfig = {'scale': scale,
                      'iter': iter,
                      'lossLog': self.pathLossLog,
-                     'refVectors': self.pathRefVector}
+                     'refVectors': self.pathRefVector,
+                     'runningLoss': self.runningLoss}
 
         # Save the reference vectors
         torch.save(self.refVectorVisualization, open(self.pathRefVector, 'wb'))
@@ -481,38 +483,30 @@ class GANTrainer():
 
             if len(data) > 2:
                 mask = data[2]
-                self.model.optimizeParameters(
+                allLosses = self.model.optimizeParameters(
                     inputs_real, inputLabels=labels, inputMasks=mask)
             else:
-                self.model.optimizeParameters(inputs_real, inputLabels=labels)
+                allLosses = self.model.optimizeParameters(inputs_real,
+                                                          inputLabels=labels)
 
-            self.runningLossG += self.model.trainTmp.lossG
-            self.runningLossD += self.model.trainTmp.lossD
-
-            self.updateRunningLosses()
+            self.updateRunningLosses(allLosses)
 
             i += 1
 
             # Regular evaluation
             if i % self.lossIterEvaluation == 0:
-                lossG = self.runningLossG / self.lossIterEvaluation
-                lossD = self.runningLossD / self.lossIterEvaluation
-                print('[%d : %6d] loss G : %.3f loss D : %.3f' %
-                      (scale, i, lossG, lossD))
 
-                self.lossProfile[-1]["G"].append(lossG)
-                self.lossProfile[-1]["D"].append(lossD)
-                self.lossProfile[-1]["iter"].append(i)
+                # Reinitialize the losses
+                self.updateLossProfile(i)
+
+                print('[%d : %6d] loss G : %.3f loss D : %.3f' % (scale, i,
+                      self.lossProfile[-1]["lossG"][-1],
+                      self.lossProfile[-1]["lossD"][-1]))
+
+                self.resetRunningLosses()
 
                 if self.visualisation is not None:
                     self.sendToVisualization(inputs_real, scale)
-
-                # Reinitialize the losses
-                self.runningLossG = 0.0
-                self.runningLossD = 0.0
-
-                self.updateLossProfile()
-                self.resetRunningLosses()
 
             if self.checkPointDir is not None:
                 if i % self.saveIter == 0:

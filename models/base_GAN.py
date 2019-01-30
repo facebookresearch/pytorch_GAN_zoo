@@ -20,6 +20,14 @@ def getNArgs(x):
 
     return out
 
+def updateKey(inputDict, key, val):
+
+    if key in inputDict:
+        inputDict[key] += val
+
+    else:
+        inputDict[key] = val
+
 
 class BaseGAN():
     r"""Abstract class: the basic framework for GAN training.
@@ -131,9 +139,6 @@ class BaseGAN():
         # Set the inner k iteration to zero
         self.trainTmp.currentKd = 0
 
-        # Losses
-        self.resetTmpLosses()
-
     # used in test time, no backprop
 
     def test(self, input, getAvG=False, toCPU=True):
@@ -166,20 +171,6 @@ class BaseGAN():
             self.avgG = nn.DataParallel(self.avgG)
             self.avgG.to(self.device)
 
-    def resetTmpLosses(self):
-        r"""
-        Reset all internal losses log to zero
-        """
-
-        self.trainTmp.lossD = 0
-        self.trainTmp.lossG = 0
-
-        self.trainTmp.lossEpsilon = 0.0
-        self.trainTmp.lossACD = 0.0
-        self.trainTmp.lossACG = 0.0
-        self.trainTmp.lossGrad = 0.0
-        self.trainTmp.lossGDPP = 0.0
-
     def optimizeParameters(self, input_batch, inputLabels=None):
         r"""
         Update the discrimator D using the given "real" inputs.
@@ -191,6 +182,8 @@ class BaseGAN():
 
         """
 
+        allLosses = {}
+
         # Retrieve the input data
         self.real_input = input_batch.to(self.device)
 
@@ -200,50 +193,57 @@ class BaseGAN():
         n_samples = self.real_input.size()[0]
 
         # Update the discriminator
-        self.resetTmpLosses()
         self.optimizerD.zero_grad()
 
         # #1 Real data
         predRealD = self.netD(self.real_input)
         lossD = self.lossCriterion.getCriterion(predRealD, True)
+        allLosses["lossD_real"] = lossD.item()
 
         # #2 Fake data
         inputLatent, targetRandCat = self.buildNoiseData(n_samples)
         predFakeG = self.netG(inputLatent).detach()
-
         predFakeD = self.netD(predFakeG)
-        lossD += self.lossCriterion.getCriterion(predFakeD, False)
+
+        lossDFake = self.lossCriterion.getCriterion(predFakeD, False)
+        allLosses["lossD_fake"] = lossD.item()
+        lossD += lossDFake
 
         if self.config.lambdaGP > 0:
-            self.trainTmp.lossGrad += self.getGradientPenalty(
-                self.real_input, predFakeG)
+            allLosses["lossD_Grad"] = self.getGradientPenalty(
+                self.real_input, predFakeG, backward = True)
 
         if self.config.epsilonD > 0:
-            tmp = lossD.item()
-            lossD += (predRealD[:, :self.lossCriterion.sizeDecisionLayer]
+            lossEpsilon = (predRealD[:, :self.lossCriterion.sizeDecisionLayer]
                       ** 2).sum() * self.config.epsilonD
-            self.trainTmp.lossEpsilon += (lossD.item() - tmp)
+            lossD += lossEpsilon
+            allLosses["lossD_Epsilon"] = lossEpsilon.item()
 
         if self.config.attribKeysOrder:
-            tmp = lossD.item()
-            lossD += self.config.weightConditionD \
+            lossACD = self.config.weightConditionD \
                 * self.getLossACDCriterion(predRealD, self.realLabels) \
                 + self.config.weightConditionD * \
                 self.getLossACDCriterion(predFakeD, targetRandCat)
-
-            self.trainTmp.lossACD += (lossD.item() - tmp)
+            lossD += lossACD
+            allLosses["lossD_AC"] = lossACD.item()
 
         lossD.backward()
-        self.trainTmp.lossD += lossD.item()
 
         self.trainTmp.currentKd += 1
         finiteCheck(self.netD.module.parameters())
         self.optimizerD.step()
 
+        lossD = 0
+        for key, val in allLosses.items():
+
+            if key.find("lossD") == 0:
+                lossD += val
+
+        allLosses["lossD"] = lossD
+
         # Can we update the generator ?
         if self.trainTmp.currentKd >= self.config.kInnerD:
             self.trainTmp.currentKd = 0
-            self.trainTmp.lossG = 0.0
 
             # Update kInnerG times the generator
             for iteration in range(self.config.kInnerG):
@@ -256,28 +256,41 @@ class BaseGAN():
 
                 predFakeD, phiGFake = self.netD(predFakeG, getFeature=True)
                 lossGFake = self.lossCriterion.getCriterion(predFakeD, True)
+                allLosses["lossG_fake"] = lossGFake.item()
+
+                lossGFake.backward()
 
                 if self.config.GDPP:
                     _, phiDReal = self.netD.forward(self.real_input,
                                                     getFeature=True)
-                    self.trainTmp.lossGDPP += GDPPLoss(phiDReal, phiGFake)
+                    allLosses["lossG_GDPP"] = GDPPLoss(phiDReal, phiGFake)
 
-                self.trainTmp.lossG += lossGFake.item()
                 self.auxiliaryLossesGeneration()
 
-                self.trainTmp.lossACG += self.updateLossACGeneration(
+                if self.config.weightConditionG != 0:
+                    lossACG = self.updateLossACGeneration(
                     predFakeD, targetCatNoise)
-                lossGFake.backward()
+                    lossACG.backward()
+                    allLosses["lossG_AC"] = lossACG.item()
 
                 finiteCheck(self.netG.module.parameters())
                 self.optimizerG.step()
+
+                lossG = 0
+                for key, val in allLosses.items():
+
+                    if key.find("lossG") == 0:
+                        lossG += val
+
+                allLosses["lossG"] = lossG
 
             # Update the moving average if relevant
             for p, avg_p in zip(self.netG.module.parameters(),
                                 self.avgG.module.parameters()):
                 avg_p.mul_(0.999).add_(0.001, p.data)
 
-            self.trainTmp.lossG /= self.config.kInnerG
+            return allLosses
+
 
     def initializeACCriterion(self):
         r"""
@@ -330,7 +343,6 @@ class BaseGAN():
         loss = self.config.weightConditionG * \
             self.ACGANCriterion.getLoss(predFakeD, targetCatNoise)
 
-        loss.backward(retain_graph=True)
         return loss.item()
 
     def auxiliaryLossesGeneration(self):
@@ -569,7 +581,7 @@ class BaseGAN():
         """
         return
 
-    def getGradientPenalty(self, input, fake):
+    def getGradientPenalty(self, input, fake, backward = True):
         r"""
         Build the gradient penalty as described in
         "Improved Training of Wasserstein GANs"
@@ -584,7 +596,8 @@ class BaseGAN():
         batchSize = input.size(0)
         alpha = torch.rand(batchSize, 1)
         alpha = alpha.expand(batchSize, int(input.nelement() /
-                                            batchSize)).contiguous().view(input.size())
+                                            batchSize)).contiguous().view(
+                                                input.size())
         alpha = alpha.to(self.device)
         interpolates = alpha * input + ((1 - alpha) * fake)
 
@@ -596,7 +609,8 @@ class BaseGAN():
         gradients = torch.autograd.grad(outputs=decisionInterpolate,
                                         inputs=interpolates,
                                         grad_outputs=torch.ones(
-                                            decisionInterpolate.size()).to(self.device),
+                                            decisionInterpolate.size()).to(
+                                                            self.device),
                                         create_graph=True, retain_graph=True,
                                         only_inputs=True)
 
@@ -605,6 +619,7 @@ class BaseGAN():
         gradient_penalty = (((gradients - 1.0)**2)).sum() * \
             self.config.lambdaGP
 
-        gradient_penalty.backward(retain_graph=True)
+        if backward:
+            gradient_penalty.backward(retain_graph=True)
 
         return gradient_penalty.item()

@@ -43,33 +43,27 @@ def saveTensor(data, out_size_image, path):
     vutils.save_image(outdata, path)
 
 
-def publishLoss(data, name="", window_token=None, env="main"):
+def publishLoss(data, name="", window_tokens=None, env="main"):
 
-    nItems = len(data["G"])
-    inputY = np.array([[data["G"][x], data["D"][x]] for x in range(nItems)])
+    if window_tokens is None:
+        window_tokens = {key: None for key in data}
 
-    #inputY = np.array(data["G"])
-    inputX = np.array(data["iter"])
-    opts = {'title': name + (' scale %d loss over time' % data["scale"]),
-            'legend': ["G", "D"], 'xlabel': 'iteration', 'ylabel': 'loss'}
+    for key, plot in data.items():
 
-    return vis.line(X=inputX, Y=inputY, opts=opts, win=window_token, env=env)
+        if key in ("scale", "iter"):
+            continue
 
+        nItems = len(plot)
+        inputY = np.array([plot[x] for x in range(nItems) if plot[x] is not None])
+        inputX = np.array([data["iter"][x] for x in range(nItems) if plot[x] is not None])
 
-def publishLinePlot(data, xData, name="", window_token=None, env="main"):
+        opts = {'title': key + (' scale %d loss over time' % data["scale"]),
+                'legend': [key], 'xlabel': 'iteration', 'ylabel': 'loss'}
 
-    if not isinstance(data, list):
-        data = [data]
+        window_tokens[key] = vis.line(X=inputX, Y=inputY, opts=opts,
+                                      win=window_tokens[key], env=env)
 
-    inputX = np.array(xData)
-    nItems = len(xData)
-    inputY = np.array([[y[1][x] for y in data] for x in range(nItems)])
-
-    opts = {'title': name,
-            'legend': [y[0] for y in data],
-            'xlabel': 'iteration'}
-
-    return vis.line(X=inputX, Y=inputY, opts=opts, win=window_token, env=env)
+    return window_tokens
 
 
 def delete_env(name):
