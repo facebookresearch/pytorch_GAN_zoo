@@ -71,8 +71,8 @@ def PGAN(pretrained=False, *args, **kwargs):
     pretrained (bool): a recommended kwargs for all entrypoints
     args & kwargs are arguments for the function
     """
-    from models.progressive_gan import PGAN
-    if config not in kwargs or kwargs['config'] is None::
+    from models.progressive_gan import ProgressiveGAN as PGAN
+    if 'config' not in kwargs or kwargs['config'] is None:
         kwargs['config'] = {}
 
     model = PGAN(useGPU=kwargs['useGPU'],
@@ -90,8 +90,8 @@ def DCGAN(pretrained=False, *args, **kwargs):
     pretrained (bool): a recommended kwargs for all entrypoints
     args & kwargs are arguments for the function
     """
-    from models.progressive_gan import PGAN
-    if config not in kwargs or kwargs['config'] is None:
+    from models.progressive_gan import ProgressiveGAN as DCGAN
+    if 'config' not in kwargs or kwargs['config'] is None:
         kwargs['config'] = {}
 
     model = DCGAN(useGPU=kwargs['useGPU'],
