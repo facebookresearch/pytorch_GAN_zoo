@@ -215,18 +215,9 @@ class GANVisualizer():
 
             locIter = lossData[scale]["iter"]
 
-            for plotName, plotData in lossData[scale].items():
-
-                if plotName == "iter":
-                    continue
-                if not isinstance(plotData, list):
-                    continue
-                if len(plotData) == 0:
-                    continue
-
-                self.visualizer.publishLinePlot([(plotName, plotData)], locIter,
-                                                name=plotName,
-                                                env=locName)
+            self.visualizer.publishLoss(lossData[scale],
+                                        locName,
+                                        env=locName)
 
     def saveInterpolation(self, N, vectorStart, vectorEnd, pathOut):
         r"""

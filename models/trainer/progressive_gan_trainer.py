@@ -216,7 +216,7 @@ class ProgressiveGANTrainer(GANTrainer):
 
             while scale >= len(self.lossProfile):
                 self.lossProfile.append(
-                    {"G": [], "D": [], "scale": scale, "iter": []})
+                    {"scale": scale, "iter": []})
 
             dbLoader = self.getDBLoader(scale)
             sizeDB = len(dbLoader)

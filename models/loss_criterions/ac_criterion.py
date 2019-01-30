@@ -163,12 +163,14 @@ class ACGanCriterion:
 
     def getLoss(self, output, target):
         r"""
-        Compute the conditional loss between the network's output and the target.
-        This loss, L, is the sum of the losses Lc of the categories defined in
-        the criterion. We have:
+        Compute the conditional loss between the network's output and the
+        target. This loss, L, is the sum of the losses Lc of the categories
+        defined in the criterion. We have:
 
-                 | Cross entropy loss for the class c if c is attached to a classification task
-            Lc = | Multi label soft margin loss for the class c if c is attached to a tagging task
+                 | Cross entropy loss for the class c if c is attached to a
+                   classification task.
+            Lc = | Multi label soft margin loss for the class c if c is
+                   attached to a tagging task
         """
         loss = 0
         shiftInput = 0
