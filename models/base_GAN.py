@@ -502,7 +502,8 @@ class BaseGAN():
         self.updateSolversDevice()
 
     def load(self,
-             path,
+             path = "",
+             in_state = None,
              loadG=True,
              loadD=True,
              loadConfig=True,
@@ -515,6 +516,24 @@ class BaseGAN():
         """
 
         in_state = torch.load(path)
+        self.load_state_dict(in_state,
+                             loadG = loadG,
+                             loadD = loadD,
+                             loadConfig=True,
+                             finetuning=False)
+
+    def load_state_dict(self,
+                        in_state,
+                        loadG=True,
+                        loadD=True,
+                        loadConfig=True,
+                        finetuning=False):
+        r"""
+        Load a model saved with the @method save() function
+
+        Args:
+            - in_state (dict): state dict containing the model
+        """
 
         # Step one : load the configuration
         if loadConfig:
