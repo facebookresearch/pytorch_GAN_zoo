@@ -71,7 +71,7 @@ def PGAN(pretrained=False, *args, **kwargs):
     pretrained (bool): a recommended kwargs for all entrypoints
     args & kwargs are arguments for the function
     """
-    from GANs.progressive_gan import PGAN
+    from models.progressive_gan import PGAN
     if 'config' not in kwargs or kwargs['config'] is None::
         kwargs['config'] = {}
 
@@ -90,7 +90,7 @@ def DCGAN(pretrained=False, *args, **kwargs):
     pretrained (bool): a recommended kwargs for all entrypoints
     args & kwargs are arguments for the function
     """
-    from GANs.DCGAN import DCGAN
+    from models.DCGAN import DCGAN
     if 'config' not in kwargs or kwargs['config'] is None:
         kwargs['config'] = {}
 
