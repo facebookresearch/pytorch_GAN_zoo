@@ -34,7 +34,7 @@ class DCGANTrainer(GANTrainer):
 
         GANTrainer.__init__(self, pathdb, **kwargs)
 
-        self.lossProfile.append({"G": [], "D": [], "iter": [], "scale": 0})
+        self.lossProfile.append({"iter": [], "scale": 0})
 
     def getDefaultConfig(self):
         return _C

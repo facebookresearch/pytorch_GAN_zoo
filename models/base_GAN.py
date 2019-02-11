@@ -206,7 +206,7 @@ class BaseGAN():
         predFakeD = self.netD(predFakeG)
 
         lossDFake = self.lossCriterion.getCriterion(predFakeD, False)
-        allLosses["lossD_fake"] = lossD.item()
+        allLosses["lossD_fake"] = lossDFake.item()
         lossD += lossDFake
 
         if self.config.lambdaGP > 0:
