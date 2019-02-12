@@ -186,6 +186,14 @@ python eval.py visualization -n $modelName -m $modelType --Class T_SHIRT
 
 Will plot a batch of T_SHIRTS in visdom. Please use the option - -showLabels to see all the available labels for your model.
 
+### Fake dataset generation
+
+To save a randomly generated fake dataset from a checkpoint please use:
+
+```
+python eval.py visualization -n $modelName -m $modelType --save_dataset $PATH_TO_THE_OUTPUT_DATASET --size_dataset $SIZE_OF_THE_OUTPUT
+```
+
 ### SWD metric
 
 Using the same kind of configuration file as above, just launch:
@@ -194,7 +202,7 @@ Using the same kind of configuration file as above, just launch:
 python eval.py laplacian_SWD -c $CONFIGURATION_FILE -n $modelName -m $modelType
 ```
 
-Where $CONFIGURATION_FILE is the training configuration file called by train.py(see above): it must contains a "pathDB" field pointing to path to the dataset's directory. For example, if you followed the instruction of the Quick Training section to launch a training session on celebaHQ your configuration file will be config_celebaHQ.json.
+Where $CONFIGURATION_FILE is the training configuration file called by train.py (see above): it must contains a "pathDB" field pointing to path to the dataset's directory. For example, if you followed the instruction of the Quick Training section to launch a training session on celebaHQ your configuration file will be config_celebaHQ.json.
 
 You can add optional arguments:
 
