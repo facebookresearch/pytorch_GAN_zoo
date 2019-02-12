@@ -18,14 +18,19 @@ def getModelName(pathConfig):
 
     return pathConfig[:-18]
 
-
-def updateParser(parser, labels):
+def updateParserWithLabels(parser, labels):
 
     for key in labels:
         parser.add_argument('--' + key, type=str,
                             help=str(labels[key]["values"]))
+    return parser
 
-    parser.add_argument('--showLabels', action='store_true')
+
+def test(parser, visualisation=None):
+
+    # Parameters
+    parser.add_argument('--showLabels', action='store_true',
+                        help="For labelled datasets, show available labels")
     parser.add_argument('--interpolate', type=str,
                         dest='interpolationPath',
                         help="Path to some latent vectors to interpolate")
@@ -36,20 +41,17 @@ def updateParser(parser, labels):
     parser.add_argument('--size_dataset', type=int, dest="size_dataset",
                         default=10000,
                         help="Size of the dataset to be saved")
-    return parser
 
-
-def test(parser, visualisation=None):
-
-    # Parameters
     kwargs = vars(parser.parse_known_args()[0])
 
     name = getVal(kwargs, "name", None)
     if name is None:
+        parser.print_help()
         raise ValueError("You need to input a name")
 
     module = getVal(kwargs, "module", None)
     if module is None:
+        parser.print_help()
         raise ValueError("You need to input a module")
 
     scale = getVal(kwargs, "scale", None)
@@ -73,7 +75,8 @@ def test(parser, visualisation=None):
     if keysLabels is None:
         keysLabels = {}
 
-    parser = updateParser(parser, keysLabels)
+    parser = updateParserWithLabels(parser, keysLabels)
+
     kwargs = vars(parser.parse_args())
 
     if kwargs['showLabels']:
