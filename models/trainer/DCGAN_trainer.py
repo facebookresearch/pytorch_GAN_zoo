@@ -61,7 +61,7 @@ class DCGANTrainer(GANTrainer):
                                           + "_train_config.json")
             self.saveBaseConfig(pathBaseConfig)
 
-        maxShift = int(self.modelConfig.nEpoch / len(self.getDBLoader(0)))
+        maxShift = int(self.modelConfig.nEpoch * len(self.getDBLoader(0)))
 
         for epoch in range(self.modelConfig.nEpoch):
             dbLoader = self.getDBLoader(0)

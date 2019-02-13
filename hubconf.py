@@ -71,7 +71,7 @@ def PGAN(pretrained=False, *args, **kwargs):
     pretrained (bool): a recommended kwargs for all entrypoints
     args & kwargs are arguments for the function
     """
-    from models.progressive_gan import PGAN
+    from models.progressive_gan import ProgressiveGAN as PGAN
     if 'config' not in kwargs or kwargs['config'] is None:
         kwargs['config'] = {}
 
@@ -79,7 +79,7 @@ def PGAN(pretrained=False, *args, **kwargs):
                  storeAVG=True,
                  **kwargs['config'])
 
-    checkpoint = 'coin'
+    checkpoint = 'https://dl.fbaipublicfiles.com/gan_zoo/celebaHQ_s5_i96000-5fe58222.pth'
     if pretrained:
         model.load_state_dict(model_zoo.load_url(checkpoint))
     return model

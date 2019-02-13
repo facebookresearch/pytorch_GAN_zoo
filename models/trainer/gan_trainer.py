@@ -95,7 +95,7 @@ class GANTrainer():
         if (not ignoreAttribs) and \
                 (self.pathAttribDict is not None or self.imagefolderDataset):
             self.modelConfig.attribKeysOrder = self.getDataset(
-                0, size=10).getKeyOrders(self.modelConfig.equalizeLabels)
+                0, size=10).getKeyOrders()
 
             print("AC-GAN classes : ")
             print(self.modelConfig.attribKeysOrder)

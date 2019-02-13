@@ -3,11 +3,12 @@ import json
 import os
 import h5py
 
+import math
 import numpy as np
 from scipy import misc
 
-from models.utils.utils import printProgressBar
-from models.utils.image_transform import NumpyResize, pil_loader
+from GANs.utils.utils import printProgressBar
+from GANs.utils.image_transform import NumpyResize, pil_loader
 
 
 def saveImage(path, image):
@@ -75,7 +76,7 @@ def fashionGenSetup(fashionGenPath,
         strVal = str(val)
 
         # Hand-made fix for the clothing dataset : some pose attributes
-        # corresponds only to miss-labelled data
+        # correspond only to miss-labelled data
         if strVal == "CLOTHING" \
                 and str(h5file["input_pose"][index][0]) in \
                 ["b'id_gridfs_6'", "b'id_gridfs_5'"]:
@@ -127,7 +128,7 @@ def fashionGenSetup(fashionGenPath,
 def resizeDataset(inputPath, outputPath, maxSize):
 
     sizes = [64, 128, 512, 1024]
-    scales = [0, 5, 7, 8]
+    scales = [0, 5, 6, 8]
     index = 0
 
     imgList = [f for f in os.listdir(inputPath) if os.path.splitext(f)[
@@ -176,8 +177,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Testing script')
     parser.add_argument('dataset_name', type=str,
-                        help='Name of the dataset. Available options: celeba, \
-                        celeba_cropped, celebaHQ, fashionGen, dtd')
+                        choices=['celeba','celeba_cropped', 'celebaHQ', 'dtd',
+                                 'fashionGen'],
+                        help='Name of the dataset.')
     parser.add_argument('dataset_path', type=str,
                         help='Path to the input dataset')
     parser.add_argument('-o', help="If it applies, output dataset (mandadory \
@@ -187,6 +189,11 @@ if __name__ == "__main__":
                         dest="fast_training",
                         help="Store several resized versions of a dataset for \
                         a faster training. Advised for HD datasets.")
+    parser.add_argument('-m', dest='model_type',
+                        type=str, default='PGAN',
+                        choices=['PGAN','DCGAN'],
+                        help="Model type. Default is progressive growing \
+                        (PGAN)")
 
     args = parser.parse_args()
 
@@ -201,8 +208,9 @@ if __name__ == "__main__":
         raise AttributeError(args.dataset_name + " unknown datatset")
 
     if args.dataset_name in ['celeba', 'celeba_cropped']:
-        config["config"]["maxIterAtScale"] = [48000, 96000, 96000, 96000,
-                                              96000, 96000]
+        if args.model_type == 'PGAN':
+            config["config"]["maxIterAtScale"] = [48000, 96000, 96000, 96000,
+                                                  96000, 96000]
         maxSize = 128
 
     if args.dataset_name == 'celeba_cropped':
@@ -220,6 +228,9 @@ if __name__ == "__main__":
         moveLastScale = False
         keepOriginalDataset = True
 
+        if args.model_type == 'DCGAN':
+            print("WARNING: DCGAN is diverging for celebaHQ")
+
     if args.dataset_name == 'fashionGen':
 
         if args.output_dataset is None:
@@ -234,16 +245,16 @@ if __name__ == "__main__":
         pathPartition, pathStats = fashionGenSetup(args.dataset_path,
                                                    args.output_dataset)
 
-        config = {"pathPartition": pathPartition,
-                  "pathAttribDict": pathStats,
-                  "pathDB": args.dataset_path,
-                  "config": {
-                      "maxIterAtScale": [20000, 40000, 40000,
-                                         40000, 40000, 80000,
-                                         80000],
-                      "weightConditionG": 1.0,
-                      "weightConditionD": 1.0}
-                  }
+        config["pathPartition"] = pathPartition
+        config["pathAttribDict"] = pathStats
+        config["config"]["weightConditionG"] = 1.0
+        config["config"]["weightConditionD"] = 1.0
+
+        if args.model_type == 'PGAN':
+            config["config"]["maxIterAtScale"] = [20000, 40000, 40000,
+                                                  40000, 40000, 80000,
+                                                  80000]
+            config["miniBatchScheduler"] = {"7": 12, "8": 8}
 
     if args.dataset_name == 'dtd':
 
@@ -251,13 +262,17 @@ if __name__ == "__main__":
         config["pathDB"] = args.dataset_path
         moveLastScale = False
         config["imagefolderDataset"] = True
-        config["config"] = {"maxIterAtScale": [20000, 40000, 40000,
-                                               40000, 40000, 80000,
-                                               80000],
-                            "dimLatentVector": 256,
-                            "weightConditionG": 1.0,
-                            "weightConditionD": 1.0,
-                            "depthScales": [256, 256, 256, 256, 256, 128, 64]}
+
+        config["config"]["weightConditionG"] = 1.0
+        config["config"]["weightConditionD"] = 1.0
+
+        if args.model_type == 'PGAN':
+            config["config"]["maxIterAtScale"] = [20000, 40000, 40000,
+                                                  40000, 40000, 80000,
+                                                  80000]
+            config["config"]["dimLatentVector"] = 256
+            config["config"]["depthScales"] = [256, 256, 256, 256,
+                                               256, 128, 64]
 
         if args.fast_training:
             print("Ignoring the fast training parameter for fashionGen")
@@ -268,6 +283,7 @@ if __name__ == "__main__":
             raise AttributeError(
                 "Please provide and output path to dump intermediate datasets")
 
+        maxScale = int(math.log(maxSize, 2)) - 2
         if moveLastScale:
             datasetProfile, _ = resizeDataset(
                 args.output_dataset, args.output_dataset, maxSize / 2)
@@ -285,11 +301,11 @@ if __name__ == "__main__":
 
                 os.rename(pathIn, pathOut)
 
-            datasetProfile[str(maxSize)] = lastScaleOut
+            datasetProfile[maxScale] = lastScaleOut
         elif keepOriginalDataset:
             datasetProfile, _ = resizeDataset(
                 args.dataset_path, args.output_dataset, maxSize / 2)
-            datasetProfile[str(maxSize)] = args.dataset_path
+            datasetProfile[maxScale] = args.dataset_path
             lastScaleOut = args.dataset_path
         else:
             datasetProfile, lastScaleOut = resizeDataset(
