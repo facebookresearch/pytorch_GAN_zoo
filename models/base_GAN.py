@@ -255,10 +255,6 @@ class BaseGAN():
                 predFakeG = self.netG(inputNoise)
 
                 predFakeD, phiGFake = self.netD(predFakeG, getFeature=True)
-                lossGFake = self.lossCriterion.getCriterion(predFakeD, True)
-                allLosses["lossG_fake"] = lossGFake.item()
-
-                lossGFake.backward()
 
                 if self.config.GDPP:
                     _, phiDReal = self.netD.forward(self.real_input,
@@ -270,8 +266,13 @@ class BaseGAN():
                 if self.config.weightConditionG != 0:
                     lossACG = self.updateLossACGeneration(
                     predFakeD, targetCatNoise)
-                    lossACG.backward()
+                    lossACG.backward(retain_graph=True)
                     allLosses["lossG_AC"] = lossACG.item()
+
+                lossGFake = self.lossCriterion.getCriterion(predFakeD, True)
+                allLosses["lossG_fake"] = lossGFake.item()
+
+                lossGFake.backward()
 
                 finiteCheck(self.netG.module.parameters())
                 self.optimizerG.step()
@@ -286,7 +287,7 @@ class BaseGAN():
 
             # Update the moving average if relevant
             for p, avg_p in zip(self.netG.module.parameters(),
-                                self.avgG.module.parameters()):
+                                self.getOriginalAvG().parameters()):
                 avg_p.mul_(0.999).add_(0.001, p.data)
 
             return allLosses
@@ -295,7 +296,6 @@ class BaseGAN():
     def initializeACCriterion(self):
         r"""
         """
-
         if self.config.weightConditionD != 0 and \
                 not self.config.attribKeysOrder:
             raise AttributeError("If the weight on the conditional term isn't "
@@ -343,7 +343,7 @@ class BaseGAN():
         loss = self.config.weightConditionG * \
             self.ACGANCriterion.getLoss(predFakeD, targetCatNoise)
 
-        return loss.item()
+        return loss
 
     def auxiliaryLossesGeneration(self):
         r"""
@@ -429,6 +429,15 @@ class BaseGAN():
             return self.netD.module
         return self.netD
 
+    def getOriginalAvG(self):
+        r"""
+        Retrieve the original avgG network. Use this function
+        when you want to modify avG after the initialization
+        """
+        if isinstance(self.avgG, nn.DataParallel):
+            return self.avgG.module
+        return self.avgG
+
     def getNetG(self):
         r"""
         The generator should be defined here.
@@ -468,7 +477,7 @@ class BaseGAN():
                      'netD': stateD}
 
         # Average GAN
-        out_state['avgG'] = self.avgG.module.state_dict()
+        out_state['avgG'] = self.getOriginalAvG().state_dict()
 
         if saveTrainTmp:
             out_state['tmp'] = self.trainTmp
@@ -558,7 +567,7 @@ class BaseGAN():
                     print("Average network found !")
                     self.buildAvG()
                     # Replace me by a standard loadStatedict for open-sourcing
-                    loadStateDictCompatible(self.avgG.module, in_state['avgG'])
+                    loadStateDictCompatible(self.getOriginalAvG(), in_state['avgG'])
                     buildAvG = False
 
         if loadD:

@@ -77,4 +77,9 @@ _C.keySplits = None
 #Activate GDPP loss ?
 _C.GDPP = False
 
+# Number of epochs
 _C.nEpoch = 3
+
+# Do not modify. Field used to save the attribute dictionnary for labelled
+# datasets
+_C.attribKeysOrder = None
