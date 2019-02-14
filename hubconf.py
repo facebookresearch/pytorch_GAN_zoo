@@ -79,7 +79,7 @@ def PGAN(pretrained=False, *args, **kwargs):
                  storeAVG=True,
                  **kwargs['config'])
 
-    checkpoint = 'https://dl.fbaipublicfiles.com/gan_zoo/celebaHQ_s5_i96000-5fe58222.pth'
+    checkpoint = 'https://dl.fbaipublicfiles.com/gan_zoo/PGAN/celebaHQ_s6_i80000-6196db68.pth'
     if pretrained:
         model.load_state_dict(model_zoo.load_url(checkpoint))
     return model
@@ -98,7 +98,7 @@ def DCGAN(pretrained=False, *args, **kwargs):
                   storeAVG=True,
                   **kwargs['config'])
 
-    checkpoint = 'coin'
+    checkpoint = 'https://dl.fbaipublicfiles.com/gan_zoo/DCGAN_fashionGen-1d67302.pth'
     if pretrained:
         model.load_state_dict(model_zoo.load_url(checkpoint))
     return model

@@ -356,7 +356,8 @@ class BaseGAN():
         Move the current networks and solvers to the GPU.
         This function must be called each time netG or netD is modified
         """
-        if self.buildAvG():
+
+        if buildAvG:
             self.buildAvG()
 
         if not isinstance(self.netD, nn.DataParallel) and self.useGPU:
