@@ -106,7 +106,7 @@ def parse_state_name(path):
     """
     path = os.path.splitext(os.path.basename(path))[0]
 
-    data = path.split('_')
+    data = path.replace("iter_","i").split('_')
 
     if len(data) < 3:
         return None
@@ -115,7 +115,10 @@ def parse_state_name(path):
     if data[-1][0] == "i" and data[-1][1:].isdigit():
         iteration = int(data[-1][1:])
     else:
-        return None
+#        if data[-2][0] == "i" and data[-1][1] == "t" and data[-1][:].isdigit():
+#            iteration = int(data[-1][:])
+#        else:
+            return None
 
     if data[-2][0] == "s" and data[-2][1:].isdigit():
         scale = int(data[-2][1:])
@@ -158,12 +161,23 @@ def getLastCheckPoint(dir, name, scale=None, iter=None):
     trainConfig = os.path.join(dir, name + "_train_config.json")
 
     if not os.path.isfile(trainConfig):
+        raise ValueError("no train config")
         return None
 
+    listFiles = [f for f in os.listdir(dir)]
+    if len(listFiles) == 0:
+        raise ValueError("no file at all in " + str(dir))
+        return None
     listFiles = [f for f in os.listdir(dir) if (
         os.path.splitext(f)[1] == ".pt" and
         parse_state_name(f) is not None and
         parse_state_name(f)[0] == name)]
+
+
+    if len(listFiles) == 0:
+        listFiles = [(f, os.path.splitext(f)[1], parse_state_name(f)) for f in os.listdir(dir) ]
+        raise ValueError("no file in " + str(dir) + ":" +str(listFiles))
+        return None
 
     if scale is not None:
         listFiles = [f for f in listFiles if parse_state_name(f)[1] == scale]
@@ -175,12 +189,14 @@ def getLastCheckPoint(dir, name, scale=None, iter=None):
         parse_state_name(x)[1], parse_state_name(x)[2]))
 
     if len(listFiles) == 0:
+        raise ValueError("no file")
         return None
 
     pathModel = os.path.join(dir, listFiles[0])
     pathTmpData = os.path.splitext(pathModel)[0] + "_tmp_config.json"
 
     if not os.path.isfile(pathTmpData):
+        raise ValueError("no tmp data")
         return None
 
     return trainConfig, pathModel, pathTmpData
