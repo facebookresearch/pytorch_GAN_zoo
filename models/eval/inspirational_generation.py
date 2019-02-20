@@ -81,6 +81,12 @@ def updateParser(parser):
                         action='store_true')
     parser.add_argument('--nevergrad2pde', help='2PDE nevergrad',
                         action='store_true')
+    parser.add_argument('--nevergradopo', help='2PDE nevergrad',
+                        action='store_true')
+    parser.add_argument('--nevergraddopo', help='2PDE nevergrad',
+                        action='store_true')
+    parser.add_argument('--nevergradpdopo', help='2PDE nevergrad',
+                        action='store_true')
     parser.add_argument('--save_descent', help='Save descent',
                         action='store_true')
 
@@ -100,6 +106,9 @@ def gradientDescentOnInput(model,
                            nevergradde=False,
                            nevergradpso=False,
                            nevergrad2pde=False,
+                           nevergradopo=False,
+                           nevergraddopo=False,
+                           nevergradpdopo=False,
                            lr=1,
                            outPathSave=None):
     r"""
@@ -143,7 +152,7 @@ def gradientDescentOnInput(model,
                                 images
     """
 
-    nevergrad = nevergradcma or nevergradde or nevergradpso or nevergrad2pde
+    nevergrad = nevergradcma or nevergradde or nevergradpso or nevergrad2pde or nevergradopo or nevergraddopo or nevergradpdopo
     randomSearch = randomSearch or nevergrad
     print("Running for %d setps" % nSteps)
 
@@ -204,7 +213,7 @@ def gradientDescentOnInput(model,
 
     nImages = input.size(0)
     if randomSearch and nevergrad:
-        optimizer_name = "CMA" if nevergradcma else "DE" if nevergradde else "PSO" if nevergradpso else "TwoPointsDE" if nevergrad2pde else "ERROR"
+        optimizer_name = "CMA" if nevergradcma else "DE" if nevergradde else "PSO" if nevergradpso else "TwoPointsDE" if nevergrad2pde else "PortfolioDiscreteOnePlusOne" if nevergradpdopo else "DiscreteOnePlusOne" if nevergradtopo else "OnePlusOne" if nevergradopo else "ERROR"
         optimizers = []
         for i in range(nImages):
             optimizers += [optimizerlib.registry[optimizer_name](dimension=model.config.noiseVectorDim+model.config.categoryVectorDim,budget=nSteps)]
@@ -425,6 +434,12 @@ def test(parser, visualisation=None):
                                                    weights=weights,
                                                    randomSearch=kwargs['random_search'],
                                                    nevergradcma=kwargs['nevergradcma'],
+                                                   nevergradpso=kwargs['nevergradpso'],
+                                                   nevergradde=kwargs['nevergradde'],
+                                                   nevergrad2pde=kwargs['nevergrad2pde'],
+                                                   nevergradopo=kwargs['nevergradopo'],
+                                                   nevergraddopo=kwargs['nevergraddopo'],
+                                                   nevergradpdopo=kwargs['nevergradpdopo'],
                                                    lr=kwargs['learningRate'],
                                                    outPathSave=outPathDescent)
     path = basePath + ".jpg"

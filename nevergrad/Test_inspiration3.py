@@ -107,7 +107,7 @@ import subprocess
 nimages = 10
 
 gs = 0.1
-for rd in ["--random_search ", "--nevergradcma ", "--nevergradpso ", "", "--nevergradde ", "--nevergrad2pde"]:
+for rd in ["--random_search ", "--nevergradcma ", "--nevergradpso ", "", "--nevergradde ", "--nevergrad2pde ", "--pdopo ", "--dopo ", "--opo "]:
  nstep = 5000
  R = 1#0.1 # weight of the discriminator loss 
  L2 = 0#5  # weight of the rgb loss
