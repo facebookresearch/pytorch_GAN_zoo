@@ -46,8 +46,8 @@ dataset = 'celebaHQ16_december'
     
 #pathModel = '/private/home/oteytaud/datasets/PGAN_dtd/PGAN_dtd_s'+str(sc)+'_iter_48000.pt'
 #pathConfig = '/private/home/oteytaud/datasets/PGAN_dtd/PGAN_dtd_s'+str(sc)+'_iter_48000_tmp_config.json'
-pathModel = '/private/home/oteytaud/Riviere2018Fashion/pytorch_GAN_zoo/'+dataset+'/default/default_s'+str(sc)+'_iter_96000.pt'
-pathConfig = '/private/home/oteytaud/Riviere2018Fashion/pytorch_GAN_zoo/'+dataset+'/default/default_s'+str(sc)+'_iter_96000_tmp_config.json'
+pathModel = '/private/home/oteytaud/morgane/pytorch_GAN_zoo/'+dataset+'/default/default_s'+str(sc)+'_iter_96000.pt'
+pathConfig = '/private/home/oteytaud/morgane/pytorch_GAN_zoo/'+dataset+'/default/default_s'+str(sc)+'_iter_96000_tmp_config.json'
 pathModel = '/private/home/oteytaud/datasets/'+dataset+'/'+dataset+'_s'+str(sc)+'_iter_96000.pt'
 pathConfig = '/private/home/oteytaud/datasets/'+dataset+'/'+dataset+'_s'+str(sc)+'_iter_96000_tmp_config.json'
 
@@ -102,7 +102,7 @@ display(new_im)
 
 import glob, os
  
-os.chdir('/private/home/oteytaud/Riviere2018Fashion/pytorch_GAN_zoo/')
+os.chdir('/private/home/oteytaud/morgane/pytorch_GAN_zoo/')
 dirpath = "/private/home/oteytaud/HDGANSamples/random_gens/"
 
 import subprocess
@@ -131,7 +131,7 @@ for rd in ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--neve
  for i in range(0,nimages):
      ind = ind + 1
      imgname = dataset+'_s'+str(sc)+'_rand_'+ str(i) 
-     suffix = "inspiration_R_" +str(R)+"_VGG_"+ str(VGG) + "_L2_" + str(L2) + str(rd)+"nsteps"+str(nstep) 
+     suffix = "inspiration_R_" +str(R)+"_VGG_"+ str(VGG) + "_L2_" + str(L2) + str(rd.split()[-1])+"nsteps"+str(nstep) 
      outname = dirpath+imgname+"_"+suffix+"/"+imgname+"_"+suffix+".jpg"
      
      im = load_image(dirpath + imgname +'.jpg') 
@@ -140,7 +140,7 @@ for rd in ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--neve
      #display(im)
              
      cmd = "python eval.py inspirational_generation -m PGAN -d /private/home/oteytaud/datasets/ -n "+ dataset +" -f /private/home/oteytaud/features_VGG19/VGG19_featureExtractor_LF.pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd 
-     print(cmd)
+     print("cmd=", cmd)
      proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
      (out, err) = proc.communicate()
      print(out)

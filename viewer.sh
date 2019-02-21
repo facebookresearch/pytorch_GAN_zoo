@@ -3,14 +3,14 @@ num=`ls -ctr /private/home/oteytaud/HDGANSamples/random_gens/*/*.jpg | sed 's/.*
 i=0
 rm compare*.jpg
 echo target
-ls -ctr /private/home/oteytaud/HDGANSamples/random_gens/*/*.jpg | grep "rand_${i}_" | sed 's/.*_rand//g' | sed 's/.jpg//' | sed 's/nsteps.*//g' | sed 's/random_search/rs/g' | sed 's/.*_//g'
+ls -ctr /private/home/oteytaud/HDGANSamples/random_gens/*/*.jpg | grep -iv celeb |grep "rand_${i}_" | sed 's/.*_rand//g' | sed 's/.jpg//' | sed 's/nsteps.*//g' | sed 's/random_search/rs/g' | sed 's/.*_//g'
 for i in `seq 0 $num`
 do
-echo "image $i:" `ls -ctr /private/home/oteytaud/HDGANSamples/random_gens/*/*.jpg | grep "rand_${i}_" | sed 's/.*_rand//g' | sed 's/.jpg//' | sed 's/nsteps.*//g' | sed 's/random_search/rs/g' | sed 's/.*_//g'`
+echo "image $i:" `ls -ctr /private/home/oteytaud/HDGANSamples/random_gens/*/*.jpg | grep -iv celeb | grep "rand_${i}_" | sed 's/.*_rand//g' | sed 's/.jpg//' | sed 's/nsteps.*//g' | sed 's/random_search/rs/g' | sed 's/.*_//g'`
 #    ls -ctr /private/home/oteytaud/HDGANSamples/random_gens/*.jpg | grep "rand_${i}\."
  #   ls -ctr /private/home/oteytaud/HDGANSamples/random_gens/*/*.jpg | grep "rand_${i}_" | wc -l
-    num2=`ls -ctr /private/home/oteytaud/HDGANSamples/random_gens/*/*.jpg | grep "rand_${i}_" | wc -l`
-    montage `ls -ctr /private/home/oteytaud/HDGANSamples/random_gens/*.jpg | grep "rand_${i}\."` `ls -ctr /private/home/oteytaud/HDGANSamples/random_gens/*/*.jpg | grep "rand_${i}_"` -tile $((${num2} + 1))x1 -geometry +0+0 compare${i}.jpg
+    num2=`ls -ctr /private/home/oteytaud/HDGANSamples/random_gens/*/*.jpg | grep "rand_${i}_" | grep -iv celeb | wc -l`
+    montage `ls -ctr /private/home/oteytaud/HDGANSamples/random_gens/*.jpg | grep -iv celeb | grep "rand_${i}\."` `ls -ctr /private/home/oteytaud/HDGANSamples/random_gens/*/*.jpg | grep -iv celeb |grep "rand_${i}_"` -tile $((${num2} + 1))x1 -geometry +0+0 compare${i}.jpg
 
 done
 readlink -f compare*

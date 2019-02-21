@@ -215,7 +215,7 @@ def gradientDescentOnInput(model,
 
     nImages = input.size(0)
     if randomSearch and nevergrad:
-        optimizer_name = "CMA" if nevergradcma else "DE" if nevergradde else "PSO" if nevergradpso else "TwoPointsDE" if nevergrad2pde else "PortfolioDiscreteOnePlusOne" if nevergradpdopo else "DiscreteOnePlusOne" if nevergradtopo else "OnePlusOne" if nevergradopo else "ERROR"
+        optimizer_name = "CMA" if nevergradcma else "DE" if nevergradde else "PSO" if nevergradpso else "TwoPointsDE" if nevergrad2pde else "PortfolioDiscreteOnePlusOne" if nevergradpdopo else "DiscreteOnePlusOne" if nevergraddopo else "OnePlusOne" if nevergradopo else "ERROR"
         optimizers = []
         for i in range(nImages):
             optimizers += [optimizerlib.registry[optimizer_name](dimension=model.config.noiseVectorDim+model.config.categoryVectorDim,budget=nSteps)]
