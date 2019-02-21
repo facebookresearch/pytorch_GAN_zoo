@@ -57,7 +57,7 @@ pgan.load(pathModel)
 #---------------------- 3 Generate images from pgan ----------------------
 print('3: generate images from pgan')
 from torchvision.transforms import ToPILImage, ToTensor, Normalize, Resize
-nimages= 10
+nimages= 20
 noiseData, noiseLabels = pgan.buildNoiseData(nimages)
 #texclass=1
 #noiseLabels[0]=texclass # choosing the texture class
@@ -104,14 +104,14 @@ dirpath = "/private/home/oteytaud/HDGANSamples/random_gens/"
 
 import subprocess
 
-nimages = 10
+nimages = 20
 
 gs = 0.1
-for rd in ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--pdopo ", "--dopo ", "--opo "]:
+for rd in ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]:
  nstep = 5000
- R = 1#0.1 # weight of the discriminator loss 
- L2 = 0#5  # weight of the rgb loss
- VGG = 0#1 # weight of the VGG loss 
+ R = 0.1 # weight of the discriminator loss 
+ L2 = 5  # weight of the rgb loss
+ VGG = 1 # weight of the VGG loss 
  ind=0
  
  A = np.zeros((nimages))
