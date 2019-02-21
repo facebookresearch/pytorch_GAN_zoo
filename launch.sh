@@ -9,6 +9,6 @@ export PYTHONPATH=/private/home/oteytaud/morgane/pytorch_GAN_zoo:$PYTHONPATH
 
 python nevergrad/Test_inspiration3.py | tee resuls_`date | sed 's/ /_/g'`
 
-
+./viewer.sh
 
 
