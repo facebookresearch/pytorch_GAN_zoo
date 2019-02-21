@@ -141,6 +141,12 @@ def gradientDescentOnInput(model,
                              DE
         nevergrad2pde (bool): if true, replace tha gradient descent by a 
                              2points-DE
+        nevergradopo (bool): if true, replace tha gradient descent by a 
+                             one-plus-one
+        nevergraddopo (bool): if true, replace tha gradient descent by a 
+                             discrete one-plus-one
+        nevergradpdopo (bool): if true, replace tha gradient descent by a 
+                             portfolio discrete one-plus-one
         lr (float): learning rate of the gradient descent
         outPathSave (string): if not None, path to save the intermediate iterations
                               of the gradient descent
@@ -239,7 +245,7 @@ def gradientDescentOnInput(model,
                                     model.config.noiseVectorDim +
                                     model.config.categoryVectorDim),
                                    requires_grad=True, device=model.device)
-            if nevergradcma:
+            if nevergrad:
                 inps = []
                 for i in range(nImages):
                     inps += [optimizers[i].ask()]
