@@ -281,7 +281,7 @@ def gradientDescentOnInput(model,
             if not randomSearch:
                 loss.sum(dim=0).backward()
 
-        if nevergradcma:
+        if nevergrad:
             for i in range(nImages):
                  optimizers[i].tell(inps[i], float(sumLoss[i]))
         if not randomSearch:
