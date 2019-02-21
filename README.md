@@ -224,6 +224,25 @@ Then run your model:
 python eval.py inspirational_generation -n $modelName -m $modelType --inputImage $pathTotheInputImage [-f $pathToTheFeatureExtractor]
 ```
 
+## Inspirational generation with gradient descent, random search and Nevergrad
+
+(warning: you need the right datasets at the right places...)
+
+just run, on the Fair cluster:
+
+```
+./launch.sh
+./viewer.sh
+```
+for inspirational images on textures
+and
+
+```
+./launch_celeba.sh
+./viewer_celeb.sh
+```
+for inspirational images on celebrity pictures.
+
 ### I have generated my metrics. How can i plot them on visdom ?
 
 Just run
