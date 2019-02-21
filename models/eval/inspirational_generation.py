@@ -354,7 +354,6 @@ def test(parser, visualisation=None):
     nRuns = getVal(kwargs, "nRuns", 1)
 
     checkPointDir = os.path.join(kwargs["dir"], name)
-    print("toto")
     checkpointData = getLastCheckPoint(checkPointDir,
                                        name,
                                        scale=scale,
