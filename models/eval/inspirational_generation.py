@@ -71,6 +71,8 @@ def updateParser(parser):
                         nargs='*', help="Weight of each classifier. Default \
                         value is one. If specified, the number of weights must\
                         match the number of feature exatrcators.")
+    parser.add_argument('--gradient_descent', help='gradient descent',
+                        action='store_true')
     parser.add_argument('--random_search', help='Random search',
                         action='store_true')
     parser.add_argument('--nevergradcma', help='CMA nevergrad',

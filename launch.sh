@@ -7,7 +7,7 @@ pip3 install -r requirements.txt
 export PYTHONPATH=/private/home/oteytaud/NEVERGRAD:$PYTHONPATH
 export PYTHONPATH=/private/home/oteytaud/morgane/pytorch_GAN_zoo:$PYTHONPATH
 
-
+python nevergrad/Test_inspiration3.py | tee resuls_`date | sed 's/ /_/g'`
 
 
 

@@ -107,7 +107,7 @@ import subprocess
 nimages = 10
 
 gs = 0.1
-for rd in ["--random_search ", "--nevergradcma ", "--nevergradpso ", "", "--nevergradde ", "--nevergrad2pde ", "--pdopo ", "--dopo ", "--opo "]:
+for rd in ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--pdopo ", "--dopo ", "--opo "]:
  nstep = 5000
  R = 1#0.1 # weight of the discriminator loss 
  L2 = 0#5  # weight of the rgb loss
@@ -139,6 +139,7 @@ for rd in ["--random_search ", "--nevergradcma ", "--nevergradpso ", "", "--neve
      cmd = "python eval.py inspirational_generation -m PGAN -n default -d PGAN_DTD10 -f /private/home/oteytaud/features_VGG19/VGG19_featureExtractor.pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd 
      proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
      (out, err) = proc.communicate()
+     print(out)
      #print(' we extract the learning rate')
      #print("out=", out)
   #   r_min = out[-12:]
