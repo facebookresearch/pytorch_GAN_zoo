@@ -107,8 +107,8 @@ def parse_state_name(path):
     path = os.path.splitext(os.path.basename(path))[0]
 
     data = path.replace("iter_","i").split('_')
-
     if len(data) < 3:
+        raise ValueError("not parsable" + path)
         return None
 
     # Iteration
@@ -118,11 +118,13 @@ def parse_state_name(path):
 #        if data[-2][0] == "i" and data[-1][1] == "t" and data[-1][:].isdigit():
 #            iteration = int(data[-1][:])
 #        else:
+            raise ValueError("not iteratio" + path)
             return None
 
     if data[-2][0] == "s" and data[-2][1:].isdigit():
         scale = int(data[-2][1:])
     else:
+        raise ValueError("not scale " + path)
         return None
 
     name = "_".join(data[:-2])
@@ -161,11 +163,13 @@ def getLastCheckPoint(dir, name, scale=None, iter=None):
     trainConfig = os.path.join(dir, name + "_train_config.json")
 
     if not os.path.isfile(trainConfig):
+        print("no train config" + trainConfig)
         raise ValueError("no train config")
         return None
 
     listFiles = [f for f in os.listdir(dir)]
     if len(listFiles) == 0:
+        print("no file at all")
         raise ValueError("no file at all in " + str(dir))
         return None
     listFiles = [f for f in os.listdir(dir) if (
@@ -176,6 +180,7 @@ def getLastCheckPoint(dir, name, scale=None, iter=None):
 
     if len(listFiles) == 0:
         listFiles = [(f, os.path.splitext(f)[1], parse_state_name(f)) for f in os.listdir(dir) ]
+        print("no file ")
         raise ValueError("no file in " + str(dir) + ":" +str(listFiles))
         return None
 

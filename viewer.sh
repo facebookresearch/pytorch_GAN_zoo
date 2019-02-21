@@ -16,4 +16,6 @@ done
 readlink -f compare*
 montage compare*.jpg -tile 1x$(( $num + 1)) -geometry +0+0 overview.jpg
 readlink -f overview.jpg
-grep ptimal `ls -ctr resul* | tail -n 1` | sed 's/nsteps.*losses..//g' | sed 's/.*L2_//g' | sed 's/\\n.*//g'
+grep ptimal `ls -ctr resul* | tail -n 1` | sed 's/nsteps.*losses..//g' | sed 's/.*L2_//g' | sed 's/\\n.*//g' 
+grep ptimal `ls -ctr resul* | tail -n 1` | sed 's/nsteps.*losses..//g' | sed 's/.*L2_//g' | sed 's/\\n.*//g' | awk '{seen[$1]+=$2; count[$1]++} END{for (x in seen)print x, seen[x]/count[x]}' 
+
