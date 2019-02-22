@@ -126,7 +126,8 @@ for rd in ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--neve
  ind=0
  
  A = np.zeros((nimages))
- 
+ Zdist = np.zeros((nimages))
+        
  #for display in one row
  total_width = SZ*nimages
  max_height = SZ
@@ -165,6 +166,11 @@ for rd in ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--neve
      A[i] = float(r_min)
      out = load_image(outname)
  
+     zopt = torch.load(dirpath+imgname+"_"+suffix+"/"+imgname+"_"+suffix+"vector.pt")
+     [noiseData,noiseLabels]= torch.load('/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'z.pth')
+     dist = torch.norm(noiseData[i]*zopt,2)
+     Zdist[ind-1] = float(dist)
+    
      #print("output result")
      #display(out)
      new_im.paste(out, (x_offset,0))
@@ -174,6 +180,9 @@ print("options:"+ suffix)
 # save reached optimal values    
 np.save(dirpath+imgname+"_"+suffix+'values', A)
 print(A)
+print(np.around(Zdist, decimals=1))
+
+
 new_im.save(dirpath+imgname+"_"+suffix+'all.jpg') 
 display(new_im)
 
