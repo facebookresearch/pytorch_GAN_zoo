@@ -2,3 +2,5 @@ numpy
 scipy
 visdom
 h5py
+nevergrad
+numpy
