@@ -29,9 +29,8 @@ from torch.autograd import Variable
 from models.progressive_gan import ProgressiveGAN
 import json
 
-#pathModel = '/private/home/oteytaud/datasets/yslcreativity4_s7_i96000.pt'
-#pathConfig = '/private/home/oteytaud/datasets/yslcreativity4_train_config.json'
-Username = 'oteytaud'
+
+Username = 'coupriec'
 
 
 SZ = 128
@@ -42,19 +41,17 @@ elif SZ == 128:
 elif SZ == 512:
     sc = 7
 
-dataset = 'PGAN_DTD20'    
-#dataset = 'pgan16_celeba' 
-dataset = 'celebaHQ16_december'
+dataset = 'PGAN_DTD20'     
+#dataset = 'celebaHQ16_december'
    
-#pathModel = '/private/home/oteytaud/datasets/PGAN_dtd/PGAN_dtd_s'+str(sc)+'_iter_48000.pt'
-#pathConfig = '/private/home/oteytaud/datasets/PGAN_dtd/PGAN_dtd_s'+str(sc)+'_iter_48000_tmp_config.json'
-#pathModel = '/private/home/oteytaud/morgane/pytorch_GAN_zoo/'+dataset+'/default/default_s'+str(sc)+'_iter_96000.pt'
-#pathConfig = '/private/home/oteytaud/morgane/pytorch_GAN_zoo/'+dataset+'/default/default_s'+str(sc)+'_iter_96000_tmp_config.json'
+
 iternb = '96000'
 if dataset == 'PGAN_DTD20':
-    iternb = '48000'
-pathModel = '/private/home/'+Username+'/datasets/'+dataset+'/'+dataset+'_s'+str(sc)+'_iter_'+iternb+'.pt'
-pathConfig = '/private/home/'+Username+'/datasets/'+dataset+'/'+dataset+'_s'+str(sc)+'_iter_'+iternb+'_tmp_config.json'
+    pathModel = '/private/home/'+Username+'/Riviere2018Fashion/pytorch_GAN_zoo/PGAN_DTD20/default/default_s'+str(sc)+'_iter_48000.pt'
+    pathConfig = '/private/home/'+Username+'/Riviere2018Fashion/pytorch_GAN_zoo/PGAN_DTD20/default/default_s'+str(sc)+'_iter_48000_tmp_config.json'
+else:
+    pathModel = '/private/home/'+Username+'/datasets/'+dataset+'/'+dataset+'_s'+str(sc)+'_iter_'+iternb+'.pt'
+    pathConfig = '/private/home/'+Username+'/datasets/'+dataset+'/'+dataset+'_s'+str(sc)+'_iter_'+iternb+'_tmp_config.json'
 
 
 
@@ -106,11 +103,13 @@ display(new_im)
 
 
 import glob, os
- 
-os.chdir('/private/home/'+Username+'/morgane/pytorch_GAN_zoo/')
+
+
 if Username == 'coupriec':
         os.chdir('/private/home/coupriec/Riviere2018Fashion/pytorch_GAN_zoo/')
-dirpath = "/private/home/'+Username+'/HDGANSamples/random_gens/"
+else:
+        os.chdir('/private/home/'+Username+'/morgane/pytorch_GAN_zoo/')
+dirpath = "/private/home/"+Username+"/HDGANSamples/random_gens/"
 
 import subprocess
 
@@ -118,8 +117,8 @@ nimages = 10
 
 gs = 0.1
 #rd = "--random_search"
-for rd in ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]:
- nstep = 5000
+for rd in ["--gradient_descent ", "--random_search ", "--nevergradcma "]:#, "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]:
+ nstep = 100
  R = 0#0.1 # weight of the discriminator loss 
  L2 = 1#5  # weight of the rgb loss
  VGG = 0#1 # weight of the VGG loss 
@@ -134,8 +133,7 @@ for rd in ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--neve
  new_im = Image.new('RGB', (total_width, max_height))  
  x_offset = 0
  
- #for file in os.listdir('/private/home/oteytaud/datasets/dtd/images/blotchy'):
-     #if file.endswith(".jpg"):
+ 
  for i in range(0,nimages):
      ind = ind + 1
      imgname = dataset+'_s'+str(sc)+'_rand_'+ str(i) 
@@ -147,10 +145,13 @@ for rd in ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--neve
      #print("inspiration image")
      #display(im)
      VGGext = ""
-     if dataset != 'PGAN_DTD20':
+     if dataset == 'PGAN_DTD20':
+        cmd = "python eval.py inspirational_generation -m PGAN -n default -d PGAN_DTD20 -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd     
+     else:    
         VGGext = "_LF"
-     
-     cmd = "python eval.py inspirational_generation -m PGAN -d /private/home/"+Username+"/datasets/ -n "+ dataset +" -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd 
+        cmd = "python eval.py inspirational_generation -m PGAN -d /private/home/"+Username+"/datasets/ -n "+ dataset +" -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd 
+        
+        
      print("cmd=", cmd)
      proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
      (out, err) = proc.communicate()

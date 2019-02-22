@@ -108,7 +108,7 @@ def parse_state_name(path):
 
     data = path.replace("iter_","i").split('_')
     if len(data) < 3:
-        raise ValueError("not parsable" + path)
+#        raise ValueError("not parsable" + path)
         return None
 
     # Iteration
@@ -118,13 +118,13 @@ def parse_state_name(path):
 #        if data[-2][0] == "i" and data[-1][1] == "t" and data[-1][:].isdigit():
 #            iteration = int(data[-1][:])
 #        else:
-            raise ValueError("not iteratio" + path)
+#            raise ValueError("not iteratio" + path)
             return None
 
     if data[-2][0] == "s" and data[-2][1:].isdigit():
         scale = int(data[-2][1:])
     else:
-        raise ValueError("not scale " + path)
+#        raise ValueError("not scale " + path)
         return None
 
     name = "_".join(data[:-2])
