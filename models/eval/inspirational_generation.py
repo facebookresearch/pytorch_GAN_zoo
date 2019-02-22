@@ -451,6 +451,11 @@ def test(parser, visualisation=None):
                                                    nevergradpdopo=kwargs['nevergradpdopo'],
                                                    lr=kwargs['learningRate'],
                                                    outPathSave=outPathDescent)
+    
+    
+    pathVectors = basePath + "vector.pt"
+    torch.save(outVectors, open(pathVectors, 'wb'))
+
     path = basePath + ".jpg"
     visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
     outDictData[os.path.splitext(os.path.basename(path))[0]] = \
