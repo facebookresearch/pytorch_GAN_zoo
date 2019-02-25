@@ -9,17 +9,21 @@ export PYTHONPATH=/private/home/coupriec/Riviere2018Fashion/pytorch_GAN_zoo:$PYT
 export username=`whoami`
 rm /private/home/${username}/HDGANSamples/random_gens/*/*.jpg
 rm /private/home/${username}/HDGANSamples/random_gens/*.jpg
+
 export inspire="dtd20"
 export inspire="celeba"
+export inspire="dtd20miss"
+
+export full="full"
+export full="limited"
+
+export loss="vgg"
+export loss="l2"
+export loss="mixed"
+
+export renorm="renorm"  #we push z towards limited norm.
+export renorm="none"
+
 python nevergrad/Test_inspiration-celebA.py | tee rescelebauls_`date | sed 's/ /_/g'`
 
-if [ "$inspire" == "celeba" ]; then
 ./viewer_celeb_camille.sh
-fi
-if [ "$inspire" == "dtd20" ]; then
-./viewer.sh
-fi
-
-
-
-

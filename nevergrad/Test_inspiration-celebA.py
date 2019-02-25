@@ -43,6 +43,8 @@ elif SZ == 512:
     sc = 7
 
 setting = os.environ["inspire"]
+full = os.environ["full"]
+loss = os.environ["loss"]
 
 if setting == "dtd20":
     dataset = 'PGAN_DTD20'
@@ -50,7 +52,10 @@ else:
     if setting == "celeba":
         dataset = 'celebaHQ16_december'
     else:
-        assert False
+        if setting == "dtd20miss":
+            dataset = 'PGAN_DTD20'
+        else:
+            assert False
    
 
 iternb = '96000'
@@ -122,14 +127,28 @@ dirpath = "/private/home/"+Username+"/HDGANSamples/random_gens/"
 import subprocess
 
 nimages = 10
+if loss == "l2":
+ R = 0#0.1 # weight of the discriminator loss 
+ L2 = 1#5  # weight of the rgb loss
+ VGG = 0#1 # weight of the VGG loss
+if loss == "vgg":
+ R = 0#0.1 # weight of the discriminator loss 
+ L2 = 0#5  # weight of the rgb loss
+ VGG = 1#1 # weight of the VGG loss
+if loss == "mixed":
+ R = 0.1 # weight of the discriminator loss 
+ L2 = 5  # weight of the rgb loss
+ VGG = 1 # weight of the VGG loss
+assert loss in ["L2", "vgg", "mixed"]
+
 
 gs = 0.1
 #rd = "--random_search"
-for rd in ["--gradient_descent ", "--random_search ", "--nevergradcma "]:#, "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]:
+optimargs = ["--gradient_descent ", "--random_search ", "--nevergradcma "]#, "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]:
+if full == "full":
+    optimargs = ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]
+for rd in optimargs:
  nstep = 100
- R = 0#0.1 # weight of the discriminator loss 
- L2 = 1#5  # weight of the rgb loss
- VGG = 0#1 # weight of the VGG loss 
  ind=0
  
  A = np.zeros((nimages))
@@ -155,6 +174,8 @@ for rd in ["--gradient_descent ", "--random_search ", "--nevergradcma "]:#, "--n
      VGGext = ""
      if dataset == 'PGAN_DTD20':
         cmd = "python eval.py inspirational_generation -m PGAN -n default -d PGAN_DTD20 -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd     
+        if setting == "dtd20miss":
+            cmd = "python eval.py inspirational_generation -m PGAN -n default -d PGAN_DTD10 -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd     
      else:    
         VGGext = "_LF"
         cmd = "python eval.py inspirational_generation -m PGAN -d /private/home/"+Username+"/datasets/ -n "+ dataset +" -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd 

@@ -260,7 +260,8 @@ def gradientDescentOnInput(model,
         sumLoss = torch.zeros(nImages, device=model.device)
 
         loss = (((varNoise**2).mean(dim=1) - 1)**2)
-        sumLoss += loss.view(nImages)
+        if os.environ["renorm"] == "renorm":
+            sumLoss += loss.view(nImages)
         loss.sum(dim=0).backward(retain_graph=True)
 
         for i in range(nExtractors):
