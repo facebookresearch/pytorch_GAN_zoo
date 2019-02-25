@@ -27,9 +27,9 @@ echo '========================================================='
 echo '========================================================='
 cat listcols.txt
 cat listscores.txt
-
-montage compare*.jpg -tile 1x$(( $num + 1)) -geometry +0+0 overview.jpg
-tar -zcvf ~/overview${inspire}.tgz listcols.txt listscores.txt overview.jpg
+suffix=${inspire}_${nstep}_${renorm}_${full}
+montage compare*.jpg -tile 1x$(( $num + 1)) -geometry +0+0 overview${suffix}.jpg
+tar -zcvf ~/overview${suffix}.tgz listcols.txt listscores.txt overview${suffix}.jpg
 echo 'image with target and rebuilt images -------------------------------'
-readlink -f overview.jpg | sed 's/^/teleview.sh /g'
-echo everything you need: `readlink -f ~/overview${inspire}.tgz`
+readlink -f overview${suffix}.jpg | sed 's/^/~\/teleview.sh /g'
+echo everything you need: `readlink -f ~/overview${suffix}.tgz`
