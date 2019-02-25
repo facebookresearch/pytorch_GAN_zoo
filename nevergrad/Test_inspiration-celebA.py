@@ -49,7 +49,7 @@ loss = os.environ["loss"]
 if setting == "dtd20":
     dataset = 'PGAN_DTD20'
 else:
-    if setting == "celeba" or setting == "celebacartoon":
+    if setting == "celeba" or setting == "celebacartoon" or setting == "celebacartoon2":
         dataset = 'celebaHQ16_december'
     else:
         if setting == "dtd20miss":
@@ -107,6 +107,8 @@ for i in range(0,nimages):
     out.save('/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg')
     if setting == "celebacartoon":
         copyfile('/private/home/'+Username+'/cartoons/cartoon' + str(i+1) + '.jpg', '/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg') 
+    if setting == "celebacartoon2":
+        copyfile('/private/home/'+Username+'/cartoons2/cartoon' + str(i+1) + '.jpg', '/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg') 
     #display(out)
     new_im.paste(out, (x_offset,0))
     x_offset += out.size[0]
@@ -147,7 +149,7 @@ assert loss in ["L2", "vgg", "mixed"]
 
 gs = 0.1
 #rd = "--random_search"
-optimargs = ["--gradient_descent ", "--random_search ", "--nevergradcma "]#, "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]:
+optimargs = ["--gradient_descent ", "--nevergraddopo"]#, "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]:
 if full == "full":
     optimargs = ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]
 for rd in optimargs:

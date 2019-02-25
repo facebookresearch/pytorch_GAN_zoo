@@ -8,7 +8,8 @@ for i in `seq 0 $num`
 do
 echo "image $i:" `ls -ctr /private/home/${username}/HDGANSamples/random_gens/*/*.jpg |  grep "rand_${i}_" | sed 's/.*_rand//g' | sed 's/.jpg//' | sed 's/nsteps.*//g' | sed 's/random_search/rs/g' | sed 's/.*_//g'`
     num2=`ls -ctr /private/home/${username}/HDGANSamples/random_gens/*/*.jpg | grep "rand_${i}_" |  wc -l`
-    montage `ls -ctr /private/home/${username}/HDGANSamples/random_gens/*.jpg |  grep "rand_${i}\."` `ls -ctr /private/home/${username}/HDGANSamples/random_gens/*/*.jpg | grep "rand_${i}_"` -tile $((${num2} + 1))x1 -geometry +0+0 compare${i}.jpg
+    convert -resize 128x128 `ls -ctr /private/home/${username}/HDGANSamples/random_gens/*.jpg |  grep "rand_${i}\."` to.jpg
+    montage to.jpg `ls -ctr /private/home/${username}/HDGANSamples/random_gens/*/*.jpg | grep "rand_${i}_"` -tile $((${num2} + 1))x1 -geometry +0+0 compare${i}.jpg
 
 done
 echo 'list of scores for each image and each method --------------------------- (lower=better)'

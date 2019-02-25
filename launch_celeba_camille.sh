@@ -13,7 +13,8 @@ rm /private/home/${username}/HDGANSamples/random_gens/*.jpg
 #export inspire="dtd20"
 #export inspire="celeba"
 #export inspire="dtd20miss"
-export inspire="celebacartoon"
+#export inspire="celebacartoon"
+export inspire="celebacartoon2"
 
 #export full="full"
 export full="limited"
@@ -25,7 +26,7 @@ export loss="mixed"
 export renorm="renorm"  #we push z towards limited norm.
 #export renorm="none"
 
-export nstep="500"
+export nstep="5000"
 
 python nevergrad/Test_inspiration-celebA.py | tee rescelebauls_`date | sed 's/ /_/g'`
 
