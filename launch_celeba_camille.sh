@@ -12,7 +12,8 @@ rm /private/home/${username}/HDGANSamples/random_gens/*.jpg
 
 #export inspire="dtd20"
 #export inspire="celeba"
-export inspire="dtd20miss"
+#export inspire="dtd20miss"
+export inspire="celebacartoon"
 
 #export full="full"
 export full="limited"

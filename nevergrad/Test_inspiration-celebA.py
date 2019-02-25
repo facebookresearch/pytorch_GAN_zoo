@@ -49,7 +49,7 @@ loss = os.environ["loss"]
 if setting == "dtd20":
     dataset = 'PGAN_DTD20'
 else:
-    if setting == "celeba":
+    if setting == "celeba" or setting == "celebacartoon":
         dataset = 'celebaHQ16_december'
     else:
         if setting == "dtd20miss":
@@ -96,6 +96,7 @@ total_width = SZ*nimages
 max_height = SZ
 new_im = Image.new('RGB', (total_width, max_height))  
 x_offset = 0
+from shutil import copyfile
 
 for i in range(0,nimages):
     
@@ -103,7 +104,9 @@ for i in range(0,nimages):
     img2 = img2.data.cpu()
     img2 = np.clip(img2, 0, 1)
     out = to_pil(img2)
-    out.save('/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg') 
+    out.save('/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg')
+    if setting == "celebacartoon":
+        copyfile('/private/home/'+Username+'/cartoons/cartoon' + str(i+1) + '.jpg', '/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg') 
     #display(out)
     new_im.paste(out, (x_offset,0))
     x_offset += out.size[0]
