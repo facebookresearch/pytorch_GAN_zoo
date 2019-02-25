@@ -148,7 +148,7 @@ optimargs = ["--gradient_descent ", "--random_search ", "--nevergradcma "]#, "--
 if full == "full":
     optimargs = ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]
 for rd in optimargs:
- nstep = 100
+ nstep = int(os.environ["nstep"])
  ind=0
  
  A = np.zeros((nimages))
