@@ -42,8 +42,15 @@ elif SZ == 128:
 elif SZ == 512:
     sc = 7
 
-dataset = 'PGAN_DTD20'     
-#dataset = 'celebaHQ16_december'
+setting = os.environ["inspire"]
+
+if setting == "dtd20":
+    dataset = 'PGAN_DTD20'
+else:
+    if setting == "celeba":
+        dataset = 'celebaHQ16_december'
+    else:
+        assert False
    
 
 iternb = '96000'
