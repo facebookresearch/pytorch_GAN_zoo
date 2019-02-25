@@ -1,6 +1,5 @@
 import importlib
 import argparse
-import visualization.visualizer
 import sys
 
 if __name__ == "__main__":
@@ -47,7 +46,7 @@ if __name__ == "__main__":
     else:
         vis_module = importlib.import_module("visualization.visualizer")
 
-    module = importlib.import_module("models.eval." + args.evaluation_name)
+    module = importlib.import_module("GANs.eval." + args.evaluation_name)
     print("Running " + args.evaluation_name)
 
     parser.add_argument('-h', '--help', action='help')
