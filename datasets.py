@@ -7,8 +7,8 @@ import math
 import numpy as np
 from scipy import misc
 
-from GANs.utils.utils import printProgressBar
-from GANs.utils.image_transform import NumpyResize, pil_loader
+from models.utils.utils import printProgressBar
+from models.utils.image_transform import NumpyResize, pil_loader
 
 
 def saveImage(path, image):
