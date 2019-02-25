@@ -19,7 +19,7 @@ def getTrainer(name):
     if name not in match:
         raise AttributeError("Invalid module name")
 
-    return loadmodule("GANs.trainer." + match[name][0],
+    return loadmodule("models.trainer." + match[name][0],
                       match[name][1],
                       prefix='')
 
