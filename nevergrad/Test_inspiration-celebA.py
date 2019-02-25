@@ -144,6 +144,14 @@ if loss == "mixed":
  R = 0.1 # weight of the discriminator loss 
  L2 = 5  # weight of the rgb loss
  VGG = 1 # weight of the VGG loss
+if loss == "closs":
+ R = 0.1 # weight of the discriminator loss 
+ L2 = 50  # weight of the rgb loss
+ VGG = 1 # weight of the VGG loss
+if loss == "dloss":
+ R = 0.1 # weight of the discriminator loss 
+ L2 = 0  # weight of the rgb loss
+ VGG = 1 # weight of the VGG loss
 assert loss in ["l2", "vgg", "mixed"]
 
 

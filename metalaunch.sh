@@ -8,7 +8,7 @@ for inspire in dtd20 celeba dtd20miss celebacartoon2
 do
 for renorm in renorm none
 do
-for loss in l2 vgg mixed
+for loss in l2 vgg mixed closs dloss
 do
 ./launch_celeba_camille.sh $inspire $full $loss $renorm $nstep
 done
