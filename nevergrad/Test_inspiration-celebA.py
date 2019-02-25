@@ -30,8 +30,9 @@ from models.progressive_gan import ProgressiveGAN
 import json
 
 
-Username = 'coupriec'
-
+#Username = 'oteytaud'
+import getpass
+Username = getpass.getuser()
 
 SZ = 128
 if SZ == 256:
