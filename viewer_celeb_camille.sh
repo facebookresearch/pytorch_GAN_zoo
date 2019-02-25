@@ -29,6 +29,7 @@ echo '========================================================='
 cat listcols.txt
 cat listscores.txt
 suffix=${inspire}_${nstep}_${renorm}_${full}
+cp listscores.txt listscores_${suffix}.txt
 montage compare*.jpg -tile 1x$(( $num + 1)) -geometry +0+0 overview${suffix}.jpg
 tar -zcvf ~/overview${suffix}.tgz listcols.txt listscores.txt overview${suffix}.jpg
 echo 'image with target and rebuilt images -------------------------------'

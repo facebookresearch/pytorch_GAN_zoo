@@ -14,20 +14,21 @@ rm /private/home/${username}/HDGANSamples/random_gens/*.jpg
 #export inspire="celeba"
 #export inspire="dtd20miss"
 #export inspire="celebacartoon"
-export inspire="celebacartoon2"
+export inspire="${1:-celebacartoon2}"
 
 #export full="full"
-export full="limited"
+export full="${2:-limited}"
 
 #export loss="vgg"
 #export loss="l2"
-export loss="mixed"
+export loss="${3:-mixed}"
 
-export renorm="renorm"  #we push z towards limited norm.
 #export renorm="none"
+export renorm="${4:-renorm}"  #we push z towards limited norm.
 
-export nstep="5000"
+export nstep="${5:-5000}"
 
+echo "./launch_celeba_camille.sh $inspire $full $loss $renorm $nstep"
 python nevergrad/Test_inspiration-celebA.py | tee rescelebauls_`date | sed 's/ /_/g'`
 
 ./viewer_celeb_camille.sh

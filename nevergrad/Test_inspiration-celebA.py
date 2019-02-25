@@ -108,7 +108,7 @@ for i in range(0,nimages):
     if setting == "celebacartoon":
         copyfile('/private/home/'+Username+'/cartoons/cartoon' + str(i+1) + '.jpg', '/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg') 
     if setting == "celebacartoon2":
-        copyfile('/private/home/'+Username+'/cartoons2/cartoon' + str(i+1) + '.jpg', '/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg') 
+        copyfile('/private/home/'+Username+'/cartoons2/' + str(i+1) + '.jpg', '/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg') 
     #display(out)
     new_im.paste(out, (x_offset,0))
     x_offset += out.size[0]
@@ -144,7 +144,7 @@ if loss == "mixed":
  R = 0.1 # weight of the discriminator loss 
  L2 = 5  # weight of the rgb loss
  VGG = 1 # weight of the VGG loss
-assert loss in ["L2", "vgg", "mixed"]
+assert loss in ["l2", "vgg", "mixed"]
 
 
 gs = 0.1
