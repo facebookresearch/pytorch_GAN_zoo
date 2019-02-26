@@ -73,6 +73,8 @@ def updateParser(parser):
                         match the number of feature exatrcators.")
     parser.add_argument('--gradient_descent', help='gradient descent',
                         action='store_true')
+    parser.add_argument('--lbfgs', help='lbfgs',
+                        action='store_true')
     parser.add_argument('--random_search', help='Random search',
                         action='store_true')
     parser.add_argument('--nevergradcma', help='CMA nevergrad',
@@ -104,6 +106,7 @@ def gradientDescentOnInput(model,
                            lambdaD=0.03,
                            nSteps=6000,
                            randomSearch=False,
+                           lbfgs=False,
                            nevergradcma=False,
                            nevergradde=False,
                            nevergradpso=False,
@@ -173,7 +176,11 @@ def gradientDescentOnInput(model,
                             model.config.categoryVectorDim),
                            requires_grad=True, device=model.device)
 
-    optimNoise = optim.Adam([varNoise],
+    if lbfgs:
+        optimNoise = optim.LBFGS([varNoise],
+                            lr=lr)
+    else:
+        optimNoise = optim.Adam([varNoise],
                             betas=[0., 0.99], lr=lr)
 
     noiseOut = model.test(varNoise, getAvG=True, toCPU=False)
@@ -286,7 +293,14 @@ def gradientDescentOnInput(model,
             for i in range(nImages):
                  optimizers[i].tell(inps[i], float(sumLoss[i]))
         if not randomSearch:
-            optimNoise.step()
+#            def closure():
+#                optimizer.zero_grad()
+#                out = seq(input)
+#                loss = criterion(out, target)
+#                loss.backward()
+#                return loss
+
+            optimNoise.step(closure=lambda: loss.sum(dim=0))
 
         if optimalLoss is None:
             optimalVector = deepcopy(varNoise)
@@ -443,6 +457,7 @@ def test(parser, visualisation=None):
                                                    nSteps=kwargs['nSteps'],
                                                    weights=weights,
                                                    randomSearch=kwargs['random_search'],
+                                                   lbfgs=kwargs['lbfgs'],
                                                    nevergradcma=kwargs['nevergradcma'],
                                                    nevergradpso=kwargs['nevergradpso'],
                                                    nevergradde=kwargs['nevergradde'],

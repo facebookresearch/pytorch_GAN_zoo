@@ -152,14 +152,14 @@ if loss == "dloss":
  R = 0.1 # weight of the discriminator loss 
  L2 = 0  # weight of the rgb loss
  VGG = 1 # weight of the VGG loss
-assert loss in ["l2", "vgg", "mixed"]
+assert loss in ["l2", "vgg", "mixed", "closs", "dloss"]
 
 
 gs = 0.1
 #rd = "--random_search"
-optimargs = ["--gradient_descent ", "--nevergraddopo"]#, "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]:
+optimargs = ["--lbfgs ", "--random_search ", "--gradient_descent ", "--nevergraddopo"]#, "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]:
 if full == "full":
-    optimargs = ["--gradient_descent ", "--random_search ", "--nevergradcma ", "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]
+    optimargs = ["--lbfgs ", "--gradient_descent ", "--random_search ", "--nevergradcma ", "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]
 for rd in optimargs:
  nstep = int(os.environ["nstep"])
  ind=0
