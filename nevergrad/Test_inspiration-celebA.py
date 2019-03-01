@@ -55,7 +55,10 @@ else:
         if setting == "dtd20miss":
             dataset = 'PGAN_DTD20'
         else:
-            assert False
+            if setting == "udtd20":
+                dataset = 'PGAN_DTD20'
+            else:
+                assert False
    
 
 iternb = '96000'
@@ -187,6 +190,8 @@ for rd in optimargs:
      VGGext = ""
      if dataset == 'PGAN_DTD20':
         cmd = "python eval.py inspirational_generation -m PGAN -n default -d PGAN_DTD20 -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd     
+        if setting == "udtd20":
+            cmd = "python eval.py inspirational_generation -m PGAN -n default -d pgan_dtd_uncond -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd     
         if setting == "dtd20miss":
             cmd = "python eval.py inspirational_generation -m PGAN -n default -d PGAN_DTD10 -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd     
      else:    

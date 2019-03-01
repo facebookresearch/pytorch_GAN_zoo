@@ -10,12 +10,13 @@ export username=`whoami`
 rm /private/home/${username}/HDGANSamples/random_gens/*/*.jpg
 rm /private/home/${username}/HDGANSamples/random_gens/*.jpg
 
+#export inspire="udtd20"
 #export inspire="dtd20"
 #export inspire="celeba"
 #export inspire="dtd20miss"
 #export inspire="celebacartoon"
 #export inspire="celebacartoon2"
-export inspire="${1:-dtd20}"
+export inspire="${1:-udtd20}"
 
 #export full="full"
 #export full="limited"

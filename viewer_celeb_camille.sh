@@ -30,6 +30,7 @@ cat listcols.txt
 cat listscores.txt
 suffix=${inspire}_${nstep}_${renorm}_${full}_${loss}
 cp listscores.txt listscores_${suffix}.txt
+cp listcols.txt listcols_${suffix}.txt
 montage compare*.jpg -tile 1x$(( $num + 1)) -geometry +0+0 overview${suffix}.jpg
 tar -zcvf ~/overview${suffix}.tgz listcols.txt listscores.txt overview${suffix}.jpg
 echo 'image with target and rebuilt images -------------------------------'
@@ -39,3 +40,4 @@ mkdir -p ~/overviews
 touch ~/overviews/overover.jpg
 rm ~/overviews/over*.jpg
 cp overview*.jpg ~/overviews/
+cp listcols*.txt  listscore*.txt ~/overviews/

@@ -4,11 +4,12 @@ storagedir="~/storage`date | sed 's/ /_/g'`"
 mkdir -p $storagedir
 mv overview*.jpg list*.txt $storagedir
 #for full in full
-for full in restricted 
+for nstep in 200 #1000 5000
 do
-for nstep in 200 1000 5000
+for full in full
+#for full in restricted full
 do
-for inspire in celebacartoon2
+for inspire in udtd20 dtd20 dtd20miss celeba
 #for inspire in dtd20 celeba dtd20miss celebacartoon2
 do
 for renorm in renorm none
