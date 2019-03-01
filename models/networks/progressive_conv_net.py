@@ -18,7 +18,8 @@ class GNet(nn.Module):
                  normalization=True,
                  generationActivation=None,
                  dimOutput=3,
-                 equalizedlR=True):
+                 equalizedlR=True,
+                 nlabels=0):
         r"""
         Build a generator for a progressive GAN model
 
@@ -38,6 +39,7 @@ class GNet(nn.Module):
                                grey levels
             - equalizedlR (bool): set to true to initiualize the layers with
                                   N(0,1) and apply He's constant at runtime
+            - nlabels (int): nb of classes in a conditioned GAN case. 
 
         """
         super(GNet, self).__init__()
@@ -79,6 +81,16 @@ class GNet(nn.Module):
 
         # Last layer activation function
         self.generationActivation = generationActivation
+        
+        # Class embedding Submodules
+        embed_size = 256
+        self.nlabels= nlabels
+        print(nlabels)
+        print(depthScale0 )
+        self.embedding = nn.Embedding(nlabels, embed_size)
+        self.fc = nn.Linear(depthScale0 + embed_size, depthScale0*4*4)
+        self.depthScale0 = depthScale0
+       
 
     def initFormatLayer(self, dimLatentVector):
         r"""
@@ -149,18 +161,33 @@ class GNet(nn.Module):
 
         self.alpha = alpha
 
-    def forward(self, x):
-
-        # Normalize the input ?
-        if self.normalizationLayer is not None:
-            x = self.normalizationLayer(x)
-
-        x = x.view(-1, num_flat_features(x))
-        # format layer
-        x = self.leakyRelu(self.formatLayer(x))
-
-        x = x.view(x.size()[0], -1, 4, 4)
+    def forward(self, x, cond=False):
+       
+        if cond == False:
+            ## Normalize the input ?
+            if self.normalizationLayer is not None:
+                x = self.normalizationLayer(x)
+            x = x.view(-1, num_flat_features(x))
+            # format layer
+            x = self.leakyRelu(self.formatLayer(x))
+            x = x.view(x.size()[0], -1, 4, 4)
+        else:
+            # Split input into the noise part and label part.
+            y = x[:, (self.dimLatent-self.nlabels):]
+            y = y.type(torch.int64)
+            y = torch.argmax(y,dim=1) # label: #batch scalars
+            x = x[:, 0:(self.dimLatent-self.nlabels)]
+            # Compute embedding of labels
+            batch_size = x.size(0)
+            yembed = self.embedding(y)
+            yembed = yembed / torch.norm(yembed, p=2, dim=1, keepdim=True)
+            # Concat with noise part
+            yz = torch.cat([x, yembed], dim=1)
+            x = self.fc(yz)
+            x = x.view(batch_size, self.depthScale0, 4, 4)
+        
         x = self.normalizationLayer(x)
+        
 
         # Scale 0 (no upsampling)
         for convLayer in self.groupScale0:
@@ -243,7 +270,7 @@ class DNet(nn.Module):
         self.fromRGBLayers = nn.ModuleList()
 
         self.mergeLayers = nn.ModuleList()
-
+        
         # Initialize the last layer
         self.initDecisionLayer(sizeDecisionLayer)
 
@@ -320,13 +347,19 @@ class DNet(nn.Module):
         self.alpha = alpha
 
     def initDecisionLayer(self, sizeDecisionLayer):
+        if sizeDecisionLayer > 1:
+            sizeDecisionLayer = sizeDecisionLayer-1
+            
         self.decisionLayer = EqualizedLinear(self.scalesDepth[0],
                                              sizeDecisionLayer,
                                              equalized=self.equalizedlR,
                                              initBiasToZero=self.initBiasToZero)
 
-    def forward(self, x, getFeature = False):
+        
 
+    def forward(self, x, getFeature = False, cond= False, lab=0): #Camille:  remettre cond= False en position 3
+        #cond = True #Camille a enlevver
+    
         # Alpha blending
         if self.alpha > 0 and len(self.fromRGBLayers) > 1:
             y = F.avg_pool2d(x, (2, 2))
@@ -363,7 +396,19 @@ class DNet(nn.Module):
         x = x.view(-1, num_flat_features(x))
         x = self.leakyRelu(self.groupScaleZero[1](x))
 
+        out = self.decisionLayer(x)
+     
+        if cond == True :
+            index = torch.autograd.Variable(torch.LongTensor(range(out.size(0))), requires_grad=False) 
+            lab = lab.type(torch.LongTensor)
+            lab = lab.view(lab.size(0))
+            out = out[index, lab]
+            out = out.view(out.size(0),1)
+    
         if not getFeature:
-            return self.decisionLayer(x)
+            return out
 
-        return self.decisionLayer(x), x
+        return out, x
+
+
+

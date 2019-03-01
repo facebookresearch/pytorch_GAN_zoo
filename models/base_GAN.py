@@ -101,7 +101,11 @@ class BaseGAN():
         self.config.weightConditionG = weightConditionG
         self.config.weightConditionD = weightConditionD
         self.initializeACCriterion()
+        self.cond = False
+        if self.config.weightConditionD > 0:
+            self.cond = True
 
+        
         # GDPP
         self.config.GDPP = GDPP
 
@@ -196,36 +200,40 @@ class BaseGAN():
         self.optimizerD.zero_grad()
 
         # #1 Real data
-        predRealD = self.netD(self.real_input)
+        
+        # Camille : added real label input
+        if self.cond == True:
+            predRealD = self.netD(self.real_input,False,True,self.realLabels)
+        else:
+            predRealD = self.netD(self.real_input,False)
+            print("prob")
+        
         lossD = self.lossCriterion.getCriterion(predRealD, True)
         allLosses["lossD_real"] = lossD.item()
 
         # #2 Fake data
         inputLatent, targetRandCat = self.buildNoiseData(n_samples)
-        predFakeG = self.netG(inputLatent).detach()
-        predFakeD = self.netD(predFakeG)
-
+      
+        predFakeG = self.netG(inputLatent, self.cond).detach()
+        
+        if self.cond == True:
+            predFakeD = self.netD(predFakeG,False,True,targetRandCat)
+        else:
+            predFakeD = self.netD(predFakeG,False)
+            
         lossDFake = self.lossCriterion.getCriterion(predFakeD, False)
-        allLosses["lossD_fake"] = lossDFake.item()
+        allLosses["lossD_fake"] = lossD.item()
         lossD += lossDFake
 
         if self.config.lambdaGP > 0:
             allLosses["lossD_Grad"] = self.getGradientPenalty(
-                self.real_input, predFakeG, backward = True)
-
+                self.real_input, predFakeG, True, targetRandCat)
+          
         if self.config.epsilonD > 0:
-            lossEpsilon = (predRealD[:, :self.lossCriterion.sizeDecisionLayer]
+            lossEpsilon = (predRealD[:, :] 
                       ** 2).sum() * self.config.epsilonD
             lossD += lossEpsilon
             allLosses["lossD_Epsilon"] = lossEpsilon.item()
-
-        if self.config.attribKeysOrder:
-            lossACD = self.config.weightConditionD \
-                * self.getLossACDCriterion(predRealD, self.realLabels) \
-                + self.config.weightConditionD * \
-                self.getLossACDCriterion(predFakeD, targetRandCat)
-            lossD += lossACD
-            allLosses["lossD_AC"] = lossACD.item()
 
         lossD.backward()
 
@@ -252,27 +260,26 @@ class BaseGAN():
                 self.optimizerD.zero_grad()
 
                 inputNoise, targetCatNoise = self.buildNoiseData(n_samples)
-                predFakeG = self.netG(inputNoise)
+                predFakeG = self.netG(inputNoise, self.cond)
 
-                predFakeD, phiGFake = self.netD(predFakeG, getFeature=True)
-
-                if self.config.GDPP:
-                    _, phiDReal = self.netD.forward(self.real_input,
-                                                    getFeature=True)
-                    allLosses["lossG_GDPP"] = GDPPLoss(phiDReal, phiGFake)
-
-                self.auxiliaryLossesGeneration()
-
-                if self.config.weightConditionG != 0:
-                    lossACG = self.updateLossACGeneration(
-                    predFakeD, targetCatNoise)
-                    lossACG.backward(retain_graph=True)
-                    allLosses["lossG_AC"] = lossACG.item()
-
+                if self.cond == True:
+                    predFakeD, phiGFake = self.netD(predFakeG, True, True, targetCatNoise)
+                else:
+                    predFakeD, phiGFake = self.netD(predFakeG, True)
                 lossGFake = self.lossCriterion.getCriterion(predFakeD, True)
                 allLosses["lossG_fake"] = lossGFake.item()
 
                 lossGFake.backward()
+
+                if self.config.GDPP:
+                    if self.cond == True:
+                        _, phiDReal = self.netD.forward(self.real_input,True, True, targetCatNoise)
+                    else: 
+                        _, phiDReal = self.netD.forward(self.real_input,True)
+                        
+                    allLosses["lossG_GDPP"] = GDPPLoss(phiDReal, phiGFake)
+
+                self.auxiliaryLossesGeneration()
 
                 finiteCheck(self.netG.module.parameters())
                 self.optimizerG.step()
@@ -287,15 +294,15 @@ class BaseGAN():
 
             # Update the moving average if relevant
             for p, avg_p in zip(self.netG.module.parameters(),
-                                self.getOriginalAvG().parameters()):
+                                self.avgG.module.parameters()):
                 avg_p.mul_(0.999).add_(0.001, p.data)
 
             return allLosses
 
-
     def initializeACCriterion(self):
         r"""
         """
+
         if self.config.weightConditionD != 0 and \
                 not self.config.attribKeysOrder:
             raise AttributeError("If the weight on the conditional term isn't "
@@ -312,38 +319,7 @@ class BaseGAN():
             self.ACGANCriterion = ACGanCriterion(self.config.attribKeysOrder)
             self.config.categoryVectorDim = self.ACGANCriterion.getInputDim()
 
-    def getLossACDCriterion(self, predD, targetLabel):
-        r"""
-        Retrieve the loss due to the AC-GAN criterion
-        Args:
-            predD (tensor): output of the discrimator network
-            targetLabel (tensor): target output label (! format)
-        Return:
-            The loss
-        """
-        xD = predD[:, self.lossCriterion.sizeDecisionLayer:]
-        return self.ACGANCriterion.getLoss(xD, targetLabel)
 
-    def updateLossACGeneration(self, predD, targetCatNoise):
-        r"""
-        Retrieve the generator's loss due to the the AC-GAN criterion
-        Depending on self.config.weightConditionG's sign, the creativity loss
-        will be activated.
-        Args:
-            predD (tensor): output of the discrimator network
-            targetLabel (tensor): target output label (! format)
-        Return:
-            The loss
-        """
-
-        if self.config.attribKeysOrder is None:
-            return 0
-
-        predFakeD = predD[:, self.lossCriterion.sizeDecisionLayer:]
-        loss = self.config.weightConditionG * \
-            self.ACGANCriterion.getLoss(predFakeD, targetCatNoise)
-
-        return loss
 
     def auxiliaryLossesGeneration(self):
         r"""
@@ -356,8 +332,7 @@ class BaseGAN():
         Move the current networks and solvers to the GPU.
         This function must be called each time netG or netD is modified
         """
-
-        if buildAvG:
+        if self.buildAvG():
             self.buildAvG()
 
         if not isinstance(self.netD, nn.DataParallel) and self.useGPU:
@@ -398,6 +373,7 @@ class BaseGAN():
 
             targetRandCat = targetRandCat.to(self.device)
             latentRandCat = latentRandCat.to(self.device)
+             
             inputLatent = torch.cat((inputLatent, latentRandCat), dim=1)
 
             return inputLatent, targetRandCat
@@ -429,15 +405,6 @@ class BaseGAN():
         if isinstance(self.netD, nn.DataParallel):
             return self.netD.module
         return self.netD
-
-    def getOriginalAvG(self):
-        r"""
-        Retrieve the original avgG network. Use this function
-        when you want to modify avG after the initialization
-        """
-        if isinstance(self.avgG, nn.DataParallel):
-            return self.avgG.module
-        return self.avgG
 
     def getNetG(self):
         r"""
@@ -478,7 +445,7 @@ class BaseGAN():
                      'netD': stateD}
 
         # Average GAN
-        out_state['avgG'] = self.getOriginalAvG().state_dict()
+        out_state['avgG'] = self.avgG.module.state_dict()
 
         if saveTrainTmp:
             out_state['tmp'] = self.trainTmp
@@ -568,7 +535,7 @@ class BaseGAN():
                     print("Average network found !")
                     self.buildAvG()
                     # Replace me by a standard loadStatedict for open-sourcing
-                    loadStateDictCompatible(self.getOriginalAvG(), in_state['avgG'])
+                    loadStateDictCompatible(self.avgG.module, in_state['avgG'])
                     buildAvG = False
 
         if loadD:
@@ -610,7 +577,8 @@ class BaseGAN():
         """
         return
 
-    def getGradientPenalty(self, input, fake, backward = True):
+    #Camille : added lab
+    def getGradientPenalty(self, input, fake, backward = True, lab=0):
         r"""
         Build the gradient penalty as described in
         "Improved Training of Wasserstein GANs"
@@ -633,7 +601,9 @@ class BaseGAN():
         interpolates = torch.autograd.Variable(
             interpolates, requires_grad=True)
 
-        decisionInterpolate = self.netD(interpolates)[:, 0].sum()
+        #Camille
+        decisionInterpolate = self.netD(interpolates, False, self.cond, lab)[:, 0].sum()
+        
 
         gradients = torch.autograd.grad(outputs=decisionInterpolate,
                                         inputs=interpolates,
