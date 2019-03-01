@@ -201,12 +201,10 @@ class BaseGAN():
 
         # #1 Real data
         
-        # Camille : added real label input
         if self.cond == True:
             predRealD = self.netD(self.real_input,False,True,self.realLabels)
         else:
             predRealD = self.netD(self.real_input,False)
-            print("prob")
         
         lossD = self.lossCriterion.getCriterion(predRealD, True)
         allLosses["lossD_real"] = lossD.item()
@@ -577,7 +575,6 @@ class BaseGAN():
         """
         return
 
-    #Camille : added lab
     def getGradientPenalty(self, input, fake, backward = True, lab=0):
         r"""
         Build the gradient penalty as described in
@@ -601,7 +598,6 @@ class BaseGAN():
         interpolates = torch.autograd.Variable(
             interpolates, requires_grad=True)
 
-        #Camille
         decisionInterpolate = self.netD(interpolates, False, self.cond, lab)[:, 0].sum()
         
 

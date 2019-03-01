@@ -85,8 +85,6 @@ class GNet(nn.Module):
         # Class embedding Submodules
         embed_size = 256
         self.nlabels= nlabels
-        print(nlabels)
-        print(depthScale0 )
         self.embedding = nn.Embedding(nlabels, embed_size)
         self.fc = nn.Linear(depthScale0 + embed_size, depthScale0*4*4)
         self.depthScale0 = depthScale0
@@ -357,8 +355,7 @@ class DNet(nn.Module):
 
         
 
-    def forward(self, x, getFeature = False, cond= False, lab=0): #Camille:  remettre cond= False en position 3
-        #cond = True #Camille a enlevver
+    def forward(self, x, getFeature = False, cond= False, lab=0):
     
         # Alpha blending
         if self.alpha > 0 and len(self.fromRGBLayers) > 1:
