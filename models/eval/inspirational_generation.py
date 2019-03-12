@@ -246,7 +246,6 @@ def gradientDescentOnInput(model,
         optimNoise.zero_grad()
         model.netG.zero_grad()
         model.netD.zero_grad()
-
         if randomSearch:
             varNoise = torch.randn((nImages,
                                     model.config.noiseVectorDim +
@@ -292,6 +291,8 @@ def gradientDescentOnInput(model,
         if nevergrad:
             for i in range(nImages):
                  optimizers[i].tell(inps[i], float(sumLoss[i]))
+                    
+                 
         if not randomSearch:
 #            def closure():
 #                optimizer.zero_grad()
@@ -305,12 +306,16 @@ def gradientDescentOnInput(model,
         if optimalLoss is None:
             optimalVector = deepcopy(varNoise)
             optimalLoss = sumLoss
-
         else:
             optimalVector = torch.where(sumLoss.view(-1, 1) < optimalLoss.view(-1, 1),
                                         varNoise, optimalVector).detach()
             optimalLoss = torch.where(sumLoss < optimalLoss,
                                       sumLoss, optimalLoss).detach()
+            if lbfgs: 
+                for i in range(nImages):
+                    if sumLoss[i] != sumLoss[i]:
+                        varNoise[i] = optimalVector[i]
+                        print("yoyo")
 
         if iter % 100 == 0:
             if visualizer is not None:

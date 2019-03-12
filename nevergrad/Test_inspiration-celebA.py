@@ -49,13 +49,13 @@ loss = os.environ["loss"]
 if setting == "dtd20":
     dataset = 'PGAN_DTD20'
 else:
-    if setting == "celeba" or setting == "celebacartoon" or setting == "celebacartoon2":
+    if setting == "celeba" or setting == "celebacartoon" or setting == "celebacartoon2" or setting == "celebabam" or setting == "celebasemi" or setting == "missceleba":
         dataset = 'celebaHQ16_december'
     else:
         if setting == "dtd20miss":
             dataset = 'PGAN_DTD20'
         else:
-            if setting == "udtd20":
+            if setting == "udtd20" or setting == "udtd20bam" or setting == "udtd20clb" or setting == "yo":
                 dataset = 'PGAN_DTD20'
             else:
                 assert False
@@ -108,10 +108,16 @@ for i in range(0,nimages):
     img2 = np.clip(img2, 0, 1)
     out = to_pil(img2)
     out.save('/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg')
-    if setting == "celebacartoon":
+    if setting == "celebacartoon" or setting == "yo":
         copyfile('/private/home/'+Username+'/cartoons/cartoon' + str(i+1) + '.jpg', '/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg') 
     if setting == "celebacartoon2":
         copyfile('/private/home/'+Username+'/cartoons2/' + str(i+1) + '.jpg', '/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg') 
+    if setting == "celebabam" or setting == "udtd20bam":
+        copyfile('/private/home/'+Username+'/bam/' + str(i+1) + '.jpg', '/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg') 
+    if setting == "celebasemi" or setting == "udtd20clb":
+        copyfile('/private/home/'+Username+'/clb/' + str(i+1) + '.jpg', '/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg') 
+    if setting == "missceleba":
+        copyfile('/private/home/'+Username+'/missceleba/' + str(i+1) + '.jpg', '/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'_s'+str(sc)+'_rand_'+ str(i) +'.jpg') 
     #display(out)
     new_im.paste(out, (x_offset,0))
     x_offset += out.size[0]
@@ -160,7 +166,7 @@ assert loss in ["l2", "vgg", "mixed", "closs", "dloss"]
 
 gs = 0.1
 #rd = "--random_search"
-optimargs = ["--lbfgs ", "--random_search ", "--gradient_descent ", "--nevergraddopo"]#, "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]:
+optimargs = ["--lbfgs ", "--gradient_descent ", "--nevergraddopo"]#, "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]:
 if full == "full":
     optimargs = ["--lbfgs ", "--gradient_descent ", "--random_search ", "--nevergradcma ", "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]
 for rd in optimargs:
@@ -190,6 +196,8 @@ for rd in optimargs:
      VGGext = ""
      if dataset == 'PGAN_DTD20':
         cmd = "python eval.py inspirational_generation -m PGAN -n default -d PGAN_DTD20 -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd     
+        if setting == "udtd20bam" or setting == "udtd20clb" or setting == "yo":
+            cmd = "python eval.py inspirational_generation -m PGAN -n default -d pgan_dtd_uncond -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd     
         if setting == "udtd20":
             cmd = "python eval.py inspirational_generation -m PGAN -n default -d pgan_dtd_uncond -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd     
         if setting == "dtd20miss":
