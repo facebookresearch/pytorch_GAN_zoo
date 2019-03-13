@@ -232,9 +232,9 @@ class AttribDataset(Dataset):
             mask = Transforms.Grayscale(1)(mask)
             mask = self.transform(mask)
 
-            return img, torch.tensor(attr), mask
+            return img, torch.tensor(attr, dtype=torch.long), mask
 
-        return img, torch.tensor(attr)
+        return img, torch.tensor(attr, dtype=torch.long)
 
     def getName(self, idx):
 
