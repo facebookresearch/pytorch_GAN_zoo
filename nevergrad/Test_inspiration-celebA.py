@@ -55,10 +55,13 @@ else:
         if setting == "dtd20miss":
             dataset = 'PGAN_DTD20'
         else:
-            if setting == "udtd20":
-                dataset = 'PGAN_DTD20'
-            else:
-                assert False
+            if setting == "udtd":
+                dataset = 'pgan_dtd_uncond'
+            else: 
+                if setting == "RTW":
+                    dataset = 'pgan_dtd_uncond'
+                else:
+                    assert False
    
 
 iternb = '96000'
@@ -66,8 +69,12 @@ if dataset == 'PGAN_DTD20':
     pathModel = '/private/home/'+Username+'/Riviere2018Fashion/pytorch_GAN_zoo/PGAN_DTD20/default/default_s'+str(sc)+'_iter_48000.pt'
     pathConfig = '/private/home/'+Username+'/Riviere2018Fashion/pytorch_GAN_zoo/PGAN_DTD20/default/default_s'+str(sc)+'_iter_48000_tmp_config.json'
 else:
-    pathModel = '/private/home/'+Username+'/datasets/'+dataset+'/'+dataset+'_s'+str(sc)+'_iter_'+iternb+'.pt'
-    pathConfig = '/private/home/'+Username+'/datasets/'+dataset+'/'+dataset+'_s'+str(sc)+'_iter_'+iternb+'_tmp_config.json'
+    if dataset == 'pgan_dtd_uncond':
+        pathModel = '/private/home/'+Username+'/Riviere2018Fashion/pytorch_GAN_zoo/pgan_dtd_uncond/default/default_s'+str(sc)+'_iter_48000.pt'
+        pathConfig = '/private/home/'+Username+'/Riviere2018Fashion/pytorch_GAN_zoo/pgan_dtd_uncond/default/default_s'+str(sc)+'_iter_48000_tmp_config.json'
+    else:
+        pathModel = '/private/home/'+Username+'/datasets/'+dataset+'/'+dataset+'_s'+str(sc)+'_iter_'+iternb+'.pt'
+        pathConfig = '/private/home/'+Username+'/datasets/'+dataset+'/'+dataset+'_s'+str(sc)+'_iter_'+iternb+'_tmp_config.json'
 
 
 
@@ -75,6 +82,7 @@ with open(pathConfig, 'rb') as file:
     config = json.load(file)
     
 pgan  = ProgressiveGAN(useGPU= True, storeAvG = True, **config)
+print(pathModel)
 pgan.load(pathModel)
 
 
@@ -127,7 +135,7 @@ import glob, os
 
 
 if Username == 'coupriec':
-        os.chdir('/private/home/coupriec/Riviere2018Fashion/pytorch_GAN_zoo/')
+        os.chdir('/private/home/coupriec/Riviere2018Fashion/cleangit/pytorch_GAN_zoo/')
 else:
         os.chdir('/private/home/'+Username+'/morgane/pytorch_GAN_zoo/')
 dirpath = "/private/home/"+Username+"/HDGANSamples/random_gens/"
@@ -161,6 +169,8 @@ assert loss in ["l2", "vgg", "mixed", "closs", "dloss"]
 gs = 0.1
 #rd = "--random_search"
 optimargs = ["--lbfgs ", "--random_search ", "--gradient_descent ", "--nevergraddopo"]#, "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]:
+optimargs = ["--random_search ", "--nevergraddopo"]
+
 if full == "full":
     optimargs = ["--lbfgs ", "--gradient_descent ", "--random_search ", "--nevergradcma ", "--nevergradpso ", "--nevergradde ", "--nevergrad2pde ", "--nevergradpdopo ", "--nevergraddopo ", "--nevergradopo "]
 for rd in optimargs:
@@ -188,15 +198,20 @@ for rd in optimargs:
      #print("inspiration image")
      #display(im)
      VGGext = ""
-     if dataset == 'PGAN_DTD20':
-        cmd = "python eval.py inspirational_generation -m PGAN -n default -d PGAN_DTD20 -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd     
-        if setting == "udtd20":
-            cmd = "python eval.py inspirational_generation -m PGAN -n default -d pgan_dtd_uncond -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd     
-        if setting == "dtd20miss":
-            cmd = "python eval.py inspirational_generation -m PGAN -n default -d PGAN_DTD10 -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd     
-     else:    
-        VGGext = "_LF"
-        cmd = "python eval.py inspirational_generation -m PGAN -d /private/home/"+Username+"/datasets/ -n "+ dataset +" -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd 
+     if setting == "udtd":
+        cmd = "python eval.py inspirational_generation -m PGAN -n default -d pgan_dtd_uncond -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd    
+     else:
+        if setting == "RTW":
+            cmd = "python eval.py inspirational_generation -m PGAN -n yslcreativity4 -d ./ -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 8 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd    
+            
+        else:
+            if dataset == 'PGAN_DTD20':
+                cmd = "python eval.py inspirational_generation -m PGAN -n default -d PGAN_DTD20 -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd         
+                if setting == "dtd20miss":
+                    cmd = "python eval.py inspirational_generation -m PGAN -n default -d PGAN_DTD10 -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd     
+            else:    
+                VGGext = "_LF"
+                cmd = "python eval.py inspirational_generation -m PGAN -d /private/home/"+Username+"/datasets/ -n "+ dataset +" -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd 
         
         
      print("cmd=", cmd)
@@ -214,10 +229,11 @@ for rd in optimargs:
      A[i] = float(r_min)
      out = load_image(outname)
  
-     zopt = torch.load(dirpath+imgname+"_"+suffix+"/"+imgname+"_"+suffix+"vector.pt")
-     [noiseData,noiseLabels]= torch.load('/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'z.pth')
-     dist = torch.norm(noiseData[i]*zopt,2)
-     Zdist[ind-1] = float(dist)
+     if setting != "RTW":
+         zopt = torch.load(dirpath+imgname+"_"+suffix+"/"+imgname+"_"+suffix+"vector.pt")
+         [noiseData,noiseLabels]= torch.load('/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'z.pth')
+         dist = torch.norm(noiseData[i]*zopt,2)
+         Zdist[ind-1] = float(dist)
     
      #print("output result")
      #display(out)
