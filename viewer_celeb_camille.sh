@@ -1,11 +1,13 @@
-
+echo montages...
 username=`whoami`
 num=`ls -ctr /private/home/${username}/HDGANSamples/random_gens/*/*.jpg | sed 's/.*rand_//g' | sed 's/_.*//g' |  sort -n | tail -n 1`
 
 i=0
 rm compare*.jpg
+echo $num images
 for i in `seq 0 $num`
 do
+
 echo "image $i:" `ls -ctr /private/home/${username}/HDGANSamples/random_gens/*/*.jpg |  grep "rand_${i}_" | sed 's/.*_rand//g' | sed 's/.jpg//' | sed 's/nsteps.*//g' | sed 's/random_search/rs/g' | sed 's/.*_//g'`
     num2=`ls -ctr /private/home/${username}/HDGANSamples/random_gens/*/*.jpg | grep "rand_${i}_" |  wc -l`
     convert -resize 128x128 `ls -ctr /private/home/${username}/HDGANSamples/random_gens/*.jpg |  grep "rand_${i}\."` to.jpg
