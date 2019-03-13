@@ -203,7 +203,7 @@ class ChangeMyNameCriterion(ClassificationCriterion):
 
             C = self.attribSize[i]
             locInput = outputD[:, shiftInput:(shiftInput+C)]
-            locTarget = target[:, shiftTarget]
+            locTarget = target[:, shiftTarget].long()
             preds += locInput[idx, locTarget]
             shiftTarget += 1
             shiftInput += C

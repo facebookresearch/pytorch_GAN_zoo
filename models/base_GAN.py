@@ -532,6 +532,18 @@ class BaseGAN():
 
     def classificationPenalty(self, outputD, target, weight, backward=True):
         r"""
+        Compute the classification penalty associated with the current
+        output
+
+        Args:
+            - outputD (tensor): discriminator's output
+            - target (tensor): ground truth labels
+            - weight (float): weight to give to this loss
+            - backward (bool): do we back-propagate the loss ?
+
+        Returns:
+            - outputD (tensor): updated discrimator's output
+            - loss (float): value of the classification loss
         """
 
         if self.ClassificationCriterion is not None:
@@ -569,14 +581,12 @@ class BaseGAN():
 
         decisionInterpolate = self.netD(interpolates, False)
 
-        if labels is None:
-            decisionInterpolate = decisionInterpolate[:, 0]
-        else:
+        if labels is not None:
             decisionInterpolate, _ = \
                 self.classificationPenalty(decisionInterpolate, labels,
                                            0, backward=False)
 
-        decisionInterpolate = decisionInterpolate.sum()
+        decisionInterpolate = decisionInterpolate[:,0].sum()
 
         gradients = torch.autograd.grad(outputs=decisionInterpolate,
                                         inputs=interpolates,
