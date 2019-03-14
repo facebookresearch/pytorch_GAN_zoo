@@ -59,8 +59,7 @@ class ProgressiveGAN(BaseGAN):
                     normalization=self.config.perChannelNormalization,
                     generationActivation=self.lossCriterion.generationActivation,
                     dimOutput=self.config.dimOutput,
-                    equalizedlR=self.config.equalizedlR,
-                    nlabels=self.config.categoryVectorDim)
+                    equalizedlR=self.config.equalizedlR)
 
         # Add scales if necessary
         for depth in self.config.depthOtherScales:

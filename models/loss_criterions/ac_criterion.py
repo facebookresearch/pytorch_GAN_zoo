@@ -186,7 +186,7 @@ class ACGANCriterion(ClassificationCriterion):
         return outputD, loss
 
 
-class ChangeMyNameCriterion(ClassificationCriterion):
+class DirectCondCriterion(ClassificationCriterion):
 
     def __init__(self, *args, **kwargs):
         ClassificationCriterion.__init__(self, *args, **kwargs)

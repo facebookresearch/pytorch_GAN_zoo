@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from .utils.config import BaseConfig, updateConfig
 from .loss_criterions import base_loss_criterions
-from .loss_criterions.ac_criterion import ACGANCriterion, ChangeMyNameCriterion
+from .loss_criterions.ac_criterion import ACGANCriterion, DirectCondCriterion
 from .loss_criterions.GDPP_loss import GDPPLoss
 from .utils.utils import loadPartOfStateDict, finiteCheck, \
     loadStateDictCompatible
@@ -58,7 +58,7 @@ class BaseGAN():
                 "lossMode should be one of the following : ['MSE', 'WGANGP', \
                 'DCGAN']")
 
-        if classificationMode not in [None, 'ACGAN', 'ChangeMyName']:
+        if classificationMode not in [None, 'ACGAN', 'DirectCond']:
             raise ValueError(
                 "lossMode should be one of the following : ['MSE', 'WGANGP', \
                 'DCGAN']")
@@ -91,8 +91,9 @@ class BaseGAN():
         self.config.categoryVectorDim = 0
         self.config.weightConditionG = weightConditionG
         self.config.weightConditionD = weightConditionD
+        self.config.classificationMode = classificationMode
         self.ClassificationCriterion = None
-        self.initializeClassificationCriterion(classificationMode)
+        self.initializeClassificationCriterion()
 
         # GDPP
         self.config.GDPP = GDPP
@@ -190,7 +191,7 @@ class BaseGAN():
 
         # #2 Fake data
         inputLatent, targetRandCat = self.buildNoiseData(n_samples,
-                                                         inputLabels = self.realLabels)
+                                                         inputLabels=self.realLabels)
         predFakeG = self.netG(inputLatent).detach()
         predFakeD = self.netD(predFakeG, False)
 
@@ -275,8 +276,9 @@ class BaseGAN():
 
         return allLosses
 
-    def initializeClassificationCriterion(self, classificationMode):
+    def initializeClassificationCriterion(self):
         r"""
+        For labelled datasets: initialize the classification criterion.
         """
 
         if self.config.weightConditionD != 0 and \
@@ -292,12 +294,12 @@ class BaseGAN():
                                  defined")
 
         if self.config.attribKeysOrder is not None:
-            if classificationMode == 'ACGAN':
+            if self.config.classificationMode == 'ACGAN':
                 self.ClassificationCriterion = \
                         ACGANCriterion(self.config.attribKeysOrder)
             else:
                 self.ClassificationCriterion = \
-                        ChangeMyNameCriterion(self.config.attribKeysOrder)
+                        DirectCondCriterion(self.config.attribKeysOrder)
 
             self.config.categoryVectorDim = \
                 self.ClassificationCriterion.getInputDim()
@@ -586,7 +588,7 @@ class BaseGAN():
                 self.classificationPenalty(decisionInterpolate, labels,
                                            0, backward=False)
 
-        decisionInterpolate = decisionInterpolate[:,0].sum()
+        decisionInterpolate = decisionInterpolate[:, 0].sum()
 
         gradients = torch.autograd.grad(outputs=decisionInterpolate,
                                         inputs=interpolates,
