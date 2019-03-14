@@ -29,9 +29,9 @@ def pil_loader(path):
 def getFeatireSize(x):
 
     s = x.size()
-    out=1
+    out = 1
     for p in s[1:]:
-        out*=p
+        out *= p
 
     return out
 
@@ -75,20 +75,10 @@ def updateParser(parser):
                         action='store_true')
     parser.add_argument('--random_search', help='Random search',
                         action='store_true')
-    parser.add_argument('--nevergradcma', help='CMA nevergrad',
-                        action='store_true')
-    parser.add_argument('--nevergradde', help='DE nevergrad',
-                        action='store_true')
-    parser.add_argument('--nevergradpso', help='PSO nevergrad',
-                        action='store_true')
-    parser.add_argument('--nevergrad2pde', help='2PDE nevergrad',
-                        action='store_true')
-    parser.add_argument('--nevergradopo', help='2PDE nevergrad',
-                        action='store_true')
-    parser.add_argument('--nevergraddopo', help='2PDE nevergrad',
-                        action='store_true')
-    parser.add_argument('--nevergradpdopo', help='2PDE nevergrad',
-                        action='store_true')
+    parser.add_argument('--nevergrad', type=str,
+                        choices=['CMA', 'DE', 'PSO', 'TwoPointsDE',
+                                 'PortfolioDiscreteOnePlusOne',
+                                 'DiscreteOnePlusOne', 'OnePlusOne'])
     parser.add_argument('--save_descent', help='Save descent',
                         action='store_true')
 
@@ -104,13 +94,7 @@ def gradientDescentOnInput(model,
                            lambdaD=0.03,
                            nSteps=6000,
                            randomSearch=False,
-                           nevergradcma=False,
-                           nevergradde=False,
-                           nevergradpso=False,
-                           nevergrad2pde=False,
-                           nevergradopo=False,
-                           nevergraddopo=False,
-                           nevergradpdopo=False,
+                           nevergrad=None,
                            lr=1,
                            outPathSave=None):
     r"""
@@ -133,24 +117,11 @@ def gradientDescentOnInput(model,
         nSteps (int): number of steps to perform
         randomSearch (bool): if true, replace tha gradient descent by a random
                              search
-        nevergradcma (bool): if true, replace tha gradient descent by a 
-                             CMA-ES
-        nevergradpso (bool): if true, replace tha gradient descent by a 
-                             PSO
-        nevergradde (bool): if true, replace tha gradient descent by a 
-                             DE
-        nevergrad2pde (bool): if true, replace tha gradient descent by a 
-                             2points-DE
-        nevergradopo (bool): if true, replace tha gradient descent by a 
-                             one-plus-one
-        nevergraddopo (bool): if true, replace tha gradient descent by a 
-                             discrete one-plus-one
-        nevergradpdopo (bool): if true, replace tha gradient descent by a 
-                             portfolio discrete one-plus-one
-        lr (float): learning rate of the gradient descent
-        outPathSave (string): if not None, path to save the intermediate iterations
-                              of the gradient descent
-
+        nevergrad (string): must be in None or in ['CMA', 'DE', 'PSO',
+                            'TwoPointsDE', 'PortfolioDiscreteOnePlusOne',
+                            'DiscreteOnePlusOne', 'OnePlusOne']
+        outPathSave (string): if not None, path to save the intermediate
+                              iterations of the gradient descent
     Returns
 
         output, optimalVector, optimalLoss
@@ -160,8 +131,11 @@ def gradientDescentOnInput(model,
                                 images
     """
 
-    nevergrad = nevergradcma or nevergradde or nevergradpso or nevergrad2pde or nevergradopo or nevergraddopo or nevergradpdopo
-    randomSearch = randomSearch or nevergrad
+    if nevergrad not in [None, 'CMA', 'DE', 'PSO',
+                         'TwoPointsDE', 'PortfolioDiscreteOnePlusOne',
+                         'DiscreteOnePlusOne', 'OnePlusOne']:
+        raise ValueError("Invalid nevergard mode " + str(nevergrad))
+    randomSearch = randomSearch or (nevergrad is not None)
     print("Running for %d setps" % nSteps)
 
     if visualizer is not None:
@@ -220,11 +194,14 @@ def gradientDescentOnInput(model,
     gradientDecay = 0.1
 
     nImages = input.size(0)
-    if randomSearch and nevergrad:
-        optimizer_name = "CMA" if nevergradcma else "DE" if nevergradde else "PSO" if nevergradpso else "TwoPointsDE" if nevergrad2pde else "PortfolioDiscreteOnePlusOne" if nevergradpdopo else "DiscreteOnePlusOne" if nevergraddopo else "OnePlusOne" if nevergradopo else "ERROR"
+    if nevergrad is not None:
         optimizers = []
         for i in range(nImages):
-            optimizers += [optimizerlib.registry[optimizer_name](dimension=model.config.noiseVectorDim+model.config.categoryVectorDim,budget=nSteps)]
+            optimizers += [optimizerlib.registry[nevergrad](
+                dimension=model.config.noiseVectorDim +
+                model.config.categoryVectorDim,
+                budget=nSteps)]
+
     def resetVar(newVal):
         newVal.requires_grad = True
         print("Updating the optimizer with learning rate : %f" % lr)
@@ -233,7 +210,7 @@ def gradientDescentOnInput(model,
                                 betas=[0., 0.99], lr=lr)
 
     # String's format for loss output
-    formatCommand = ' '.join(['{:>4}' for x in range(nImages)]) 
+    formatCommand = ' '.join(['{:>4}' for x in range(nImages)])
     for iter in range(nSteps):
 
         optimNoise.zero_grad()
@@ -244,15 +221,15 @@ def gradientDescentOnInput(model,
             varNoise = torch.randn((nImages,
                                     model.config.noiseVectorDim +
                                     model.config.categoryVectorDim),
-                                   requires_grad=True, device=model.device)
+                                   device=model.device)
             if nevergrad:
                 inps = []
                 for i in range(nImages):
                     inps += [optimizers[i].ask()]
                     npinps = np.array(inps)
 
-                varNoise = torch.tensor(npinps, dtype=torch.float32, device=torch.device('cuda:0'))#.astype(np.float32)
-                #varNoise = torch.from_numpy(npinps).to(torch.cuda.FloatTensor)#.astype(np.float32)
+                varNoise = torch.tensor(
+                    npinps, dtype=torch.float32, device=model.device)
                 varNoise.requires_grad = True
                 varNoise.to(model.device)
 
@@ -283,8 +260,8 @@ def gradientDescentOnInput(model,
 
         if nevergrad:
             for i in range(nImages):
-                 optimizers[i].tell(inps[i], float(sumLoss[i]))
-        if not randomSearch:
+                optimizers[i].tell(inps[i], float(sumLoss[i]))
+        elif not randomSearch:
             optimNoise.step()
 
         if optimalLoss is None:
@@ -362,7 +339,8 @@ def test(parser, visualisation=None):
 
     if checkpointData is None:
         raise FileNotFoundError(
-            "Not checkpoint found for model " + str(name) + " at directory " + str(checkPointDir) + 'cwd=' + str( os.getcwd()))
+            "No checkpoint found for model " + str(name) + " at directory "
+            + str(checkPointDir) + 'cwd=' + str(os.getcwd()))
 
     modelConfig, pathModel, _ = checkpointData
 
@@ -441,17 +419,10 @@ def test(parser, visualisation=None):
                                                    nSteps=kwargs['nSteps'],
                                                    weights=weights,
                                                    randomSearch=kwargs['random_search'],
-                                                   nevergradcma=kwargs['nevergradcma'],
-                                                   nevergradpso=kwargs['nevergradpso'],
-                                                   nevergradde=kwargs['nevergradde'],
-                                                   nevergrad2pde=kwargs['nevergrad2pde'],
-                                                   nevergradopo=kwargs['nevergradopo'],
-                                                   nevergraddopo=kwargs['nevergraddopo'],
-                                                   nevergradpdopo=kwargs['nevergradpdopo'],
+                                                   nevergrad=kwargs['nevergrad'],
                                                    lr=kwargs['learningRate'],
                                                    outPathSave=outPathDescent)
-    
-    
+
     pathVectors = basePath + "vector.pt"
     torch.save(outVectors, open(pathVectors, 'wb'))
 
