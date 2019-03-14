@@ -134,7 +134,7 @@ def gradientDescentOnInput(model,
     if nevergrad not in [None, 'CMA', 'DE', 'PSO',
                          'TwoPointsDE', 'PortfolioDiscreteOnePlusOne',
                          'DiscreteOnePlusOne', 'OnePlusOne']:
-        raise ValueError("Unvalid nevergard mode " + str(nevergrad))
+        raise ValueError("Invalid nevergard mode " + str(nevergrad))
     randomSearch = randomSearch or (nevergrad is not None)
     print("Running for %d setps" % nSteps)
 
@@ -339,7 +339,7 @@ def test(parser, visualisation=None):
 
     if checkpointData is None:
         raise FileNotFoundError(
-            "Not checkpoint found for model " + str(name) + " at directory "
+            "No checkpoint found for model " + str(name) + " at directory "
             + str(checkPointDir) + 'cwd=' + str(os.getcwd()))
 
     modelConfig, pathModel, _ = checkpointData
