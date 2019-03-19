@@ -93,5 +93,7 @@ _C.attribKeysOrder = None
 
 _C.equalizeLabels = False
 
+_C.classificationMode = 'ACGAN'
+
 #Activate GDPP loss ?
 _C.GDPP = False

@@ -80,6 +80,8 @@ _C.GDPP = False
 # Number of epochs
 _C.nEpoch = 3
 
+_C.classificationMode = 'ACGAN'
+
 # Do not modify. Field used to save the attribute dictionnary for labelled
 # datasets
 _C.attribKeysOrder = None

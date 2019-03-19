@@ -3,7 +3,6 @@ import torchvision
 import torchvision.transforms as Transforms
 
 from ..DCGAN import DCGAN
-from ..dcgan_product import DCGANProduct
 
 from .gan_trainer import GANTrainer
 from .standard_configurations.dcgan_config import _C
@@ -29,9 +28,6 @@ class DCGANTrainer(GANTrainer):
             **kwargs:        other arguments specific to the GANTrainer class
         """
 
-        self.tokenWindowTexture = None
-        self.tokenWindowMask = None
-
         GANTrainer.__init__(self, pathdb, **kwargs)
 
         self.lossProfile.append({"iter": [], "scale": 0})
@@ -40,15 +36,8 @@ class DCGANTrainer(GANTrainer):
         return _C
 
     def initModel(self):
-
-        if self.modelConfig.productGan:
-            self.model = DCGANProduct(self.modelConfig.dimLatentVectorShape,
-                                      self.modelConfig.dimLatentVectorTexture,
-                                      useGPU=self.useGPU,
-                                      **vars(self.modelConfig))
-        else:
-            self.model = DCGAN(useGPU=self.useGPU,
-                               **vars(self.modelConfig))
+        self.model = DCGAN(useGPU=self.useGPU,
+                           **vars(self.modelConfig))
 
     def train(self):
 
@@ -103,30 +92,3 @@ class DCGANTrainer(GANTrainer):
         self.model.loadG(pathGShape, pathGTexture, resetFormatLayer=finetune)
         self.model.load(pathD, loadG=False, loadD=True,
                         loadConfig=False, finetuning=True)
-
-    def sendToVisualization(self, refVectorReal, scale, label=None):
-        r"""
-        Send the images generated from some reference latent vectors and a bunch
-        of real examples from the dataset to the visualisation tool.
-        """
-
-        GANTrainer.sendToVisualization(self, refVectorReal, scale, label)
-
-        if not self.modelConfig.productGan:
-            return
-
-        imgSize = max(128, refVectorReal.size()[2])
-
-        _, shape, texture = self.model.getDetailledOutput(
-            self.refVectorVisualization)
-
-        self.tokenWindowTexture = self.visualisation.publishTensors(texture, (imgSize, imgSize),
-                                                                    self.modelLabel + " texture",
-                                                                    self.tokenWindowTexture,
-                                                                    env=self.modelLabel)
-        self.tokenWindowMask = self.visualisation.publishTensors(shape,
-                                                                 (imgSize,
-                                                                  imgSize),
-                                                                 self.modelLabel + " shape",
-                                                                 self.tokenWindowMask,
-                                                                 env=self.modelLabel)

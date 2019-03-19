@@ -5,28 +5,10 @@ import torch.nn as nn
 
 from .utils.config import BaseConfig, updateConfig
 from .loss_criterions import base_loss_criterions
-from .loss_criterions.ac_criterion import ACGanCriterion
+from .loss_criterions.ac_criterion import ACGANCriterion
 from .loss_criterions.GDPP_loss import GDPPLoss
 from .utils.utils import loadPartOfStateDict, finiteCheck, \
     loadStateDictCompatible
-
-
-def getNArgs(x):
-
-    sizeX = x.size()
-    out = 1
-    for s in sizeX:
-        out *= s
-
-    return out
-
-def updateKey(inputDict, key, val):
-
-    if key in inputDict:
-        inputDict[key] += val
-
-    else:
-        inputDict[key] = val
 
 
 class BaseGAN():
@@ -95,18 +77,19 @@ class BaseGAN():
         # Output image dimension
         self.config.dimOutput = dimOutput
 
+        # Actual learning rate
+        self.config.learningRate = baseLearningRate
+
         # AC-GAN ?
         self.config.attribKeysOrder = deepcopy(attribKeysOrder)
         self.config.categoryVectorDim = 0
         self.config.weightConditionG = weightConditionG
         self.config.weightConditionD = weightConditionD
-        self.initializeACCriterion()
+        self.ClassificationCriterion = None
+        self.initializeClassificationCriterion()
 
         # GDPP
         self.config.GDPP = GDPP
-
-        if GDPP:
-            print("GDPP on")
 
         self.config.latentVectorDim = self.config.noiseVectorDim \
             + self.config.categoryVectorDim
@@ -126,9 +109,6 @@ class BaseGAN():
         self.netD = self.getNetD()
         self.netG = self.getNetG()
 
-        # Actual learning rate
-        self.config.learningRate = baseLearningRate
-
         # Move the networks to the gpu
         self.updateSolversDevice()
 
@@ -136,10 +116,6 @@ class BaseGAN():
         self.config.kInnerD = kInnerD
         self.config.kInnerG = kInnerG
 
-        # Set the inner k iteration to zero
-        self.trainTmp.currentKd = 0
-
-    # used in test time, no backprop
 
     def test(self, input, getAvG=False, toCPU=True):
         r"""
@@ -174,8 +150,6 @@ class BaseGAN():
     def optimizeParameters(self, input_batch, inputLabels=None):
         r"""
         Update the discrimator D using the given "real" inputs.
-        After self.config.kInnerD steps of optimization, the generator G will
-        be updated kInnerG times.
 
         Args:
             input (torch.tensor): input batch of real data
@@ -185,9 +159,9 @@ class BaseGAN():
         allLosses = {}
 
         # Retrieve the input data
-        self.real_input = input_batch.to(self.device)
+        self.real_input, self.realLabels = input_batch.to(self.device), None
 
-        if self.config.attribKeysOrder:
+        if self.config.attribKeysOrder is not None:
             self.realLabels = inputLabels.to(self.device)
 
         n_samples = self.real_input.size()[0]
@@ -196,43 +170,44 @@ class BaseGAN():
         self.optimizerD.zero_grad()
 
         # #1 Real data
-        predRealD = self.netD(self.real_input)
+        predRealD = self.netD(self.real_input, False)
+
+        # Classification criterion
+        allLosses["lossD_classif"] = \
+            self.classificationPenalty(predRealD,
+                                       self.realLabels,
+                                       self.config.weightConditionD,
+                                       backward=True)
+
         lossD = self.lossCriterion.getCriterion(predRealD, True)
         allLosses["lossD_real"] = lossD.item()
 
         # #2 Fake data
         inputLatent, targetRandCat = self.buildNoiseData(n_samples)
         predFakeG = self.netG(inputLatent).detach()
-        predFakeD = self.netD(predFakeG)
+        predFakeD = self.netD(predFakeG, False)
 
         lossDFake = self.lossCriterion.getCriterion(predFakeD, False)
         allLosses["lossD_fake"] = lossDFake.item()
         lossD += lossDFake
 
+        # #3 WGANGP loss
         if self.config.lambdaGP > 0:
-            allLosses["lossD_Grad"] = self.getGradientPenalty(
-                self.real_input, predFakeG, backward = True)
+            allLosses["lossD_Grad"] = self.getGradientPenalty(self.real_input,
+                                                              predFakeG,
+                                                              backward=True)
 
+        # #4 Epsilon loss
         if self.config.epsilonD > 0:
-            lossEpsilon = (predRealD[:, :self.lossCriterion.sizeDecisionLayer]
-                      ** 2).sum() * self.config.epsilonD
+            lossEpsilon = (predRealD[:, 0] ** 2).sum() * self.config.epsilonD
             lossD += lossEpsilon
             allLosses["lossD_Epsilon"] = lossEpsilon.item()
 
-        if self.config.attribKeysOrder:
-            lossACD = self.config.weightConditionD \
-                * self.getLossACDCriterion(predRealD, self.realLabels) \
-                + self.config.weightConditionD * \
-                self.getLossACDCriterion(predFakeD, targetRandCat)
-            lossD += lossACD
-            allLosses["lossD_AC"] = lossACD.item()
-
         lossD.backward()
-
-        self.trainTmp.currentKd += 1
         finiteCheck(self.netD.module.parameters())
         self.optimizerD.step()
 
+        # Logs
         lossD = 0
         for key, val in allLosses.items():
 
@@ -241,61 +216,57 @@ class BaseGAN():
 
         allLosses["lossD"] = lossD
 
-        # Can we update the generator ?
-        if self.trainTmp.currentKd >= self.config.kInnerD:
-            self.trainTmp.currentKd = 0
+        # Update the generator
+        self.optimizerG.zero_grad()
+        self.optimizerD.zero_grad()
 
-            # Update kInnerG times the generator
-            for iteration in range(self.config.kInnerG):
+        # #1 Image generation
+        inputNoise, targetCatNoise = self.buildNoiseData(n_samples)
+        predFakeG = self.netG(inputNoise)
 
-                self.optimizerG.zero_grad()
-                self.optimizerD.zero_grad()
+        # #2 Status evaluation
+        predFakeD, phiGFake = self.netD(predFakeG, True)
 
-                inputNoise, targetCatNoise = self.buildNoiseData(n_samples)
-                predFakeG = self.netG(inputNoise)
+        # #2 Classification criterion
+        allLosses["lossG_classif"] = \
+            self.classificationPenalty(predFakeD,
+                                       targetCatNoise,
+                                       self.config.weightConditionG,
+                                       backward=True)
 
-                predFakeD, phiGFake = self.netD(predFakeG, getFeature=True)
+        # #3 GAN criterion
+        lossGFake = self.lossCriterion.getCriterion(predFakeD, True)
+        allLosses["lossG_fake"] = lossGFake.item()
+        lossGFake.backward()
 
-                if self.config.GDPP:
-                    _, phiDReal = self.netD.forward(self.real_input,
-                                                    getFeature=True)
-                    allLosses["lossG_GDPP"] = GDPPLoss(phiDReal, phiGFake)
+        if self.config.GDPP:
+            _, phiDReal = self.netD.forward(self.real_input, True)
+            allLosses["lossG_GDPP"] = GDPPLoss(phiDReal, phiGFake,
+                                               backward=True)
 
-                self.auxiliaryLossesGeneration()
+        finiteCheck(self.netG.module.parameters())
+        self.optimizerG.step()
 
-                if self.config.weightConditionG != 0:
-                    lossACG = self.updateLossACGeneration(
-                    predFakeD, targetCatNoise)
-                    lossACG.backward(retain_graph=True)
-                    allLosses["lossG_AC"] = lossACG.item()
+        lossG = 0
+        for key, val in allLosses.items():
 
-                lossGFake = self.lossCriterion.getCriterion(predFakeD, True)
-                allLosses["lossG_fake"] = lossGFake.item()
+            if key.find("lossG") == 0:
+                lossG += val
 
-                lossGFake.backward()
+        allLosses["lossG"] = lossG
 
-                finiteCheck(self.netG.module.parameters())
-                self.optimizerG.step()
+        # Update the moving average if relevant
+        for p, avg_p in zip(self.netG.module.parameters(),
+                            self.avgG.module.parameters()):
+            avg_p.mul_(0.999).add_(0.001, p.data)
 
-                lossG = 0
-                for key, val in allLosses.items():
+        return allLosses
 
-                    if key.find("lossG") == 0:
-                        lossG += val
-
-                allLosses["lossG"] = lossG
-
-            # Update the moving average if relevant
-            for p, avg_p in zip(self.netG.module.parameters(),
-                                self.getOriginalAvG().parameters()):
-                avg_p.mul_(0.999).add_(0.001, p.data)
-
-            return allLosses
-
-
-    def initializeACCriterion(self):
+    def initializeClassificationCriterion(self):
         r"""
+        For labelled datasets: initialize the classification criterion.
         """
+
         if self.config.weightConditionD != 0 and \
                 not self.config.attribKeysOrder:
             raise AttributeError("If the weight on the conditional term isn't "
@@ -305,59 +276,22 @@ class BaseGAN():
         if self.config.weightConditionG != 0 and \
                 not self.config.attribKeysOrder:
             raise AttributeError("If the weight on the conditional term isn't \
-                                 null, then a attribute dictionnery should be \
+                                 null, then a attribute dictionnary should be \
                                  defined")
 
         if self.config.attribKeysOrder is not None:
-            self.ACGANCriterion = ACGanCriterion(self.config.attribKeysOrder)
-            self.config.categoryVectorDim = self.ACGANCriterion.getInputDim()
+            self.ClassificationCriterion = \
+                    ACGANCriterion(self.config.attribKeysOrder)
 
-    def getLossACDCriterion(self, predD, targetLabel):
-        r"""
-        Retrieve the loss due to the AC-GAN criterion
-        Args:
-            predD (tensor): output of the discrimator network
-            targetLabel (tensor): target output label (! format)
-        Return:
-            The loss
-        """
-        xD = predD[:, self.lossCriterion.sizeDecisionLayer:]
-        return self.ACGANCriterion.getLoss(xD, targetLabel)
-
-    def updateLossACGeneration(self, predD, targetCatNoise):
-        r"""
-        Retrieve the generator's loss due to the the AC-GAN criterion
-        Depending on self.config.weightConditionG's sign, the creativity loss
-        will be activated.
-        Args:
-            predD (tensor): output of the discrimator network
-            targetLabel (tensor): target output label (! format)
-        Return:
-            The loss
-        """
-
-        if self.config.attribKeysOrder is None:
-            return 0
-
-        predFakeD = predD[:, self.lossCriterion.sizeDecisionLayer:]
-        loss = self.config.weightConditionG * \
-            self.ACGANCriterion.getLoss(predFakeD, targetCatNoise)
-
-        return loss
-
-    def auxiliaryLossesGeneration(self):
-        r"""
-        For children classes, additional loss put on the generator.
-        """
-        return
+            self.config.categoryVectorDim = \
+                self.ClassificationCriterion.getInputDim()
 
     def updateSolversDevice(self, buildAvG=True):
         r"""
         Move the current networks and solvers to the GPU.
         This function must be called each time netG or netD is modified
         """
-
-        if buildAvG:
+        if self.buildAvG():
             self.buildAvG()
 
         if not isinstance(self.netD, nn.DataParallel) and self.useGPU:
@@ -374,7 +308,7 @@ class BaseGAN():
         self.optimizerD.zero_grad()
         self.optimizerG.zero_grad()
 
-    def buildNoiseData(self, n_samples, sameCriterion=False):
+    def buildNoiseData(self, n_samples, inputLabels=None):
         r"""
         Build a batch of latent vectors for the generator.
 
@@ -387,14 +321,12 @@ class BaseGAN():
 
         if self.config.attribKeysOrder:
 
-            if sameCriterion:
-                targetRandCat, latentRandCat = \
-                    self.ACGANCriterion.buildRandomCriterionTensor(1)
-                targetRandCat = targetRandCat.expand(n_samples, -1)
-                latentRandCat = latentRandCat.expand(n_samples, -1)
+            if inputLabels is not None:
+                latentRandCat = self.ClassificationCriterion.buildLatentCriterion(inputLabels)
+                targetRandCat = inputLabels
             else:
                 targetRandCat, latentRandCat = \
-                    self.ACGANCriterion.buildRandomCriterionTensor(n_samples)
+                    self.ClassificationCriterion.buildRandomCriterionTensor(n_samples)
 
             targetRandCat = targetRandCat.to(self.device)
             latentRandCat = latentRandCat.to(self.device)
@@ -406,8 +338,9 @@ class BaseGAN():
 
     def buildNoiseDataWithConstraints(self, n, labels):
 
-        constrainPart = self.ACGANCriterion.generateConstraintsFromVector(
-            n, labels)
+        constrainPart = \
+            self.ClassificationCriterion.generateConstraintsFromVector(n,
+                                                                       labels)
         inputLatent = torch.randn((n, self.config.noiseVectorDim, 1, 1))
 
         return torch.cat((inputLatent, constrainPart), dim=1)
@@ -429,15 +362,6 @@ class BaseGAN():
         if isinstance(self.netD, nn.DataParallel):
             return self.netD.module
         return self.netD
-
-    def getOriginalAvG(self):
-        r"""
-        Retrieve the original avgG network. Use this function
-        when you want to modify avG after the initialization
-        """
-        if isinstance(self.avgG, nn.DataParallel):
-            return self.avgG.module
-        return self.avgG
 
     def getNetG(self):
         r"""
@@ -478,7 +402,7 @@ class BaseGAN():
                      'netD': stateD}
 
         # Average GAN
-        out_state['avgG'] = self.getOriginalAvG().state_dict()
+        out_state['avgG'] = self.avgG.module.state_dict()
 
         if saveTrainTmp:
             out_state['tmp'] = self.trainTmp
@@ -512,8 +436,8 @@ class BaseGAN():
         self.updateSolversDevice()
 
     def load(self,
-             path = "",
-             in_state = None,
+             path="",
+             in_state=None,
              loadG=True,
              loadD=True,
              loadConfig=True,
@@ -527,8 +451,8 @@ class BaseGAN():
 
         in_state = torch.load(path)
         self.load_state_dict(in_state,
-                             loadG = loadG,
-                             loadD = loadD,
+                             loadG=loadG,
+                             loadD=loadD,
                              loadConfig=True,
                              finetuning=False)
 
@@ -550,7 +474,7 @@ class BaseGAN():
             updateConfig(self.config, in_state['config'])
             self.lossCriterion = getattr(
                 base_loss_criterions, self.config.lossCriterion)(self.device)
-            self.initializeACCriterion()
+            self.initializeClassificationCriterion()
 
         # Re-initialize G and D with the loaded configuration
         buildAvG = True
@@ -568,19 +492,12 @@ class BaseGAN():
                     print("Average network found !")
                     self.buildAvG()
                     # Replace me by a standard loadStatedict for open-sourcing
-                    loadStateDictCompatible(self.getOriginalAvG(), in_state['avgG'])
+                    loadStateDictCompatible(self.avgG.module, in_state['avgG'])
                     buildAvG = False
 
         if loadD:
 
-            # Possibility to convert a B&W discriminator into a color one
-            makeRGBTransfer = False
-            if self.config.dimOutput == 3 and in_state['config'].dimOutput == 1:
-                self.config.dimOutput = 1
-                makeRGBTransfer = True
-
             self.netD = self.getNetD()
-
             if finetuning:
                 loadPartOfStateDict(
                     self.netD, in_state['netD'], ["decisionLayer"])
@@ -591,26 +508,38 @@ class BaseGAN():
                 # Replace me by a standard loadStatedict for open-sourcing TODO
                 loadStateDictCompatible(self.netD, in_state['netD'])
 
-            if makeRGBTransfer:
-                self.netD.switch2RGBInput()
-                self.config.dimOutput = 3
-
         elif 'tmp' in in_state.keys():
             self.trainTmp = in_state['tmp']
-
-        self.loadAuxiliaryData(in_state)
 
         # Don't forget to reset the machinery !
         self.updateSolversDevice(buildAvG)
 
-    def loadAuxiliaryData(self, in_state):
+    def classificationPenalty(self, outputD, target, weight, backward=True):
         r"""
-        For children classes, in any supplementary data should be loaded from
-        an input state dictionary, it should be defined here.
-        """
-        return
+        Compute the classification penalty associated with the current
+        output
 
-    def getGradientPenalty(self, input, fake, backward = True):
+        Args:
+            - outputD (tensor): discriminator's output
+            - target (tensor): ground truth labels
+            - weight (float): weight to give to this loss
+            - backward (bool): do we back-propagate the loss ?
+
+        Returns:
+            - outputD (tensor): updated discrimator's output
+            - loss (float): value of the classification loss
+        """
+
+        if self.ClassificationCriterion is not None:
+            loss = weight * \
+                self.ClassificationCriterion.getCriterion(outputD, target)
+            if backward:
+                loss.backward(retain_graph=True)
+
+            return loss.item()
+        return 0
+
+    def getGradientPenalty(self, input, fake, backward=True):
         r"""
         Build the gradient penalty as described in
         "Improved Training of Wasserstein GANs"
@@ -633,7 +562,8 @@ class BaseGAN():
         interpolates = torch.autograd.Variable(
             interpolates, requires_grad=True)
 
-        decisionInterpolate = self.netD(interpolates)[:, 0].sum()
+        decisionInterpolate = self.netD(interpolates, False)
+        decisionInterpolate = decisionInterpolate[:, 0].sum()
 
         gradients = torch.autograd.grad(outputs=decisionInterpolate,
                                         inputs=interpolates,

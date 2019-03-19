@@ -79,6 +79,8 @@ class GNet(nn.Module):
 
         # Last layer activation function
         self.generationActivation = generationActivation
+        self.depthScale0 = depthScale0
+
 
     def initFormatLayer(self, dimLatentVector):
         r"""
@@ -151,15 +153,14 @@ class GNet(nn.Module):
 
     def forward(self, x):
 
-        # Normalize the input ?
+        ## Normalize the input ?
         if self.normalizationLayer is not None:
             x = self.normalizationLayer(x)
-
         x = x.view(-1, num_flat_features(x))
         # format layer
         x = self.leakyRelu(self.formatLayer(x))
-
         x = x.view(x.size()[0], -1, 4, 4)
+
         x = self.normalizationLayer(x)
 
         # Scale 0 (no upsampling)
@@ -320,10 +321,13 @@ class DNet(nn.Module):
         self.alpha = alpha
 
     def initDecisionLayer(self, sizeDecisionLayer):
+
         self.decisionLayer = EqualizedLinear(self.scalesDepth[0],
                                              sizeDecisionLayer,
                                              equalized=self.equalizedlR,
                                              initBiasToZero=self.initBiasToZero)
+
+
 
     def forward(self, x, getFeature = False):
 
@@ -363,7 +367,9 @@ class DNet(nn.Module):
         x = x.view(-1, num_flat_features(x))
         x = self.leakyRelu(self.groupScaleZero[1](x))
 
-        if not getFeature:
-            return self.decisionLayer(x)
+        out = self.decisionLayer(x)
 
-        return self.decisionLayer(x), x
+        if not getFeature:
+            return out
+
+        return out, x
