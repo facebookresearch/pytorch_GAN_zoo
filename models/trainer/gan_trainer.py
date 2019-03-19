@@ -13,8 +13,8 @@ from ..datasets.hd5 import H5Dataset
 
 class GANTrainer():
     r"""
-    A class managing a progressive GAN training. Logs, chekpoints, visualization,
-    and number iterations are managed here.
+    A class managing a progressive GAN training. Logs, chekpoints,
+    visualization, and number iterations are managed here.
     """
 
     def __init__(self,
@@ -209,10 +209,10 @@ class GANTrainer():
 
             - pathModel (string): path to the file containing the model
                                  structure (.pt)
-            - pathTrainConfig (string): path to the reference configuration file
-                                        of the training. WARNING: this file must
-                                        be compatible with the one pointed by
-                                        pathModel
+            - pathTrainConfig (string): path to the reference configuration
+                                        file of the training. WARNING: this
+                                        file must be compatible with the one
+                                        pointed by pathModel
             - pathTmpConfig (string): path to the temporary file describing the
                                       state of the training when the checkpoint
                                       was saved. WARNING: this file must be
@@ -354,10 +354,11 @@ class GANTrainer():
 
     def sendToVisualization(self, refVectorReal, scale, label=None):
         r"""
-        Send the images generated from some reference latent vectors and a bunch
-        of real examples from the dataset to the visualisation tool.
+        Send the images generated from some reference latent vectors and a
+        bunch of real examples from the dataset to the visualisation tool.
         """
         imgSize = max(128, refVectorReal.size()[2])
+        envLabel = self.modelLabel + "_training"
 
         if label is None:
             label = self.modelLabel
@@ -365,30 +366,35 @@ class GANTrainer():
             self.visualisation.publishTensors(refVectorReal,
                                               (imgSize, imgSize),
                                               label + " real",
-                                              env=self.modelLabel)
+                                              env=envLabel)
 
         ref_g_smooth = self.model.test(self.refVectorVisualization, True)
-        self.tokenWindowFakeSmooth = self.visualisation.publishTensors(ref_g_smooth, (imgSize, imgSize),
-                                                                       label + " smooth",
-                                                                       self.tokenWindowFakeSmooth,
-                                                                       env=self.modelLabel)
+        self.tokenWindowFakeSmooth = \
+            self.visualisation.publishTensors(ref_g_smooth,
+                                              (imgSize, imgSize),
+                                              label + " smooth",
+                                              self.tokenWindowFakeSmooth,
+                                              env=envLabel)
 
         ref_g = self.model.test(self.refVectorVisualization, False)
 
-        self.tokenWindowFake = self.visualisation.publishTensors(ref_g, (imgSize, imgSize),
-                                                                 label + " fake",
-                                                                 self.tokenWindowFake,
-                                                                 env=self.modelLabel)
-        self.tokenWindowReal = self.visualisation.publishTensors(refVectorReal,
-                                                                 (imgSize,
-                                                                  imgSize),
-                                                                 label + " real",
-                                                                 self.tokenWindowReal,
-                                                                 env=self.modelLabel)
-        self.tokenWindowLosses = self.visualisation.publishLoss(self.lossProfile[scale],
-                                                                self.modelLabel,
-                                                                self.tokenWindowLosses,
-                                                                env=self.modelLabel)
+        self.tokenWindowFake = \
+            self.visualisation.publishTensors(ref_g,
+                                              (imgSize, imgSize),
+                                              label + " fake",
+                                              self.tokenWindowFake,
+                                              env=envLabel)
+        self.tokenWindowReal = \
+            self.visualisation.publishTensors(refVectorReal,
+                                              (imgSize, imgSize),
+                                              label + " real",
+                                              self.tokenWindowReal,
+                                              env=envLabel)
+        self.tokenWindowLosses = \
+            self.visualisation.publishLoss(self.lossProfile[scale],
+                                           self.modelLabel,
+                                           self.tokenWindowLosses,
+                                           env=envLabel)
 
     def getDBLoader(self, scale):
         r"""

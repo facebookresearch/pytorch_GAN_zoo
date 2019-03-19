@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from .utils.config import BaseConfig, updateConfig
 from .loss_criterions import base_loss_criterions
-from .loss_criterions.ac_criterion import ACGANCriterion, DirectCondCriterion
+from .loss_criterions.ac_criterion import ACGANCriterion
 from .loss_criterions.GDPP_loss import GDPPLoss
 from .utils.utils import loadPartOfStateDict, finiteCheck, \
     loadStateDictCompatible
@@ -28,7 +28,6 @@ class BaseGAN():
                  attribKeysOrder=None,
                  weightConditionD=0.0,
                  weightConditionG=0.0,
-                 classificationMode=None,
                  GDPP=False,
                  **kwargs):
         r"""
@@ -54,11 +53,6 @@ class BaseGAN():
         """
 
         if lossMode not in ['MSE', 'WGANGP', 'DCGAN']:
-            raise ValueError(
-                "lossMode should be one of the following : ['MSE', 'WGANGP', \
-                'DCGAN']")
-
-        if classificationMode not in [None, 'ACGAN', 'DirectCond']:
             raise ValueError(
                 "lossMode should be one of the following : ['MSE', 'WGANGP', \
                 'DCGAN']")
@@ -91,7 +85,6 @@ class BaseGAN():
         self.config.categoryVectorDim = 0
         self.config.weightConditionG = weightConditionG
         self.config.weightConditionD = weightConditionD
-        self.config.classificationMode = classificationMode
         self.ClassificationCriterion = None
         self.initializeClassificationCriterion()
 
@@ -180,7 +173,7 @@ class BaseGAN():
         predRealD = self.netD(self.real_input, False)
 
         # Classification criterion
-        predRealD, allLosses["lossD_classif"] = \
+        allLosses["lossD_classif"] = \
             self.classificationPenalty(predRealD,
                                        self.realLabels,
                                        self.config.weightConditionD,
@@ -190,15 +183,9 @@ class BaseGAN():
         allLosses["lossD_real"] = lossD.item()
 
         # #2 Fake data
-        inputLatent, targetRandCat = self.buildNoiseData(n_samples,
-                                                         inputLabels=self.realLabels)
+        inputLatent, targetRandCat = self.buildNoiseData(n_samples)
         predFakeG = self.netG(inputLatent).detach()
         predFakeD = self.netD(predFakeG, False)
-
-        predFakeD, _ = self.classificationPenalty(predFakeD,
-                                                  targetRandCat,
-                                                  0,
-                                                  backward=False)
 
         lossDFake = self.lossCriterion.getCriterion(predFakeD, False)
         allLosses["lossD_fake"] = lossDFake.item()
@@ -208,8 +195,7 @@ class BaseGAN():
         if self.config.lambdaGP > 0:
             allLosses["lossD_Grad"] = self.getGradientPenalty(self.real_input,
                                                               predFakeG,
-                                                              backward=True,
-                                                              labels=targetRandCat)
+                                                              backward=True)
 
         # #4 Epsilon loss
         if self.config.epsilonD > 0:
@@ -242,7 +228,7 @@ class BaseGAN():
         predFakeD, phiGFake = self.netD(predFakeG, True)
 
         # #2 Classification criterion
-        predFakeD, allLosses["lossG_classif"] = \
+        allLosses["lossG_classif"] = \
             self.classificationPenalty(predFakeD,
                                        targetCatNoise,
                                        self.config.weightConditionG,
@@ -294,12 +280,8 @@ class BaseGAN():
                                  defined")
 
         if self.config.attribKeysOrder is not None:
-            if self.config.classificationMode == 'ACGAN':
-                self.ClassificationCriterion = \
-                        ACGANCriterion(self.config.attribKeysOrder)
-            else:
-                self.ClassificationCriterion = \
-                        DirectCondCriterion(self.config.attribKeysOrder)
+            self.ClassificationCriterion = \
+                    ACGANCriterion(self.config.attribKeysOrder)
 
             self.config.categoryVectorDim = \
                 self.ClassificationCriterion.getInputDim()
@@ -326,7 +308,7 @@ class BaseGAN():
         self.optimizerD.zero_grad()
         self.optimizerG.zero_grad()
 
-    def buildNoiseData(self, n_samples, inputLabels = None):
+    def buildNoiseData(self, n_samples, inputLabels=None):
         r"""
         Build a batch of latent vectors for the generator.
 
@@ -348,7 +330,6 @@ class BaseGAN():
 
             targetRandCat = targetRandCat.to(self.device)
             latentRandCat = latentRandCat.to(self.device)
-
             inputLatent = torch.cat((inputLatent, latentRandCat), dim=1)
 
             return inputLatent, targetRandCat
@@ -358,7 +339,8 @@ class BaseGAN():
     def buildNoiseDataWithConstraints(self, n, labels):
 
         constrainPart = \
-            self.ClassificationCriterion.generateConstraintsFromVector(n, labels)
+            self.ClassificationCriterion.generateConstraintsFromVector(n,
+                                                                       labels)
         inputLatent = torch.randn((n, self.config.noiseVectorDim, 1, 1))
 
         return torch.cat((inputLatent, constrainPart), dim=1)
@@ -469,8 +451,8 @@ class BaseGAN():
 
         in_state = torch.load(path)
         self.load_state_dict(in_state,
-                             loadG = loadG,
-                             loadD = loadD,
+                             loadG=loadG,
+                             loadD=loadD,
                              loadConfig=True,
                              finetuning=False)
 
@@ -549,16 +531,15 @@ class BaseGAN():
         """
 
         if self.ClassificationCriterion is not None:
-            outputD, loss = self.ClassificationCriterion.getCriterion(outputD,
-                                                                      target)
-            if loss is not None:
-                loss *= weight
-                if backward:
-                    loss.backward(retain_graph=True)
-                return outputD, loss.item()
-        return outputD, 0
+            loss = weight * \
+                self.ClassificationCriterion.getCriterion(outputD, target)
+            if backward:
+                loss.backward(retain_graph=True)
 
-    def getGradientPenalty(self, input, fake, backward=True, labels=None):
+            return loss.item()
+        return 0
+
+    def getGradientPenalty(self, input, fake, backward=True):
         r"""
         Build the gradient penalty as described in
         "Improved Training of Wasserstein GANs"
@@ -582,12 +563,6 @@ class BaseGAN():
             interpolates, requires_grad=True)
 
         decisionInterpolate = self.netD(interpolates, False)
-
-        if labels is not None:
-            decisionInterpolate, _ = \
-                self.classificationPenalty(decisionInterpolate, labels,
-                                           0, backward=False)
-
         decisionInterpolate = decisionInterpolate[:, 0].sum()
 
         gradients = torch.autograd.grad(outputs=decisionInterpolate,

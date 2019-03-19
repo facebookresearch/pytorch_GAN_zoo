@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 
 
-class ClassificationCriterion:
+class ACGANCriterion:
     r"""
     Class implementing all tools necessary for a GAN to take into account class
     conditionning while generating a model (cf Odena's AC-GAN)
@@ -150,12 +150,6 @@ class ClassificationCriterion:
         """
         return sum(self.attribSize)
 
-
-class ACGANCriterion(ClassificationCriterion):
-
-    def __init__(self, *args, **kwargs):
-        ClassificationCriterion.__init__(self, *args, **kwargs)
-
     def getCriterion(self, outputD, target):
         r"""
         Compute the conditional loss between the network's output and the
@@ -183,29 +177,4 @@ class ACGANCriterion(ClassificationCriterion):
             loss += locLoss
             shiftInput += C
 
-        return outputD, loss
-
-
-class DirectCondCriterion(ClassificationCriterion):
-
-    def __init__(self, *args, **kwargs):
-        ClassificationCriterion.__init__(self, *args, **kwargs)
-
-    def getCriterion(self, outputD, target):
-
-        preds = 0
-        shiftInput = 0
-        shiftTarget = 0
-        batchSize = outputD.size(0)
-        idx = torch.arange(batchSize, device=target.device)
-
-        for i in range(self.nAttrib):
-
-            C = self.attribSize[i]
-            locInput = outputD[:, shiftInput:(shiftInput+C)]
-            locTarget = target[:, shiftTarget].long()
-            preds += locInput[idx, locTarget]
-            shiftTarget += 1
-            shiftInput += C
-
-        return preds.view(-1, 1), None
+        return loss
