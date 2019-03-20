@@ -1,0 +1,60 @@
+import torch
+import torch.nn as nn
+
+
+class ConstantNet(nn.Module):
+
+    def __init__(self,
+                 shapeOut=None):
+
+        super(ConstantNet, self).__init__()
+        self.shapeOut = shapeOut
+
+    def forward(self, x):
+
+        if self.shapeOut is not None:
+            x = x.view(x.size[0], self.shapeOut[0],
+                       self.shapeOut[1], self.shapeOut[2])
+
+        return x
+
+
+class FeatureTransform(nn.Module):
+    r"""
+    Concatenation of a resize tranform and a normalization
+    """
+
+    def __init__(self,
+                 mean=None,
+                 std=None,
+                 size=224):
+
+        super(FeatureTransform, self).__init__()
+        self.size = size
+
+        if mean is None:
+            mean = [0., 0., 0.]
+
+        if std is None:
+            std = [1., 1., 1.]
+
+        self.register_buffer('mean', torch.tensor(
+            mean, dtype=torch.float).view(1, 3, 1, 1))
+        self.register_buffer('std', torch.tensor(
+            std, dtype=torch.float).view(1, 3, 1, 1))
+
+        if size is None:
+            self.upsamplingModule = None
+        else:
+            self.upsamplingModule = torch.nn.Upsample(
+                (size, size), mode='bilinear')
+
+    def forward(self, x):
+
+        if self.upsamplingModule is not None:
+            x = self.upsamplingModule(x)
+
+        x = x - self.mean
+        x = x / self.std
+
+        return x
