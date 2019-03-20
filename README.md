@@ -8,7 +8,7 @@ A GAN toolbox for researchers en developers with:
 <img src="illustration.png" alt="celebaHQ">
 Picture: Generated samples from GANs trained on celebaHQ, fashionGen and DTD.
 
-This paper also implements the GDPP method and provides tools to generate images "inspired" from a given image reference. For all GANs architecture, the AC-GAN conditional training is available.
+This paper also implements the GDPP method (https://arxiv.org/abs/1812.00068) and provides tools to generate images "inspired" from a given image reference. For all GANs architecture, the AC-GAN conditional training is available.
 
 ## Requirements
 
