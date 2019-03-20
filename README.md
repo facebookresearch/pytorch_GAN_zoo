@@ -237,3 +237,7 @@ python eval.py metric_plot  -n $modelName
 - CelebaHQ: https://github.com/nperraud/download-celebA-HQ
 - fashionGen: https://fashion-gen.com/
 - DTD: https://www.robots.ox.ac.uk/~vgg/data/dtd/
+
+## LICENSE
+
+This project is under BSD-3 license.
