@@ -1,6 +1,6 @@
 # Pytorch GAN Zoo
 
-Several GAN implementations:
+A GAN toolbox for researchers en engineers with:
 - Progressive Growing of GAN(PGAN): https://arxiv.org/pdf/1710.10196.pdf
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf
 - To come: StyleGAN
@@ -18,10 +18,10 @@ This project requires:
 - numpy
 - scipy
 - h5py
-- nevergrad
 
 Optional:
 - visdom
+- nevergrad (inspirational generation)
 
 If you don't already have pytorch or torchvision please have a look at https://pytorch.org/ as the installation command may vary depending on your OS and your version of CUDA.
 

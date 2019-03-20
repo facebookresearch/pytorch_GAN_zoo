@@ -37,11 +37,7 @@ What should be handled in a child class
 
 Among other things, it gives the user the possibility to add new layers to the model during the training.
 
----
-
-**pp_gan.py**: (fashion generation) similar to dcgan_product but combotted with progressive_gan
-
----
+**DCGAN.py**: an implementation of [DCGAN](https://arxiv.org/pdf/1511.06434.pdf). This class inherits from the BaseGAN abstract class.
 
 **trainer/std_p_gan_config.py**: standard configuration for a ProgressiveGAN training.
 **trainer/std_dcgan_config.py**: standard configuration for a DCAGN training.
