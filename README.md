@@ -5,7 +5,7 @@ Several GAN implementations:
 - Decoupled progressive growing(PPGAN)
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf(incoming)
 
-![alt text](illustration.png width=256)
+<img src="illustration.png" alt="celebaHQ" width="256" height="256">
 
 ## Requirements
 
