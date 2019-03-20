@@ -266,14 +266,6 @@ if __name__ == "__main__":
         config["config"]["weightConditionG"] = 1.0
         config["config"]["weightConditionD"] = 1.0
 
-        if args.model_type == 'PGAN':
-            config["config"]["maxIterAtScale"] = [20000, 40000, 40000,
-                                                  40000, 40000, 80000,
-                                                  80000]
-            config["config"]["dimLatentVector"] = 256
-            config["config"]["depthScales"] = [256, 256, 256, 256,
-                                               256, 128, 64]
-
         if args.fast_training:
             print("Ignoring the fast training parameter for fashionGen")
             args.fast_training = False

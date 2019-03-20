@@ -2,7 +2,6 @@ import os
 import json
 
 import torch
-import torchvision.transforms as Transforms
 
 from ..metrics.laplacian_swd import LaplacianSWDMetric
 from ..utils.utils import printProgressBar

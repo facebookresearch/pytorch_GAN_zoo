@@ -1,6 +1,6 @@
 # Pytorch GAN Zoo
 
-A GAN toolbox for researchers en engineers with:
+A GAN toolbox for researchers en developers with:
 - Progressive Growing of GAN(PGAN): https://arxiv.org/pdf/1710.10196.pdf
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf
 - To come: StyleGAN
@@ -8,7 +8,7 @@ A GAN toolbox for researchers en engineers with:
 <img src="illustration.png" alt="celebaHQ">
 Picture: Generated samples from GANs trained on celebaHQ, fashionGen and DTD.
 
-This paper also implements the GDPP method and provides tools to generate images "inspired" from a given guide. For all GANs architecture, the AC-GAN conditional training is available.
+This paper also implements the GDPP method and provides tools to generate images "inspired" from a given image reference. For all GANs architecture, the AC-GAN conditional training is available.
 
 ## Requirements
 
@@ -17,7 +17,7 @@ This project requires:
 - torchvision
 - numpy
 - scipy
-- h5py
+- h5py (fashionGen)
 
 Optional:
 - visdom
@@ -161,7 +161,6 @@ With a dataset in the fashionGen format(.h5) it's a dictionary summing up statis
 
 - imagefolderDataset(bool): set to true to handle datasets in the torchvision.datasets.ImageFolder format
 - selectedAttributes(list): if specified, learn only the given attributes during the training session
-- pathDBMask(string): for decoupled models, path of the mask database. The match between an image and its mask should be done as follow: $MASK_NAME = $IMAGE_NAME + "_mask.jpg"__
 - pathPartition(string): path to a partition of the training dataset
 - partitionValue(string): if pathPartition is specified, name of the partition to choose
 - miniBatchScheduler(dictionary): dictionary updating the size of the mini batch at different scale of the training
