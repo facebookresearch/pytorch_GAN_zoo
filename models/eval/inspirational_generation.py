@@ -389,7 +389,6 @@ def test(parser, visualisation=None):
         featureExtractors = IDModule()
         imgTransforms = IDModule()
 
-    outVectorList = []
     basePath = os.path.splitext(imgPath)[0] + "_" + kwargs['suffix']
 
     if not os.path.isdir(basePath):

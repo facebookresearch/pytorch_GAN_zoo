@@ -1,35 +1,18 @@
-import copy
 import math
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-
-import sys
 
 
 class InceptionScore():
-    def __init__(self,
-                 classifier=None,
-                 pathPredictions=None,
-                 verbose=True):
-
-        self.verbose = verbose
-        self.classifier = None
+    def __init__(self, classifier):
 
         self.sumEntropy = 0
         self.sumSoftMax = None
 
         self.nItems = 0
+        self.classifier = classifier.eval()
 
-        if classifier:
-            self.classifier = classifier.eval()
-        elif pathPredictions:
-            self.batchPredictions = [torch.load(pathPredictions)]
-        else:
-            raise ValueError("A classifier or a path to the predictions should \
-                             be given")
-
-    def updateWithMiniBatch(self, ref, **kwargs):
+    def updateWithMiniBatch(self, ref):
         y = self.classifier(ref).detach()
 
         if self.sumSoftMax is None:

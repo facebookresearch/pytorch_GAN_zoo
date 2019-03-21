@@ -33,7 +33,7 @@ _C.alphaJumpVals = [[], [1., 0.5, 0], [
 # If _C.alphaJumpMode == "linear", then the following fields should be completed
 
 # Number of jumps per scale
-_C.alphaNJumps = [0, 600, 600, 600, 600, 600, 1200, 1200, 1200]
+_C.alphaNJumps = [0, 600, 600, 600, 600, 600, 600, 600, 600]
 
 # Number of iterations between two jumps
 _C.alphaSizeJumps = [0, 32, 32, 32, 32, 32, 32, 32, 32, 32]
@@ -92,8 +92,6 @@ _C.equalizedlR = True
 _C.attribKeysOrder = None
 
 _C.equalizeLabels = False
-
-_C.classificationMode = 'ACGAN'
 
 #Activate GDPP loss ?
 _C.GDPP = False

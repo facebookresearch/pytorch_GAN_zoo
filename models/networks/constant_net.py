@@ -3,6 +3,7 @@ import torch.nn as nn
 
 
 class ConstantNet(nn.Module):
+    r"A network that does nothing"
 
     def __init__(self,
                  shapeOut=None):
