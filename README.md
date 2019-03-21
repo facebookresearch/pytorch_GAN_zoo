@@ -5,7 +5,7 @@ A GAN toolbox for researchers and developers with:
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf
 - To come: StyleGAN
 
-<img src="illustration.png" alt="celebaHQ">
+<img src="illustration.png" alt="illustration">
 Picture: Generated samples from GANs trained on celebaHQ, fashionGen and DTD.
 
 This paper also implements the GDPP method (https://arxiv.org/abs/1812.00068) and provides tools to generate images "inspired" from a given image reference. For all GANs architecture, the AC-GAN conditional training is available.

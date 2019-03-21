@@ -6,7 +6,7 @@
 
 **utils/**: various utilities
 
-**test/**: all tests on the models should be defined here
+**eval/**: all evaluation scripts are defined here
 
 **datasets/**: specific dataset models
 
@@ -35,13 +35,9 @@ What should be handled in a child class
 
 **progressive_gan.py**: an implementation of [NVIDIA's progressive gan](http://research.nvidia.com/sites/default/files/pubs/2017-10_Progressive-Growing-of/karras2018iclr-paper.pdf). This class inherits from the BaseGAN abstract class.
 
+**DCGAN.py**: an implementation of [DCGAN]( https://arxiv.org/pdf/1511.06434.pdf) a very simple and basic GAN structure. This class inherits from the BaseGAN abstract class.
+
 Among other things, it gives the user the possibility to add new layers to the model during the training.
-
----
-
-**pp_gan.py**: (fashion generation) similar to dcgan_product but combotted with progressive_gan
-
----
 
 **trainer/std_p_gan_config.py**: standard configuration for a ProgressiveGAN training.
 **trainer/std_dcgan_config.py**: standard configuration for a DCAGN training.
