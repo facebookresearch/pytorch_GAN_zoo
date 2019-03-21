@@ -1,4 +1,5 @@
-conditioning# Pytorch GAN Zoo
+Pytorch GAN Zoo
+============
 
 A GAN toolbox for researchers and developers with:
 - Progressive Growing of GAN(PGAN): https://arxiv.org/pdf/1710.10196.pdf
@@ -91,7 +92,7 @@ python train.py PGAN -c config_dtd.json --restart -n dtd
 For cifar10:
 
 ```
-python datasets.py celebaHQ $PATH_TO_CIFAR10 -o $OUTPUT_DATASET
+python datasets.py cifar10 $PATH_TO_CIFAR10 -o $OUTPUT_DATASET
 python train.py PGAN -c config_cifar10.json --restart -n cifar10
 ```
 
