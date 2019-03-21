@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import h5py
+import pickle
 
 import math
 import numpy as np
@@ -13,6 +14,63 @@ from models.utils.image_transform import NumpyResize, pil_loader
 
 def saveImage(path, image):
     return misc.imsave(path, image)
+
+
+def unpackCIFAR10(pathDB, pathOut):
+    toLoad = ['data_batch_1', 'data_batch_2', 'data_batch_3', 'data_batch_4',
+              'data_batch_5']
+
+    # Check valididty:
+    for item in toLoad:
+        filePath = os.path.join(pathDB, item)
+        if not os.path.isfile(filePath):
+            raise FileNotFoundError("Can't find " + filePath)
+
+    if not os.path.isdir(pathOut):
+        os.mkdir(pathOut)
+
+    pathLabels = os.path.join(pathDB, 'batches.meta')
+    with open(pathLabels, 'rb') as file:
+        labels = pickle.load(file)['label_names']
+
+    for label in labels:
+        pathOutLabel = os.path.join(pathOut, label)
+        if not os.path.isdir(pathOutLabel):
+            os.mkdir(pathOutLabel)
+
+    nImagesPerBatch = 10000
+    nImages = nImagesPerBatch * len(toLoad)
+    status = 0
+
+    print("Unpacking CIFAR-10...")
+    for item in toLoad:
+        pathItem = os.path.join(pathDB, item)
+        with open(pathItem, 'rb') as file:
+            dict = pickle.load(file, encoding='bytes')
+        data = dict[str.encode('data')]
+        dataLabel = dict[str.encode('labels')]
+        dataNames = dict[str.encode('filenames')]
+
+        assert(len(dataLabel) == nImagesPerBatch)
+        assert(data.shape[1] == 3072)
+
+        for i in range(nImagesPerBatch):
+
+            rgbArray = np.zeros((32, 32, 3), 'uint8')
+            rgbArray[:, :, 0] = data[i, :1024].reshape(32, 32)
+            rgbArray[:, :, 1] = data[i, 1024:2048].reshape(32, 32)
+            rgbArray[:, :, 2] = data[i, 2048:].reshape(32, 32)
+
+            name = dataNames[i].decode("utf-8")
+            label = labels[dataLabel[i]]
+
+            path = os.path.join(pathOut, os.path.join(label, name))
+            saveImage(path, rgbArray)
+
+            printProgressBar(status, nImages)
+            status += 1
+
+    printProgressBar(nImages, nImages)
 
 
 def celebaSetup(inputPath,
@@ -167,7 +225,6 @@ def resizeDataset(inputPath, outputPath, maxSize):
             img = resizeModule(img)
             path = os.path.splitext(os.path.join(localPath, item))[0] + ".jpg"
             saveImage(path, img)
-
         printProgressBar(nImgs, nImgs)
 
     return datasetProfile, localPath
@@ -178,7 +235,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Testing script')
     parser.add_argument('dataset_name', type=str,
                         choices=['celeba','celeba_cropped', 'celebaHQ', 'dtd',
-                                 'fashionGen'],
+                                 'fashionGen', 'cifar10'],
                         help='Name of the dataset.')
     parser.add_argument('dataset_path', type=str,
                         help='Path to the input dataset')
@@ -191,7 +248,7 @@ if __name__ == "__main__":
                         a faster training. Advised for HD datasets.")
     parser.add_argument('-m', dest='model_type',
                         type=str, default='PGAN',
-                        choices=['PGAN','DCGAN'],
+                        choices=['PGAN', 'DCGAN'],
                         help="Model type. Default is progressive growing \
                         (PGAN)")
 
@@ -202,10 +259,6 @@ if __name__ == "__main__":
 
     moveLastScale = False
     keepOriginalDataset = True
-
-    if args.dataset_name not in ['celeba', 'celeba_cropped', 'celebaHQ',
-                                 'fashionGen', 'dtd']:
-        raise AttributeError(args.dataset_name + " unknown datatset")
 
     if args.dataset_name in ['celeba', 'celeba_cropped']:
         if args.model_type == 'PGAN':
@@ -227,9 +280,25 @@ if __name__ == "__main__":
         maxSize = 1024
         moveLastScale = False
         keepOriginalDataset = True
-
+        config["miniBatchScheduler"] = {"7": 12, "8": 8}
         if args.model_type == 'DCGAN':
             print("WARNING: DCGAN is diverging for celebaHQ")
+
+    if args.dataset_name == 'cifar10':
+        if args.output_dataset is None:
+            raise AttributeError(
+                "Please provide and output path to dump cifar10")
+        unpackCIFAR10(args.dataset_path, args.output_dataset)
+        if args.fast_training:
+            print("Ignoring the fast training parameter for cifar10")
+            args.fast_training = False
+
+        config["imagefolderDataset"] = True
+        config["config"]["weightConditionG"] = 1.0
+        config["config"]["weightConditionD"] = 1.0
+        config["pathDB"] = args.output_dataset
+        if args.model_type == 'PGAN':
+            config["config"]["maxIterAtScale"] = [48000, 96000, 96000, 96000]
 
     if args.dataset_name == 'fashionGen':
 
@@ -251,10 +320,8 @@ if __name__ == "__main__":
         config["config"]["weightConditionD"] = 1.0
 
         if args.model_type == 'PGAN':
-            config["config"]["maxIterAtScale"] = [20000, 40000, 40000,
-                                                  40000, 40000, 80000,
-                                                  80000]
-            config["miniBatchScheduler"] = {"7": 12, "8": 8}
+            config["config"]["maxIterAtScale"] = [48000, 96000, 96000, 96000,
+                                                  96000, 96000, 96000]
 
     if args.dataset_name == 'dtd':
 
@@ -262,21 +329,16 @@ if __name__ == "__main__":
         config["pathDB"] = args.dataset_path
         moveLastScale = False
         config["imagefolderDataset"] = True
-
         config["config"]["weightConditionG"] = 1.0
         config["config"]["weightConditionD"] = 1.0
 
-        if args.model_type == 'PGAN':
-            config["config"]["maxIterAtScale"] = [20000, 40000, 40000,
-                                                  40000, 40000, 80000,
-                                                  80000]
-            config["config"]["dimLatentVector"] = 256
-            config["config"]["depthScales"] = [256, 256, 256, 256,
-                                               256, 128, 64]
-
         if args.fast_training:
-            print("Ignoring the fast training parameter for fashionGen")
+            print("Ignoring the fast training parameter for DTD")
             args.fast_training = False
+
+        if args.model_type == 'PGAN':
+            config["config"]["maxIterAtScale"] = [48000, 96000, 96000, 96000,
+                                                  96000, 96000, 96000]
 
     if args.fast_training:
         if args.output_dataset is None:

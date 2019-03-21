@@ -32,7 +32,7 @@ if __name__ == "__main__":
     parser.add_argument("-A", "--statsFile", dest="statsFile",
                         type=str, help="Path to the statistics file")
 
-    if len(sys.argv) >1 and sys.argv[1] in ['-h', '--help']:
+    if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--help']:
         parser.print_help()
         sys.exit()
 

@@ -48,10 +48,10 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--save_iter', help="If it applies, frequence at\
                         which a checkpoint should be saved. In the case of a\
                         evaluation test, iteration to work on.",
-                        type=int, dest="saveIter")
+                        type=int, dest="saveIter", default=16000)
     parser.add_argument('-e', '--eval_iter', help="If it applies, frequence at\
                         which a checkpoint should be saved",
-                        type=int, dest="evalIter")
+                        type=int, dest="evalIter", default=100)
     parser.add_argument('-S', '--Scale_iter', help="If it applies, scale to work\
                         on")
     parser.add_argument('-v', '--partitionValue', help="Partition's value",
@@ -78,7 +78,8 @@ if __name__ == "__main__":
 
     # Checkpoint data
     modelLabel = kwargs["name"]
-    restart = getVal(kwargs, "restart", False)
+    restart = kwargs["restart"]
+    print(restart)
     checkPointDir = os.path.join(kwargs["dir"], modelLabel)
     checkPointData = getLastCheckPoint(checkPointDir, modelLabel)
 
@@ -120,10 +121,9 @@ if __name__ == "__main__":
     GANTrainer = trainerModule(pathDB,
                                useGPU=True,
                                visualisation=vis_module,
-                               lossIterEvaluation=getVal(
-                                   kwargs, "evalIter", 100),
+                               lossIterEvaluation=kwargs["evalIter"],
                                checkPointDir=checkPointDir,
-                               saveIter=getVal(kwargs, "saveIter", 1000),
+                               saveIter= kwargs["saveIter"],
                                modelLabel=modelLabel,
                                partitionValue=partitionValue,
                                **trainingConfig)

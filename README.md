@@ -1,14 +1,20 @@
-# Pytorch GAN Zoo
+conditioning# Pytorch GAN Zoo
 
 A GAN toolbox for researchers and developers with:
 - Progressive Growing of GAN(PGAN): https://arxiv.org/pdf/1710.10196.pdf
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf
-- To come: StyleGAN
+- To come: StyleGAN https://arxiv.org/abs/1812.04948
 
 <img src="illustration.png" alt="illustration">
 Picture: Generated samples from GANs trained on celebaHQ, fashionGen and DTD.
 
-This paper also implements the GDPP method (https://arxiv.org/abs/1812.00068) and provides tools to generate images "inspired" from a given image reference. For all GANs architecture, the AC-GAN conditional training is available.
+This code also implements dievrse tools:
+- GDPP method (https://arxiv.org/abs/1812.00068)
+- Image generation "inspired" from a reference image using an already trained GAN.
+- AC-GAN conditioning (https://arxiv.org/abs/1610.09585)
+- SWD metric
+- Nearest neighbors
+-
 
 ## Requirements
 
@@ -36,6 +42,7 @@ pip install -r requirements.txt
  - celebAHQ: https://github.com/nperraud/download-celebA-HQ
  - fashionGen: https://fashion-gen.com/
  - DTD: https://www.robots.ox.ac.uk/~vgg/data/dtd/
+ - CIFAR10: http://www.cs.toronto.edu/~kriz/cifar.html
 
 ## Quick training
 
@@ -79,6 +86,13 @@ For the DTD texture dataset:
 ```
 python datasets.py dtd $PATH_TO_DTD
 python train.py PGAN -c config_dtd.json --restart -n dtd
+```
+
+For cifar10:
+
+```
+python datasets.py celebaHQ $PATH_TO_CIFAR10 -o $OUTPUT_DATASET
+python train.py PGAN -c config_cifar10.json --restart -n cifar10
 ```
 
 ## GDPP
