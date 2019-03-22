@@ -9,7 +9,7 @@ A GAN toolbox for researchers and developers with:
 Picture: Generated samples from GANs trained on celebaHQ, fashionGen, DTD.
 
 
-<img src="illustrationCelebaCropped.jpg" alt="celeba" width=200>
+<img src="illustrationCelebaCropped.jpg" alt="celeba">
 Picture: fake faces with celeba
 
 This code also implements diverse tools:
