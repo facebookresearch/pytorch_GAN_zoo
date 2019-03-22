@@ -5,8 +5,12 @@ A GAN toolbox for researchers and developers with:
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf
 - To come: StyleGAN https://arxiv.org/abs/1812.04948
 
-<img src="illustration.png" alt="illustration"><img src="illustrationCelebaCropped.jpg" alt="illustration">
-Picture: Generated samples from GANs trained on celebaHQ, fashionGen, DTD anf celeba.
+<img src="illustration.png" alt="illustration">
+Picture: Generated samples from GANs trained on celebaHQ, fashionGen, DTD.
+
+
+<img src="illustrationCelebaCropped.jpg" alt="celeba" width=200>
+Picture: fake faces with celeba
 
 This code also implements diverse tools:
 - GDPP method (https://arxiv.org/abs/1812.00068)
