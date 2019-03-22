@@ -2,13 +2,8 @@ import os
 import json
 import math
 import pickle as pkl
-from copy import deepcopy
-
-import random
-
 import torch
 import torch.nn.functional as F
-import torchvision
 import torchvision.transforms as Transforms
 import numpy as np
 
@@ -152,9 +147,9 @@ class GANVisualizer():
                 imgPath = os.path.join(path, "gen_" + str(index) + ".jpg")
                 self.visualizer.saveTensor(img[i].view(1, 3, size[0], size[1]),
                                            size, imgPath)
-                index+=1
+                index += 1
 
-            remaining-= currBatch
+            remaining -= currBatch
 
     def generateImagesFomConstraints(self,
                                      nImages,
@@ -212,8 +207,6 @@ class GANVisualizer():
 
             if clear:
                 self.visualizer.delete_env(locName)
-
-            locIter = lossData[scale]["iter"]
 
             self.visualizer.publishLoss(lossData[scale],
                                         locName,
@@ -288,8 +281,8 @@ class GANVisualizer():
             dataset = H5Dataset(pathDB,
                                 transform=Transforms.Compose(
                                 [Transforms.ToTensor(),
-                                Transforms.Normalize((0.5, 0.5, 0.5),
-                                                     (0.5, 0.5, 0.5))]))
+                                 Transforms.Normalize((0.5, 0.5, 0.5),
+                                                      (0.5, 0.5, 0.5))]))
 
         while nImages < N:
 
@@ -357,11 +350,9 @@ class GANVisualizer():
             features = featureExtractor(imgTransform(imgOut)).detach().view(
                 imgOut.size(0), -1).cpu().numpy()
             distances = nnSearch.query(features, k)[0]
-
             vectorOut += distances.sum(axis=0)
             nImages += batchSize
 
         printProgressBar(N, N)
-
         vectorOut /= nImages
         return vectorOut

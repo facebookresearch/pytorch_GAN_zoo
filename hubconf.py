@@ -18,7 +18,7 @@ all possible options
 
 ### Build a random vector
 
-inputRandom = model.buildRandomCriterionTensor((int) $BATCH_SIZE)
+inputRandom, randomLabels = model.buildNoiseData((int) $BATCH_SIZE)
 
 ### Feed a random vector to the model
 
@@ -54,7 +54,7 @@ for input_real in dataset:
 
 Please have a look at
 
-??/pytorch_gan_zoo/models/trainer/standard_configurations to see all the
+models/trainer/standard_configurations to see all the
 training parameters you can use.
 
 '''
@@ -68,8 +68,9 @@ dependencies = ['torch', 'torchvision', 'visdom', 'numpy', 'h5py', 'scipy']
 def PGAN(pretrained=False, *args, **kwargs):
     """
     Progressive growing model
-    pretrained (bool): a recommended kwargs for all entrypoints
-    args & kwargs are arguments for the function
+    pretrained (bool): load a pretrained model ?
+    model_name (string): if pretrained, load one of the following models
+    celebaHQ, DTD, celeba, cifar10. Default is celebaHQ.
     """
     from models.progressive_gan import ProgressiveGAN as PGAN
     if 'config' not in kwargs or kwargs['config'] is None:
@@ -79,16 +80,27 @@ def PGAN(pretrained=False, *args, **kwargs):
                  storeAVG=True,
                  **kwargs['config'])
 
-    checkpoint = 'https://dl.fbaipublicfiles.com/gan_zoo/PGAN/celebaHQ_s6_i80000-6196db68.pth'
+    checkpoint = {"celebAHQ": 'https://dl.fbaipublicfiles.com/gan_zoo/PGAN/celebaHQ_s6_i80000-6196db68.pth',
+                  "DTD": 'https://dl.fbaipublicfiles.com/gan_zoo/PGAN/testDTD_s5_i96000-04efa39f.pth',
+                  "celeba": "https://dl.fbaipublicfiles.com/gan_zoo/PGAN/celebaCropped_s5_i83000-2b0acc76.pth"}
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(checkpoint))
+        if "model_name" in kwargs:
+            if kwargs["model_name"] not in checkpoint.keys():
+                raise ValueError("model_name should be in "
+                                    + str(checkpoint.keys()))
+        else:
+            print("Loading default model : celebaHQ")
+            kwargs["model_name"] = "celebAHQ"
+        model.load_state_dict(model_zoo.load_url(
+                                            checkpoint[kwargs["model_name"]]))
     return model
+
 
 def DCGAN(pretrained=False, *args, **kwargs):
     """
-    Progressive growing model
-    pretrained (bool): a recommended kwargs for all entrypoints
-    args & kwargs are arguments for the function
+    DCGAN basic model
+    pretrained (bool): load a pretrained model ? In this case load a model
+    trained on fashionGen cloth
     """
     from models.DCGAN import DCGAN
     if 'config' not in kwargs or kwargs['config'] is None:
@@ -102,3 +114,6 @@ def DCGAN(pretrained=False, *args, **kwargs):
     if pretrained:
         model.load_state_dict(model_zoo.load_url(checkpoint))
     return model
+
+if __name__ == "__main__":
+    test = PGAN(pretrained=True, model_name="celeba")

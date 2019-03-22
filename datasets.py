@@ -294,8 +294,6 @@ if __name__ == "__main__":
             args.fast_training = False
 
         config["imagefolderDataset"] = True
-        config["config"]["weightConditionG"] = 1.0
-        config["config"]["weightConditionD"] = 1.0
         config["pathDB"] = args.output_dataset
         if args.model_type == 'PGAN':
             config["config"]["maxIterAtScale"] = [48000, 96000, 96000, 96000]
