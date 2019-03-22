@@ -5,16 +5,16 @@ A GAN toolbox for researchers and developers with:
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf
 - To come: StyleGAN https://arxiv.org/abs/1812.04948
 
-<img src="illustration.png" alt="illustration">
-Picture: Generated samples from GANs trained on celebaHQ, fashionGen and DTD.
+<img src="illustration.png" alt="illustration"><img src="illustrationCelebaCropped.jpg" alt="illustration">
+Picture: Generated samples from GANs trained on celebaHQ, fashionGen, DTD anf celeba.
 
-This code also implements dievrse tools:
+This code also implements diverse tools:
 - GDPP method (https://arxiv.org/abs/1812.00068)
 - Image generation "inspired" from a reference image using an already trained GAN.
 - AC-GAN conditioning (https://arxiv.org/abs/1610.09585)
-- SWD metric
+- SWD metric (https://hal.archives-ouvertes.fr/hal-00476064/document)
 - Nearest neighbors
--
+- Inception Score (https://papers.nips.cc/paper/6125-improved-techniques-for-training-gans.pdf)
 
 ## Requirements
 
@@ -91,9 +91,25 @@ python train.py PGAN -c config_dtd.json --restart -n dtd
 For cifar10:
 
 ```
-python datasets.py celebaHQ $PATH_TO_CIFAR10 -o $OUTPUT_DATASET
+python datasets.py cifar10 $PATH_TO_CIFAR10 -o $OUTPUT_DATASET
 python train.py PGAN -c config_cifar10.json --restart -n cifar10
 ```
+
+## Load a pretrained model with torch.hub
+
+Models trained on celebaHQ, fashionGen, cifar10 and celeba cropped are available with [torch.hub](https://pytorch.org/docs/stable/hub.html).
+
+Checkpoints:
+- PGAN:
+  - celebaHQ https://dl.fbaipublicfiles.com/gan_zoo/PGAN/celebaHQ_s6_i80000-6196db68.pth
+  - celeba_cropped
+  - dtd
+  - cifar10
+
+- DCGAN
+  - fashionGen https://dl.fbaipublicfiles.com/gan_zoo/DCGAN_fashionGen-1d67302.pth
+
+See hubconf.py for how to load a checkpoint !
 
 ## GDPP
 
