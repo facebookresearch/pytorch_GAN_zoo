@@ -1,4 +1,4 @@
-conditioning# Pytorch GAN Zoo
+# Pytorch GAN Zoo
 
 A GAN toolbox for researchers and developers with:
 - Progressive Growing of GAN(PGAN): https://arxiv.org/pdf/1710.10196.pdf
