@@ -106,9 +106,8 @@ Models trained on celebaHQ, fashionGen, cifar10 and celeba cropped are available
 Checkpoints:
 - PGAN:
   - celebaHQ https://dl.fbaipublicfiles.com/gan_zoo/PGAN/celebaHQ_s6_i80000-6196db68.pth
-  - celeba_cropped
-  - dtd
-  - cifar10
+  - celeba_cropped https://dl.fbaipublicfiles.com/gan_zoo/PGAN/celebaCropped_s5_i83000-2b0acc76.pth
+  - dtd https://dl.fbaipublicfiles.com/gan_zoo/PGAN/testDTD_s5_i96000-04efa39f.pth
 
 - DCGAN
   - fashionGen https://dl.fbaipublicfiles.com/gan_zoo/DCGAN_fashionGen-1d67302.pth
