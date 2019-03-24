@@ -16,7 +16,6 @@ from ..utils.image_transform import standardTransform
 from ..metrics.nn_score import buildFeatureExtractor
 from ..networks.constant_net import FeatureTransform
 
-
 def pil_loader(path):
 
     # open path as file to avoid ResourceWarning
@@ -75,6 +74,8 @@ def updateParser(parser):
                         action='store_true')
     parser.add_argument('--lbfgs', help='lbfgs',
                         action='store_true')
+    parser.add_argument('--unfixed', help='unfixed',
+                        action='store_true')
     parser.add_argument('--random_search', help='Random search',
                         action='store_true')
     parser.add_argument('--nevergradcma', help='CMA nevergrad',
@@ -107,6 +108,7 @@ def gradientDescentOnInput(model,
                            nSteps=6000,
                            randomSearch=False,
                            lbfgs=False,
+                           unfixed=False,
                            nevergradcma=False,
                            nevergradde=False,
                            nevergradpso=False,
@@ -162,7 +164,7 @@ def gradientDescentOnInput(model,
         optimalVector (tensor): latent vectors corresponding to the output
                                 images
     """
-
+    lbfgs = unfixed or lbfgs
     nevergrad = nevergradcma or nevergradde or nevergradpso or nevergrad2pde or nevergradopo or nevergraddopo or nevergradpdopo
     randomSearch = randomSearch or nevergrad
     print("Running for %d setps" % nSteps)
@@ -241,6 +243,7 @@ def gradientDescentOnInput(model,
 
     # String's format for loss output
     formatCommand = ' '.join(['{:>4}' for x in range(nImages)]) 
+    backtobfgs = False
     for iter in range(nSteps):
 
         optimNoise.zero_grad()
@@ -313,9 +316,16 @@ def gradientDescentOnInput(model,
                                       sumLoss, optimalLoss).detach()
             if lbfgs: 
                 for i in range(nImages):
-                    if sumLoss[i] != sumLoss[i]:
-                        varNoise[i] = optimalVector[i]
+                    if sumLoss[i] != sumLoss[i] and not unfixed:
+                     #   varNoise[i].data = optimalVector[i].data
+                        varNoise.data = optimalVector.data
                         print("yoyo")
+                        optimNoise = optim.Adam([varNoise],
+                            lr=lr)
+                        backtobfgs = True
+            if backtobfgs:
+                optimNoise = optim.LBFGS([varNoise], lr=lr)
+                backtobfgs = False
 
         if iter % 100 == 0:
             if visualizer is not None:
@@ -463,6 +473,7 @@ def test(parser, visualisation=None):
                                                    weights=weights,
                                                    randomSearch=kwargs['random_search'],
                                                    lbfgs=kwargs['lbfgs'],
+                                                   unfixed=kwargs['unfixed'],
                                                    nevergradcma=kwargs['nevergradcma'],
                                                    nevergradpso=kwargs['nevergradpso'],
                                                    nevergradde=kwargs['nevergradde'],
