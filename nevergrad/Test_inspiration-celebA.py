@@ -209,7 +209,6 @@ for rd in optimargs:
      #print("inspiration image")
      #display(im)
      VGGext = ""
-<<<<<<< HEAD
      if setting == "udtd":
         cmd = "python eval.py inspirational_generation -m PGAN -n default -d pgan_dtd_uncond -f /private/home/"+Username+"/features_VGG19/VGG19_featureExtractor"+VGGext+".pt id -s 5 -N 1 -R "+str(R)+" --weights "+ str(VGG) + " " + str(L2) +" --input_images "+dirpath+imgname+".jpg --np_vis -S "+suffix+" --nSteps "+ str(nstep)+" -l " + str(gs)+ " "+rd    
      else:
@@ -233,10 +232,10 @@ for rd in optimargs:
      print(out)
      print(err)
      r_min = out.decode()  #.replace(" -l ", "learning rate : ")  #.split(":")[-1]
-     print("rmin=", r_min)
-     idx = r_min.index("rate :")
-     r_min = r_min[(idx+6):].strip().split()[0].split("\n")[0]
-     print("r_min=", float(r_min))
+     idx = r_min.index("optimal losses :")
+     r_min = r_min[(idx+17):(idx+22)]   
+     
+     #print("r_min=", float(r_min))
     
      #print(float(r_min))
      A[i] = float(r_min)
@@ -245,7 +244,8 @@ for rd in optimargs:
      if setting != "RTW":
          zopt = torch.load(dirpath+imgname+"_"+suffix+"/"+imgname+"_"+suffix+"vector.pt")
          [noiseData,noiseLabels]= torch.load('/private/home/'+Username+'/HDGANSamples/random_gens/'+dataset+'z.pth')
-         dist = torch.norm(noiseData[i]*zopt,2)
+         zopt = zopt.view(512)
+         dist = torch.norm(noiseData[i]-zopt,2)
          Zdist[ind-1] = float(dist)
     
      #print("output result")
