@@ -30,7 +30,7 @@ pip install -r requirements.txt
 Before running the project on the FAIR cluster, don't forget to setup the environment
 
 ```
-module load NCCL/2.2.13-cuda.9.0 & & module load anaconda3 & & source activate fair_env_latest_py3
+module load NCCL/2.2.13-cuda.9.0 && module load anaconda3 && source activate fair_env_latest_py3
 ```
 
 ## Quick training
