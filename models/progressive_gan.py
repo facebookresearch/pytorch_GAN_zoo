@@ -4,15 +4,14 @@ from .base_GAN import BaseGAN
 from .utils.config import BaseConfig
 from .networks.progressive_conv_net import GNet, DNet
 
-
 class ProgressiveGAN(BaseGAN):
     r"""
     Implementation of NVIDIA's progressive GAN.
     """
 
     def __init__(self,
-                 dimLatentVector=32,
-                 depthScale0=32,
+                 dimLatentVector=512,
+                 depthScale0=512,
                  initBiasToZero=True,
                  leakyness=0.2,
                  perChannelNormalization=True,

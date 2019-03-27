@@ -250,7 +250,7 @@ class ProgressiveGANTrainer(GANTrainer):
             if self.checkPointDir is not None:
                 realIter = min(
                     shiftIter, self.modelConfig.maxIterAtScale[scale])
-                label = self.modelLabel + ("_s%d_iter_%d" %
+                label = self.modelLabel + ("_s%d_i%d" %
                                            (scale, realIter))
                 self.saveCheckpoint(self.checkPointDir,
                                     label, scale, realIter)

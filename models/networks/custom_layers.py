@@ -46,6 +46,7 @@ class ConstrainedLayer(nn.Module):
     def __init__(self,
                  module,
                  equalized=True,
+                 lrMul=1.0,
                  initBiasToZero=True):
         r"""
         equalized (bool): if true, the layer's weight should evolve within
@@ -62,7 +63,8 @@ class ConstrainedLayer(nn.Module):
             self.module.bias.data.fill_(0)
         if self.equalized:
             self.module.weight.data.normal_(0, 1)
-            self.weight = getLayerNormalizationFactor(self.module)
+            self.module.weight.data /= lrMul
+            self.weight = getLayerNormalizationFactor(self.module) * lrMul
 
     def forward(self, x):
 
@@ -79,6 +81,7 @@ class EqualizedConv2d(ConstrainedLayer):
                  nChannels,
                  kernelSize,
                  padding=0,
+                 bias=True,
                  **kwargs):
         r"""
         A nn.Conv2d module with specific constraints
@@ -87,11 +90,13 @@ class EqualizedConv2d(ConstrainedLayer):
             nChannels (int): number of channels of the current layer
             kernelSize (int): size of the convolutional kernel
             padding (int): convolution's padding
+            bias (bool): with bias ?
         """
 
         ConstrainedLayer.__init__(self,
                                   nn.Conv2d(nChannelsPrevious, nChannels,
-                                            kernelSize, padding=padding),
+                                            kernelSize, padding=padding,
+                                            bias=bias),
                                   **kwargs)
 
 
@@ -100,14 +105,16 @@ class EqualizedLinear(ConstrainedLayer):
     def __init__(self,
                  nChannelsPrevious,
                  nChannels,
+                 bias=True,
                  **kwargs):
         r"""
         A nn.Linear module with specific constraints
         Args:
             nChannelsPrevious (int): number of channels in the previous layer
             nChannels (int): number of channels of the current layer
+            bias (bool): with bias ?
         """
 
         ConstrainedLayer.__init__(self,
-                                  nn.Linear(nChannelsPrevious, nChannels),
-                                  **kwargs)
+                                  nn.Linear(nChannelsPrevious, nChannels,
+                                  bias=bias), **kwargs)

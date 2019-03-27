@@ -7,6 +7,8 @@ from .utils.config import BaseConfig, updateConfig
 from .loss_criterions import base_loss_criterions
 from .loss_criterions.ac_criterion import ACGANCriterion
 from .loss_criterions.GDPP_loss import GDPPLoss
+from .loss_criterions.gradient_losses import WGANGPGradientPenalty, \
+                                             logisticGradientPenalty
 from .utils.utils import loadPartOfStateDict, finiteCheck, \
     loadStateDictCompatible
 
@@ -28,6 +30,7 @@ class BaseGAN():
                  attribKeysOrder=None,
                  weightConditionD=0.0,
                  weightConditionG=0.0,
+                 logisticGradReal=0.0,
                  GDPP=False,
                  **kwargs):
         r"""
@@ -52,10 +55,10 @@ class BaseGAN():
                                     trained on abelled data.
         """
 
-        if lossMode not in ['MSE', 'WGANGP', 'DCGAN']:
+        if lossMode not in ['MSE', 'WGANGP', 'DCGAN', 'Logistic']:
             raise ValueError(
                 "lossMode should be one of the following : ['MSE', 'WGANGP', \
-                'DCGAN']")
+                'DCGAN', 'Logistic']")
 
         if 'config' not in vars(self):
             self.config = BaseConfig()
@@ -115,6 +118,9 @@ class BaseGAN():
         # Inner iterations
         self.config.kInnerD = kInnerD
         self.config.kInnerG = kInnerG
+
+        # Logistic loss
+        self.config.logisticGradReal = logisticGradReal
 
 
     def test(self, input, getAvG=False, toCPU=True):
@@ -191,17 +197,27 @@ class BaseGAN():
         allLosses["lossD_fake"] = lossDFake.item()
         lossD += lossDFake
 
-        # #3 WGANGP loss
+        # #3 WGANGP gradient loss
         if self.config.lambdaGP > 0:
-            allLosses["lossD_Grad"] = self.getGradientPenalty(self.real_input,
-                                                              predFakeG,
-                                                              backward=True)
+            allLosses["lossD_Grad"] = WGANGPGradientPenalty(self.real_input,
+                                                            predFakeG,
+                                                            self.netD,
+                                                            self.config.lambdaGP,
+                                                            backward=True)
 
         # #4 Epsilon loss
         if self.config.epsilonD > 0:
-            lossEpsilon = (predRealD[:, 0] ** 2).sum() * self.config.epsilonD
+            lossEpsilon = (predRealD[:, 0] ** 2).mean() * self.config.epsilonD
             lossD += lossEpsilon
             allLosses["lossD_Epsilon"] = lossEpsilon.item()
+
+
+        # # 5 Logistic gradient loss
+        if self.config.logisticGradReal > 0:
+            allLosses["lossD_logistic"] = \
+                logisticGradientPenalty(self.real_input, self.netD,
+                                        self.config.logisticGradReal,
+                                        backward=True)
 
         lossD.backward()
         finiteCheck(self.netD.module.parameters())
@@ -538,47 +554,3 @@ class BaseGAN():
 
             return loss.item()
         return 0
-
-    def getGradientPenalty(self, input, fake, backward=True):
-        r"""
-        Build the gradient penalty as described in
-        "Improved Training of Wasserstein GANs"
-
-        Args:
-
-            - input (Tensor): batch of real data
-            - fake (Tensor): batch of generated data. Must have the same size
-              as the input
-        """
-
-        batchSize = input.size(0)
-        alpha = torch.rand(batchSize, 1)
-        alpha = alpha.expand(batchSize, int(input.nelement() /
-                                            batchSize)).contiguous().view(
-                                                input.size())
-        alpha = alpha.to(self.device)
-        interpolates = alpha * input + ((1 - alpha) * fake)
-
-        interpolates = torch.autograd.Variable(
-            interpolates, requires_grad=True)
-
-        decisionInterpolate = self.netD(interpolates, False)
-        decisionInterpolate = decisionInterpolate[:, 0].sum()
-
-        gradients = torch.autograd.grad(outputs=decisionInterpolate,
-                                        inputs=interpolates,
-                                        grad_outputs=torch.ones(
-                                            decisionInterpolate.size()).to(
-                                                            self.device),
-                                        create_graph=True, retain_graph=True,
-                                        only_inputs=True)
-
-        gradients = gradients[0].view(batchSize, -1)
-        gradients = (gradients * gradients).sum(dim=1).sqrt()
-        gradient_penalty = (((gradients - 1.0)**2)).sum() * \
-            self.config.lambdaGP
-
-        if backward:
-            gradient_penalty.backward(retain_graph=True)
-
-        return gradient_penalty.item()

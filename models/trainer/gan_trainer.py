@@ -30,7 +30,6 @@ class GANTrainer():
                  selectedAttributes=None,
                  imagefolderDataset=False,
                  ignoreAttribs=False,
-                 pathDBMask=None,
                  pathPartition=None,
                  partitionValue=None):
         r"""
@@ -60,8 +59,6 @@ class GANTrainer():
                                         object
             - ignoreAttribs (bool): set to True if the input attrib dict should
                                     only be used as a filter on image's names
-            - pathDBMask (string): if not None path to the mask database (for
-                                    decoupled settings)
             - pathPartition (string): if only a subset of the original dataset
                                       should be used
             - pathValue (string): partition value
@@ -90,8 +87,6 @@ class GANTrainer():
         self.imagefolderDataset = imagefolderDataset
         self.modelConfig.attribKeysOrder = None
 
-        self.pathDBMask = pathDBMask
-
         if (not ignoreAttribs) and \
                 (self.pathAttribDict is not None or self.imagefolderDataset):
             self.modelConfig.attribKeysOrder = self.getDataset(
@@ -101,7 +96,11 @@ class GANTrainer():
             print(self.modelConfig.attribKeysOrder)
             print("")
 
-            self.modelConfig.maskExtraction = pathDBMask is not None
+        # Intern state
+        self.runningLoss = {}
+        self.startScale = 0
+        self.startIter = 0
+        self.lossProfile = []
 
         self.initModel()
 
@@ -125,6 +124,7 @@ class GANTrainer():
         self.saveIter = saveIter
         self.pathLossLog = None
 
+
         if self.checkPointDir is not None:
             self.pathLossLog = os.path.abspath(os.path.join(self.checkPointDir,
                                                             self.modelLabel
@@ -135,14 +135,6 @@ class GANTrainer():
 
         # Loss printing
         self.lossIterEvaluation = lossIterEvaluation
-
-        # Intern state
-        self.runningLoss = {}
-
-        self.startScale = 0
-        self.startIter = 0
-
-        self.lossProfile = []
 
     def initModel(self):
         r"""
@@ -250,8 +242,9 @@ class GANTrainer():
                 self.lossProfile[-1]["iter"] = self.lossProfile[-1]["iter"][:indexStop]
 
                 for item in self.lossProfile[-1]:
-                    self.lossProfile[-1][item] = \
-                        self.lossProfile[-1][item][:indexStop]
+                    if isinstance(self.lossProfile[-1][item], list):
+                        self.lossProfile[-1][item] = \
+                            self.lossProfile[-1][item][:indexStop]
 
         # Read the training configuration
         if not finetune:
@@ -409,7 +402,6 @@ class GANTrainer():
             A dataset with properly resized inputs.
         """
         dataset = self.getDataset(scale)
-        print(self.modelConfig.miniBatchSize, self.model.n_devices)
         return torch.utils.data.DataLoader(dataset,
                                            batch_size=self.modelConfig.miniBatchSize,
                                            shuffle=True, num_workers=self.model.n_devices)
@@ -421,8 +413,8 @@ class GANTrainer():
 
         isH5 = os.path.splitext(self.path_db)[1] == ".h5"
 
+        print("size", size)
         transformList = [NumpyResize(size),
-                         # NumpyFlip(),
                          NumpyToTensor(),
                          Transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
 
@@ -437,15 +429,13 @@ class GANTrainer():
                              partition_value=self.partitionValue,
                              specificAttrib=self.selectedAttributes,
                              stats_file=self.pathAttribDict,
-                             transform=transform,
-                             pathDBMask=self.pathDBMask)
+                             transform=transform)
 
         return AttribDataset(self.path_db,
                              transform=transform,
                              attribDictPath=self.pathAttribDict,
                              specificAttrib=self.selectedAttributes,
-                             mimicImageFolder=self.imagefolderDataset,
-                             pathMask=self.pathDBMask)
+                             mimicImageFolder=self.imagefolderDataset)
 
     def inScaleUpdate(self, iter, scale, inputs_real):
         return inputs_real

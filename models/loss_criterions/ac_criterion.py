@@ -9,6 +9,7 @@ class ACGANCriterion:
     r"""
     Class implementing all tools necessary for a GAN to take into account class
     conditionning while generating a model (cf Odena's AC-GAN)
+    https://arxiv.org/pdf/1610.09585.pdf
     """
 
     def __init__(self,

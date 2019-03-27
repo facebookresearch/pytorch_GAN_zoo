@@ -9,7 +9,8 @@ class BaseLossWrapper:
 
     getCriterion : how the loss is actually computed
 
-    !! The activation function of the discriminator is computed within the loss !!
+    !! The activation function of the discriminator is computed within the
+    loss !!
     """
 
     def __init__(self, device):
@@ -17,8 +18,8 @@ class BaseLossWrapper:
 
     def getCriterion(self, input, status):
         r"""
-        Given an input tensor and its targeted score (detected as real or detected
-        as fake) build the associated loss
+        Given an input tensor and its targeted status (detected as real or
+        detected as fake) build the associated loss
 
         Args:
 
@@ -45,12 +46,14 @@ class MSE(BaseLossWrapper):
         size = input.size()[0]
         value = float(status)
         reference = torch.tensor([value]).expand(size, 1).to(self.device)
-        return F.mse_loss(F.sigmoid(input[:, :self.sizeDecisionLayer]), reference)
+        return F.mse_loss(F.sigmoid(input[:, :self.sizeDecisionLayer]),
+                          reference)
 
 
 class WGANGP(BaseLossWrapper):
     r"""
     Paper WGANGP loss : linear activation for the generator.
+    https://arxiv.org/pdf/1704.00028.pdf
     """
 
     def __init__(self, device):
@@ -62,8 +65,26 @@ class WGANGP(BaseLossWrapper):
 
     def getCriterion(self, input, status):
         if status:
-            return -input[:, 0].sum()
-        return input[:, 0].sum()
+            return -input[:, 0].mean()
+        return input[:, 0].mean()
+
+
+class Logistic(BaseLossWrapper):
+    r"""
+    "Which training method of GANs actually converge"
+    https://arxiv.org/pdf/1801.04406.pdf
+    """
+
+    def __init__(self, device):
+
+        self.generationActivation = None
+        self.sizeDecisionLayer = 1
+        BaseLossWrapper.__init__(self, device)
+
+    def getCriterion(self, input, status):
+        if status:
+            return F.softplus(-input[:, 0]).mean()
+        return F.softplus(input[:, 0]).mean()
 
 
 class DCGAN(BaseLossWrapper):
