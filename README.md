@@ -19,6 +19,7 @@ This code also implements diverse tools:
 - SWD metric (https://hal.archives-ouvertes.fr/hal-00476064/document)
 - Nearest neighbors
 - Inception Score (https://papers.nips.cc/paper/6125-improved-techniques-for-training-gans.pdf)
+- Logistic loss from [Which training method of GANs actually converge](https://arxiv.org/pdf/1801.04406.pdf)
 
 ## Requirements
 
