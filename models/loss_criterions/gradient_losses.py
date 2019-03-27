@@ -47,7 +47,7 @@ def WGANGPGradientPenalty(input, fake, discriminator, weight, backward=True):
 
 def logisticGradientPenalty(input, discrimator, weight, backward=True):
     r"""
-    Gradient penalty described in "Which training method of GANs actually"
+    Gradient penalty described in "Which training method of GANs actually
     converge
     https://arxiv.org/pdf/1801.04406.pdf
 

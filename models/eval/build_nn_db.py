@@ -1,9 +1,6 @@
 import os
 import json
 
-import torch
-import torchvision.models as models
-
 from ..metrics.nn_score import buildFeatureExtractor, saveFeatures
 from ..utils.utils import getVal, toStrKey
 from ..networks.constant_net import FeatureTransform

@@ -12,7 +12,6 @@ import scipy
 import scipy.spatial
 import numpy
 
-from ..datasets.attrib_dataset import AttribDataset, pil_loader
 from ..datasets.hd5 import H5Dataset
 from ..loss_criterions.ac_criterion import ACGanCriterion
 from ..utils.utils import printProgressBar, loadmodule
