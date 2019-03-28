@@ -8,7 +8,6 @@ class InceptionScore():
 
         self.sumEntropy = 0
         self.sumSoftMax = None
-
         self.nItems = 0
         self.classifier = classifier.eval()
 
@@ -32,7 +31,6 @@ class InceptionScore():
 
         x = self.sumSoftMax
         x = x * torch.log(x / self.nItems)
-
         output = self.sumEntropy - (x.sum().item())
         output /= self.nItems
         return math.exp(output)

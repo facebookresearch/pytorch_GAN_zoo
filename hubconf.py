@@ -70,7 +70,7 @@ def PGAN(pretrained=False, *args, **kwargs):
     Progressive growing model
     pretrained (bool): load a pretrained model ?
     model_name (string): if pretrained, load one of the following models
-    celebaHQ, DTD, celeba, cifar10. Default is celebaHQ.
+    celebaHQ-256, celebaHQ-512, DTD, celeba, cifar10. Default is celebaHQ.
     """
     from models.progressive_gan import ProgressiveGAN as PGAN
     if 'config' not in kwargs or kwargs['config'] is None:
@@ -80,7 +80,8 @@ def PGAN(pretrained=False, *args, **kwargs):
                  storeAVG=True,
                  **kwargs['config'])
 
-    checkpoint = {"celebAHQ": 'https://dl.fbaipublicfiles.com/gan_zoo/PGAN/celebaHQ_s6_i80000-6196db68.pth',
+    checkpoint = {"celebAHQ-256": 'https://dl.fbaipublicfiles.com/gan_zoo/PGAN/celebaHQ_s6_i80000-6196db68.pth',
+                  "celebAHQ-512": 'https://dl.fbaipublicfiles.com/gan_zoo/PGAN/celebaHQ16_december_s7_i96000-9c72988c.pth',
                   "DTD": 'https://dl.fbaipublicfiles.com/gan_zoo/PGAN/testDTD_s5_i96000-04efa39f.pth',
                   "celeba": "https://dl.fbaipublicfiles.com/gan_zoo/PGAN/celebaCropped_s5_i83000-2b0acc76.pth"}
     if pretrained:
@@ -89,8 +90,8 @@ def PGAN(pretrained=False, *args, **kwargs):
                 raise ValueError("model_name should be in "
                                     + str(checkpoint.keys()))
         else:
-            print("Loading default model : celebaHQ")
-            kwargs["model_name"] = "celebAHQ"
+            print("Loading default model : celebaHQ-256")
+            kwargs["model_name"] = "celebAHQ-256"
         model.load_state_dict(model_zoo.load_url(
                                             checkpoint[kwargs["model_name"]]))
     return model
