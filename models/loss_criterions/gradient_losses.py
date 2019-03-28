@@ -37,7 +37,7 @@ def WGANGPGradientPenalty(input, fake, discriminator, weight, backward=True):
 
     gradients = gradients[0].view(batchSize, -1)
     gradients = (gradients * gradients).sum(dim=1).sqrt()
-    gradient_penalty = (((gradients - 1.0)**2)).mean() * weight
+    gradient_penalty = (((gradients - 1.0)**2)).sum() * weight
 
     if backward:
         gradient_penalty.backward(retain_graph=True)

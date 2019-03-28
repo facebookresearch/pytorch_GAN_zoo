@@ -21,38 +21,41 @@ class BaseGAN():
                  dimLatentVector,
                  dimOutput=3,
                  useGPU=True,
-                 kInnerD=1,
-                 kInnerG=1,
-                 lambdaGP=0.,
-                 epsilonD=0.,
                  baseLearningRate=0.001,
                  lossMode='WGANGP',
                  attribKeysOrder=None,
                  weightConditionD=0.0,
                  weightConditionG=0.0,
                  logisticGradReal=0.0,
+                 lambdaGP=0.,
+                 epsilonD=0.,
                  GDPP=False,
                  **kwargs):
         r"""
         Args:
             dimLatentVector (int): dimension of the latent vector in the model
+            dimOutput (int): number of channels of the output image
             useGPU (bool): set to true if the computation should be distribued
                            in the availanle GPUs
-            kInnerD (int): number of iterations for the discriminator network
-                           during the training stage
-            kInnerG (int): number of iterations for the generator network
-                           during the training stage
-            lambdaGP (float): if > 0, weight of the gradient penalty (WGANGP)
-            epsilonD (float): if > 0, penalty on |D(X)|**2
             baseLearningRate (float): target learning rate.
             lossMode (string): loss used by the model. Must be one of the
                                following options
-                              * 'MSE' : mean square loss. It's not advised to
-                                have lambdaGP != 0 in this case
-                              * 'WGANGP': cross entroipy loss.
+                              * 'MSE' : mean square loss.
+                              * 'DCGAN': cross entropy loss
+                              * 'WGANGP': https://arxiv.org/pdf/1704.00028.pdf
+                              * 'Logistic': https://arxiv.org/pdf/1801.04406.pdf
             attribKeysOrder (dict): if not None, activate AC-GAN. In this case,
                                     both the generator and the discrimator are
                                     trained on abelled data.
+            weightConditionD (float): in AC-GAN, weight of the classification
+                                      loss applied to the discriminator
+            weightConditionG (float): in AC-GAN, weight of the classification
+                                      loss applied to the generator
+            logisticGradReal (float): gradient penalty for the logistic loss
+            lambdaGP (float): if > 0, weight of the gradient penalty (WGANGP)
+            epsilonD (float): if > 0, penalty on |D(X)|**2
+            GDPP (bool): if true activate GDPP loss https://arxiv.org/abs/1812.00068
+
         """
 
         if lossMode not in ['MSE', 'WGANGP', 'DCGAN', 'Logistic']:
@@ -115,10 +118,6 @@ class BaseGAN():
         # Move the networks to the gpu
         self.updateSolversDevice()
 
-        # Inner iterations
-        self.config.kInnerD = kInnerD
-        self.config.kInnerG = kInnerG
-
         # Logistic loss
         self.config.logisticGradReal = logisticGradReal
 
@@ -159,6 +158,7 @@ class BaseGAN():
 
         Args:
             input (torch.tensor): input batch of real data
+            inputLabels (torch.tensor): labels of the real data
 
         """
 
@@ -207,7 +207,7 @@ class BaseGAN():
 
         # #4 Epsilon loss
         if self.config.epsilonD > 0:
-            lossEpsilon = (predRealD[:, 0] ** 2).mean() * self.config.epsilonD
+            lossEpsilon = (predRealD[:, 0] ** 2).sum() * self.config.epsilonD
             lossD += lossEpsilon
             allLosses["lossD_Epsilon"] = lossEpsilon.item()
 

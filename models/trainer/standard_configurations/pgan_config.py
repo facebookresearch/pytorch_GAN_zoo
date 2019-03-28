@@ -67,6 +67,9 @@ _C.lossMode = 'WGANGP'
 # Gradient penalty coefficient (WGANGP)
 _C.lambdaGP = 10.
 
+# Gradient penalty coefficient (Logistic loss)
+_C.logisticGradReal = 5.
+
 # Leakyness of the leakyRelU activation function
 _C.leakyness = 0.2
 

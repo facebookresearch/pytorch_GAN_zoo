@@ -9,8 +9,8 @@ A GAN toolbox for researchers and developers with:
 Picture: Generated samples from GANs trained on celebaHQ, fashionGen, DTD.
 
 
-<img src="illustrationCelebaCropped.jpg" alt="celeba">
-Picture: fake faces with celeba
+<img src="illustartionCelebaHQ.jpg" alt="celeba">
+Picture: fake faces with celebaHQ
 
 This code also implements diverse tools:
 - GDPP method (https://arxiv.org/abs/1812.00068)
