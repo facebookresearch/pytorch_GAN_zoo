@@ -52,7 +52,7 @@ def updateParser(parser):
     parser.add_argument('-f', '--featureExtractor', help="Path to the feature \
                         extractor", nargs='*',
                         type=str, dest="featureExtractor")
-    parser.add_argument('--input_images', type=str, dest="inputImage",
+    parser.add_argument('--input_image', type=str, dest="inputImage",
                         help="Path to the input image.")
     parser.add_argument('-N', type=int, dest="nRuns",
                         help="Number of gradient descent to run at the same \
@@ -75,6 +75,8 @@ def updateParser(parser):
                         action='store_true')
     parser.add_argument('--random_search', help='Random search',
                         action='store_true')
+    parser.add_argument('--size', type=int, help="Size of the input of the \
+                        feature map", default=128)
     parser.add_argument('--nevergrad', type=str,
                         choices=['CMA', 'DE', 'PSO', 'TwoPointsDE',
                                  'PortfolioDiscreteOnePlusOne',
@@ -233,7 +235,7 @@ def gradientDescentOnInput(model,
                 varNoise.requires_grad = True
                 varNoise.to(model.device)
 
-        noiseOut = model.avgG(varNoise)
+        noiseOut = model.netG(varNoise)
         sumLoss = torch.zeros(nImages, device=model.device)
 
         loss = (((varNoise**2).mean(dim=1) - 1)**2)
@@ -340,7 +342,7 @@ def test(parser, visualisation=None):
     if checkpointData is None:
         raise FileNotFoundError(
             "No checkpoint found for model " + str(name) + " at directory "
-            + str(checkPointDir) + 'cwd=' + str(os.getcwd()))
+            + str(checkPointDir) + ' cwd=' + str(os.getcwd()))
 
     modelConfig, pathModel, _ = checkpointData
 
@@ -382,7 +384,7 @@ def test(parser, visualisation=None):
             else:
                 featureExtractor, mean, std = buildFeatureExtractor(
                     path, resetGrad=True)
-                imgTransform = FeatureTransform(mean, std, size=128)  # None)
+                imgTransform = FeatureTransform(mean, std, size=kwargs["size"])
             featureExtractors.append(featureExtractor)
             imgTransforms.append(imgTransform)
     else:

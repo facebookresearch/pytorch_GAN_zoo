@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torchvision.transforms as Transforms
 import numpy as np
 
+from .utils.image_transform import NumpyResize, NumpyToTensor
 from .datasets.attrib_dataset import pil_loader
 from .utils.utils import printProgressBar
 from .datasets.hd5 import H5Dataset
@@ -270,8 +271,8 @@ class GANVisualizer():
 
         size = self.model.getSize()[0]
 
-        transform = Transforms.Compose([Transforms.Resize((size, size)),
-                                        Transforms.ToTensor(),
+        transform = Transforms.Compose([NumpyResize((size, size)),
+                                        NumpyToTensor(),
                                         Transforms.Normalize((0.5, 0.5, 0.5),
                                         (0.5, 0.5, 0.5))])
 
@@ -280,7 +281,7 @@ class GANVisualizer():
         if os.path.splitext(pathDB)[1] == ".h5":
             dataset = H5Dataset(pathDB,
                                 transform=Transforms.Compose(
-                                [Transforms.ToTensor(),
+                                [NumpyToTensor(),
                                  Transforms.Normalize((0.5, 0.5, 0.5),
                                                       (0.5, 0.5, 0.5))]))
 
