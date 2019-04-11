@@ -2,19 +2,11 @@ from ..networks.constant_net import FeatureTransform
 from ..metrics.nn_score import buildFeatureExtractor
 from ..utils.utils import getVal, loadmodule, getLastCheckPoint, \
     parse_state_name, getNameAndPackage, toStrKey, saveScore
-from ..progressive_gan import ProgressiveGAN
 from ..gan_visualizer import GANVisualizer
 import torch.nn as nn
-import torchvision.models as models
-import torchvision
 import torch
-import scipy.spatial
-import scipy
-import numpy as np
 import os
 import json
-import importlib
-import time
 
 import pickle
 
@@ -96,10 +88,7 @@ def test(parser, visualisation=None):
     if pathDB is None:
         raise ValueError("No training database found")
 
-    pathPartition = wholeConfig.get("pathPartition", None)
     partitionValue = wholeConfig.get("partitionValue", None)
-    pathAttrib = wholeConfig.get("pathAttrib", None)
-
     partitionValue = getVal(kwargs, "partition_value", None)
 
     pathOutFeatures = os.path.splitext(pathNNFeatureExtractor)[0] + "_" + \
