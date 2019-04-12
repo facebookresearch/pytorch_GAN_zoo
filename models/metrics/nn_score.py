@@ -14,7 +14,8 @@ import numpy
 
 from models.datasets.attrib_dataset import AttribDataset
 from ..datasets.hd5 import H5Dataset
-from ..loss_criterions.ac_criterion import ACGanCriterion
+from ..datasets.attrib_dataset import AttribDataset
+from ..loss_criterions.ac_criterion import ACGANCriterion
 from ..utils.utils import printProgressBar, loadmodule
 
 random.seed()
@@ -152,7 +153,7 @@ def buildFeatureMaker(pathDB,
                                  betas=[beta1, beta2],
                                  lr=learningRate)
 
-    lossMode = ACGanCriterion(dataset.getKeyOrders())
+    lossMode = ACGANCriterion(dataset.getKeyOrders())
 
     num_ftrs = resnet18.fc.in_features
     resnet18.fc = nn.Linear(num_ftrs, lossMode.getInputDim())
@@ -290,7 +291,7 @@ def saveFeatures(model,
     device = torch.device("cuda:0")
     n_devices = torch.cuda.device_count()
 
-    parallelModel = nn.DataParallel(model).to(device)
+    parallelModel = nn.DataParallel(model).to(device).eval()
     parallelTransorm = nn.DataParallel(imgTransform).to(device)
 
     if os.path.splitext(pathDB)[1] == ".h5":
@@ -327,7 +328,7 @@ def saveFeatures(model,
 
         printProgressBar(nImg, totImg)
         features = parallelModel(parallelTransorm(
-            data), mask=mask).detach().view(data.size(0), -1).cpu()
+            data)).detach().view(data.size(0), -1).cpu()
         outFeatures.append(features)
 
         nImg += batchSize
