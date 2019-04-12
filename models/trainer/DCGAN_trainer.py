@@ -1,9 +1,6 @@
 import os
-import torchvision
-import torchvision.transforms as Transforms
 
 from ..DCGAN import DCGAN
-
 from .gan_trainer import GANTrainer
 from .standard_configurations.dcgan_config import _C
 
@@ -16,7 +13,7 @@ class DCGANTrainer(GANTrainer):
     _defaultConfig = _C
 
     def getDefaultConfig(self):
-        return PPGANTrainer._defaultConfig
+        return DCGANTrainer._defaultConfig
 
     def __init__(self,
                  pathdb,
@@ -31,9 +28,6 @@ class DCGANTrainer(GANTrainer):
         GANTrainer.__init__(self, pathdb, **kwargs)
 
         self.lossProfile.append({"iter": [], "scale": 0})
-
-    def getDefaultConfig(self):
-        return _C
 
     def initModel(self):
         self.model = DCGAN(useGPU=self.useGPU,
