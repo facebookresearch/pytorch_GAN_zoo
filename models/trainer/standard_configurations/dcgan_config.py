@@ -23,12 +23,6 @@ _C.dimG = 64
 # Dimension of the discrimator
 _C.dimD = 64
 
-# We are doing an alternative training. Number of consecutive updates of G
-_C.kInnerG = 1
-
-# We are doing an alternative training. Number of consecutive updates of D
-_C.kInnerD = 1
-
 # Loss mode
 _C.lossMode = 'DCGAN'
 
@@ -44,43 +38,15 @@ _C.epsilonD = 0.
 # Base learning rate
 _C.baseLearningRate = 0.0002
 
-# Numbert of iterations between two updates
-_C.batchAccumulation = 1
-
 # In case of AC GAN, weight on the classification loss (per scale)
 _C.weightConditionG = 0.0
 _C.weightConditionD = 0.0
 
-############################################
-# In case of a product gan
-############################################
-
-# Set to True to load a product gan
-_C.productGan = False
-
-# Latent dimension of the noise vector given to the shape generator
-_C.dimLatentVectorShape = 64
-
-# Latent dimension of the noise vector given to the texture generator
-_C.dimLatentVectorTexture = 64
-
-# Inner dimension of the shape generator
-_C.dimGShape = 64
-
-# Inner dimension of the texture generator
-_C.dimGTexture = 64
-
-# If ACGAN, specifies which conditions should be transimitted to the shape
-# generator, and which ones should be given to the texture generator
-_C.keySplits = None
-
-#Activate GDPP loss ?
+# Activate GDPP loss ?
 _C.GDPP = False
 
 # Number of epochs
-_C.nEpoch = 3
-
-_C.classificationMode = 'ACGAN'
+_C.nEpoch = 10
 
 # Do not modify. Field used to save the attribute dictionnary for labelled
 # datasets
