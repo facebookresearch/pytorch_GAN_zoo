@@ -49,12 +49,6 @@ _C.miniBatchSize = 16
 # Dimension of the latent vector
 _C.dimLatentVector = 512
 
-# We are doing an alternative training. Number of consecutive updates of G
-_C.kInnerG = 1
-
-# We are doing an alternative training. Number of consecutive updates of D
-_C.kInnerD = 1
-
 # Should bias be initialized to zero ?
 _C.initBiasToZero = True
 
@@ -66,9 +60,6 @@ _C.lossMode = 'WGANGP'
 
 # Gradient penalty coefficient (WGANGP)
 _C.lambdaGP = 10.
-
-# Gradient penalty coefficient (Logistic loss)
-_C.logisticGradReal = 5.
 
 # Leakyness of the leakyRelU activation function
 _C.leakyness = 0.2
@@ -89,12 +80,8 @@ _C.dimOutput = 3
 _C.weightConditionG = 0.0
 _C.weightConditionD = 0.0
 
-# Equalized learning rate
-_C.equalizedlR = True
-
+# Do not fill. Loaded automatically
 _C.attribKeysOrder = None
-
-_C.equalizeLabels = False
 
 #Activate GDPP loss ?
 _C.GDPP = False
