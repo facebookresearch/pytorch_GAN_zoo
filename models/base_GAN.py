@@ -219,7 +219,7 @@ class BaseGAN():
                                         self.config.logisticGradReal,
                                         backward=True)
 
-        lossD.backward()
+        lossD.backward(retain_graph=True)
         finiteCheck(self.netD.module.parameters())
         self.optimizerD.step()
 
