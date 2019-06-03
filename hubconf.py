@@ -62,7 +62,7 @@ training parameters you can use.
 import torch.utils.model_zoo as model_zoo
 
 # Optional list of dependencies required by the package
-dependencies = ['torch', 'torchvision', 'visdom', 'numpy', 'h5py', 'scipy']
+dependencies = ['torch']
 
 
 def PGAN(pretrained=False, *args, **kwargs):
