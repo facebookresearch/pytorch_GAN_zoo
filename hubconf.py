@@ -92,8 +92,8 @@ def PGAN(pretrained=False, *args, **kwargs):
         else:
             print("Loading default model : celebaHQ-256")
             kwargs["model_name"] = "celebAHQ-256"
-        model.load_state_dict(model_zoo.load_url(
-                                            checkpoint[kwargs["model_name"]]))
+        state_dict = model_zoo.load_url(checkpoint[kwargs["model_name"]], map_location='cpu')
+        model.load_state_dict(state_dict)
     return model
 
 
@@ -113,5 +113,6 @@ def DCGAN(pretrained=False, *args, **kwargs):
 
     checkpoint = 'https://dl.fbaipublicfiles.com/gan_zoo/DCGAN_fashionGen-1d67302.pth'
     if pretrained:
-        model.load_state_dict(model_zoo.load_url(checkpoint))
+        state_dict = model_zoo.load_url(checkpoint, map_location='cpu')
+        model.load_state_dict(state_dict)
     return model
