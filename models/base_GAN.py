@@ -220,7 +220,23 @@ class BaseGAN():
                                         backward=True)
 
         lossD.backward(retain_graph=True)
-        finiteCheck(self.netD.module.parameters())
+
+        if isinstance(self.netD, torch.nn.DataParallel):
+            netD_params = self.netD.module.parameters()
+        else:
+            netD_params = self.netD.parameters()
+
+        if isinstance(self.netG, torch.nn.DataParallel):
+            netG_params = self.netG.module.parameters()
+        else:
+            netG_params = self.netG.parameters()
+
+        if isinstance(self.avgG, torch.nn.DataParallel):
+            avgG_params = self.avgG.module.parameters()
+        else:
+            avgG_params = self.avgG.parameters()
+
+        finiteCheck(netD_params)
         self.optimizerD.step()
 
         # Logs
@@ -260,7 +276,7 @@ class BaseGAN():
             allLosses["lossG_GDPP"] = GDPPLoss(phiDReal, phiGFake,
                                                backward=True)
 
-        finiteCheck(self.netG.module.parameters())
+        finiteCheck(self.netG_params)
         self.optimizerG.step()
 
         lossG = 0
@@ -272,8 +288,7 @@ class BaseGAN():
         allLosses["lossG"] = lossG
 
         # Update the moving average if relevant
-        for p, avg_p in zip(self.netG.module.parameters(),
-                            self.avgG.module.parameters()):
+        for p, avg_p in zip(netG_params, avgG_params):
             avg_p.mul_(0.999).add_(0.001, p.data)
 
         return allLosses
@@ -418,7 +433,10 @@ class BaseGAN():
                      'netD': stateD}
 
         # Average GAN
-        out_state['avgG'] = self.avgG.module.state_dict()
+        if isinstance(self.avgG, torch.nn.DataParallel):
+            out_state['avgG'] = self.avgG.module.state_dict()
+        else:
+            out_state['avgG'] = self.avgG.state_dict()
 
         if saveTrainTmp:
             out_state['tmp'] = self.trainTmp
@@ -508,7 +526,10 @@ class BaseGAN():
                     print("Average network found !")
                     self.buildAvG()
                     # Replace me by a standard loadStatedict for open-sourcing
-                    loadStateDictCompatible(self.avgG.module, in_state['avgG'])
+                    if isinstance(self.avgG, torch.nn.DataParallel):
+                        loadStateDictCompatible(self.avgG.module, in_state['avgG'])
+                    else:
+                        loadStateDictCompatible(self.avgG, in_state['avgG'])
                     buildAvG = False
 
         if loadD:
