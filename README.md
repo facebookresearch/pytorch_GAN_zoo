@@ -255,13 +255,13 @@ You can add optional arguments:
 To make an inspirational generation, you first need to build a feature extractor:
 
 ```
-python save_feature_extractor.py st $pathToTheFeatureExtractor
+python save_feature_extractor.py {vgg16, vgg19} $PATH_TO_THE_OUTPUT_FEATURE_EXTRACTOR --layers 3 4 5
 ```
 
 Then run your model:
 
 ```
-python eval.py inspirational_generation -n $modelName -m $modelType --inputImage $pathTotheInputImage [-f $pathToTheFeatureExtractor]
+python eval.py inspirational_generation -n $modelName -m $modelType --inputImage $pathTotheInputImage -f $PATH_TO_THE_OUTPUT_FEATURE_EXTRACTOR
 ```
 
 ### I have generated my metrics. How can i plot them on visdom ?
