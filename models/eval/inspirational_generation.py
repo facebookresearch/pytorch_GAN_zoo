@@ -174,18 +174,21 @@ def gradientDescentOnInput(model,
              extractors")
 
     featuresIn = []
-
     for i in range(nExtractors):
 
         if len(featureExtractors[i]._modules) > 0:
             featureExtractors[i] = nn.DataParallel(
                 featureExtractors[i]).train().to(model.device)
 
+        featureExtractors[i].eval()
         imageTransforms[i] = nn.DataParallel(
             imageTransforms[i]).to(model.device)
 
         featuresIn.append(featureExtractors[i](
             imageTransforms[i](input.to(model.device))).detach())
+
+        if nevergrad is None:
+            featureExtractors[i].train()
 
     lr = 1
 
@@ -196,6 +199,7 @@ def gradientDescentOnInput(model,
     gradientDecay = 0.1
 
     nImages = input.size(0)
+    print(f"Generating {nImages} images")
     if nevergrad is not None:
         optimizers = []
         for i in range(nImages):
@@ -296,7 +300,6 @@ def gradientDescentOnInput(model,
             lr *= gradientDecay
             resetVar(optimalVector)
 
-    print(optimalVector.size(), varNoise.size())
     output = model.test(optimalVector, getAvG=True, toCPU=True).detach()
 
     if visualizer is not None:
