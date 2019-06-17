@@ -1,4 +1,4 @@
-import os
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import torch.optim as optim
 
 from .base_GAN import BaseGAN

@@ -1,4 +1,4 @@
-import pytest
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 from math import exp, log
 import torch
 from ..loss_criterions.ac_criterion import ACGanCriterion

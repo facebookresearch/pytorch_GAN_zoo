@@ -1,3 +1,4 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import torch
 import argparse
 from models.loss_criterions.loss_texture import LossTexture

@@ -1,3 +1,4 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 from ..networks.constant_net import FeatureTransform
 from ..metrics.nn_score import buildFeatureExtractor
 from ..utils.utils import getVal, loadmodule, getLastCheckPoint, \
