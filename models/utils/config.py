@@ -1,3 +1,4 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 class BaseConfig():
     r"""
     An empty class used for configuration members

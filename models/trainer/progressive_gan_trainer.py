@@ -1,8 +1,5 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import os
-
-import torch
-import torch.nn
-import torch.nn.functional as F
 
 from .standard_configurations.pgan_config import _C
 from ..progressive_gan import ProgressiveGAN
@@ -12,8 +9,8 @@ from ..utils.utils import getMinOccurence
 
 class ProgressiveGANTrainer(GANTrainer):
     r"""
-    A class managing a progressive GAN training. Logs, chekpoints, visualization,
-    and number iterations are managed here.
+    A class managing a progressive GAN training. Logs, chekpoints,
+    visualization, and number iterations are managed here.
     """
     _defaultConfig = _C
 

@@ -1,3 +1,4 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 from ...utils.config import BaseConfig
 
 # Default configuration for ProgressiveGANTrainer

@@ -1,8 +1,10 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import torch.optim as optim
 
 from .base_GAN import BaseGAN
 from .utils.config import BaseConfig
 from .networks.progressive_conv_net import GNet, DNet
+
 
 class ProgressiveGAN(BaseGAN):
     r"""
@@ -27,8 +29,8 @@ class ProgressiveGAN(BaseGAN):
                                      zero ?
             - leakyness (float): negative slope of the leakyRelU activation
                                  function
-            - perChannelNormalization (bool): do we normalize the output of each
-                                              convolutional layer ?
+            - perChannelNormalization (bool): do we normalize the output of
+                                              each convolutional layer ?
             - miniBatchStdDev (bool): mini batch regularization for the
                                       discriminator
             - equalizedlR (bool): if True, forces the optimizer to see weights

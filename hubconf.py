@@ -1,3 +1,4 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 '''
 hubconf.py for pytorch_gan_zoo repo
 

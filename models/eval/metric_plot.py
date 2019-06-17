@@ -1,9 +1,8 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import os
 import json
 
-import numpy as np
-
-from ..utils.utils import loadmodule, getLastCheckPoint, getVal, getNameAndPackage
+from ..utils.utils import getVal
 
 
 def test(parser, visualisation=None):

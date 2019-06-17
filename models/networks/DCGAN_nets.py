@@ -1,7 +1,6 @@
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 from collections import OrderedDict
 import torch.nn as nn
-
-from ..utils.utils import num_flat_features
 
 
 def weights_init(m):
