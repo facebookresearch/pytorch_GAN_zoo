@@ -221,7 +221,7 @@ class BaseGAN():
                                         backward=True)
 
         lossD.backward(retain_graph=True)
-        finiteCheck(self.netD.module.parameters())
+        finiteCheck(self.getOriginalD().parameters())
         self.optimizerD.step()
 
         # Logs
@@ -261,7 +261,7 @@ class BaseGAN():
             allLosses["lossG_GDPP"] = GDPPLoss(phiDReal, phiGFake,
                                                backward=True)
 
-        finiteCheck(self.netG.module.parameters())
+        finiteCheck(self.getOriginalG().parameters())
         self.optimizerG.step()
 
         lossG = 0
@@ -273,8 +273,8 @@ class BaseGAN():
         allLosses["lossG"] = lossG
 
         # Update the moving average if relevant
-        for p, avg_p in zip(self.netG.module.parameters(),
-                            self.avgG.module.parameters()):
+        for p, avg_p in zip(self.getOriginalG().parameters(),
+                            self.getOriginalAvgG().parameters()):
             avg_p.mul_(0.999).add_(0.001, p.data)
 
         return allLosses
@@ -371,6 +371,15 @@ class BaseGAN():
             return self.netG.module
         return self.netG
 
+    def getOriginalAvgG(self):
+        r"""
+        Retrieve the original avG network. Use this function
+        when you want to modify avG after the initialization
+        """
+        if isinstance(self.avgG, nn.DataParallel):
+            return self.avgG.module
+        return self.avgG
+
     def getOriginalD(self):
         r"""
         Retrieve the original D network. Use this function
@@ -419,7 +428,7 @@ class BaseGAN():
                      'netD': stateD}
 
         # Average GAN
-        out_state['avgG'] = self.avgG.module.state_dict()
+        out_state['avgG'] = self.getOriginalAvgG().state_dict()
 
         if saveTrainTmp:
             out_state['tmp'] = self.trainTmp
@@ -509,7 +518,7 @@ class BaseGAN():
                     print("Average network found !")
                     self.buildAvG()
                     # Replace me by a standard loadStatedict for open-sourcing
-                    loadStateDictCompatible(self.avgG.module, in_state['avgG'])
+                    loadStateDictCompatible(self.getOriginalAvgG(), in_state['avgG'])
                     buildAvG = False
 
         if loadD:
