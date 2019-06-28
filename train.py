@@ -80,7 +80,6 @@ if __name__ == "__main__":
     # Checkpoint data
     modelLabel = kwargs["name"]
     restart = kwargs["restart"]
-    print(restart)
     checkPointDir = os.path.join(kwargs["dir"], modelLabel)
     checkPointData = getLastCheckPoint(checkPointDir, modelLabel)
 
@@ -132,6 +131,7 @@ if __name__ == "__main__":
     # If a checkpoint is found, load it
     if not restart and checkPointData is not None:
         trainConfig, pathModel, pathTmpData = checkPointData
+        print(f"Model found at path {pathModel}, pursuing the training")
         GANTrainer.loadSavedTraining(pathModel, trainConfig, pathTmpData)
 
     GANTrainer.train()
