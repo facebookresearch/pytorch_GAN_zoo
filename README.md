@@ -13,11 +13,11 @@ Picture: Generated samples from GANs trained on celebaHQ, fashionGen, DTD.
 Picture: fake faces with celebaHQ
 
 This code also implements diverse tools:
-- GDPP method (https://arxiv.org/abs/1812.00068)
-- Image generation "inspired" from a reference image using an already trained GAN.
-- AC-GAN conditioning (https://arxiv.org/abs/1610.09585)
-- SWD metric (https://hal.archives-ouvertes.fr/hal-00476064/document)
-- Inception Score (https://papers.nips.cc/paper/6125-improved-techniques-for-training-gans.pdf)
+- GDPP method from [GDPP: Learning Diverse Generations Using Determinantal Point Process](https://arxiv.org/abs/1812.00068)
+- Image generation "inspired" from a reference image using an already trained GAN from [Inspirational Adversarial Image Generation](https://arxiv.org/abs/1906.11661)
+- AC-GAN conditioning from [Conditional Image Synthesis With Auxiliary Classifier GANs](https://arxiv.org/abs/1610.09585)
+- [SWD metric](https://hal.archives-ouvertes.fr/hal-00476064/document)
+- [Inception Score](https://papers.nips.cc/paper/6125-improved-techniques-for-training-gans.pdf)
 - Logistic loss from [Which training method of GANs actually converge](https://arxiv.org/pdf/1801.04406.pdf)
 
 ## Requirements
