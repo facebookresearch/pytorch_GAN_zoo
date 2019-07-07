@@ -22,8 +22,8 @@ def miniBatchStdDev(x, subGroupSize=4):
         subGroupSize = size[0]
     G = int(size[0] / subGroupSize)
     if subGroupSize > 1:
-        y = x.view(subGroupSize, -1, size[1], size[2], size[3])
-        y = torch.var(y, 0)
+        y = x.view(-1, subGroupSize, size[1], size[2], size[3])
+        y = torch.var(y, 1)
         y = torch.sqrt(y + 1e-8)
         y = y.view(G, -1)
         y = torch.mean(y, 1).view(G, 1)

@@ -5,6 +5,7 @@ from .standard_configurations.pgan_config import _C
 from ..progressive_gan import ProgressiveGAN
 from .gan_trainer import GANTrainer
 from ..utils.utils import getMinOccurence
+import torch.nn.functional as F
 
 
 class ProgressiveGANTrainer(GANTrainer):
