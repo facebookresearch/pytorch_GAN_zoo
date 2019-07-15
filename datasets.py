@@ -7,14 +7,14 @@ import pickle
 
 import math
 import numpy as np
-from scipy import misc
+import imageio
 
 from models.utils.utils import printProgressBar
 from models.utils.image_transform import NumpyResize, pil_loader
 
 
 def saveImage(path, image):
-    return misc.imsave(path, image)
+    return imageio.imwrite(path, image)
 
 
 def unpackCIFAR10(pathDB, pathOut):
@@ -297,7 +297,8 @@ if __name__ == "__main__":
         config["imagefolderDataset"] = True
         config["pathDB"] = args.output_dataset
         if args.model_type == 'PGAN':
-            config["config"]["maxIterAtScale"] = [96000, 120000, 120000, 120000]
+            config["config"]["maxIterAtScale"] = [96000, 120000, 120000,
+                                                  120000]
 
     if args.dataset_name == 'fashionGen':
 

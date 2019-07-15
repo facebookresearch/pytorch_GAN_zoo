@@ -19,6 +19,7 @@ def getModelName(pathConfig):
 
     return pathConfig[:-18]
 
+
 def updateParserWithLabels(parser, labels):
 
     for key in labels:
@@ -97,7 +98,9 @@ def test(parser, visualisation=None):
         pathModel, modelConfig, modelType, visualisation)
 
     if interpolationPath is None and not kwargs['random_interpolate']:
-        visualizer.exportVisualization(pathOut, 256, export_mask=exportMask)
+        nImages = (256 // 2**(max(scale - 2, 3))) * 8
+        visualizer.exportVisualization(pathOut, nImages,
+                                       export_mask=exportMask)
 
     toPlot = {}
     for key in keysLabels:
