@@ -2,10 +2,13 @@
 import numpy as np
 import scipy
 import scipy.misc
+import imageio
 import torch
 
 
-def make_numpy_grid(arrays_list, gridMaxWidth=2048, imgMinSize=128, interpolation='nearest'):
+def make_numpy_grid(arrays_list, gridMaxWidth=2048,
+                    imgMinSize=128,
+                    interpolation='nearest'):
 
     # NCWH format
     N, C, W, H = arrays_list.shape
@@ -83,7 +86,7 @@ def saveTensor(data, out_size_image, path):
     data = torch.clamp(data, min=-1, max=1)
     outdata = make_numpy_grid(
         data.numpy(), imgMinSize=out_size_image, interpolation=interpolation)
-    scipy.misc.imsave(path, outdata)
+    imageio.imwrite(path, outdata)
 
 
 def delete_env(env_name):
