@@ -7,7 +7,7 @@ import torch
 
 from ..gan_visualizer import GANVisualizer
 from ..utils.utils import loadmodule, getLastCheckPoint, getVal, \
-    getNameAndPackage
+    getNameAndPackage, parse_state_name
 
 
 def getModelName(pathConfig):
@@ -70,6 +70,8 @@ def test(parser, visualisation=None):
             "Not checkpoint found for model " + name + " at directory " + dir)
 
     modelConfig, pathModel, _ = checkpointData
+    if scale is None:
+        _, scale, _ = parse_state_name(pathModel)
 
     keysLabels = None
     with open(modelConfig, 'rb') as file:
