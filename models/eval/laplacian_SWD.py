@@ -46,12 +46,13 @@ def test(parser, visualisation=None):
             print(scale, iter)
             if scale is not None or iter is not None:
                 raise FileNotFoundError("Not checkpoint found for model "
-                                        + name + " at directory " + dir +
+                                        + name + " at directory " + checkPointDir +
                                         " for scale " + str(scale) +
                                         " at iteration " + str(iter))
+            print(name, checkPointDir)
             raise FileNotFoundError(
                 "Not checkpoint found for model " + name + " at directory "
-                + dir)
+                + checkPointDir)
 
         modelConfig, pathModel, _ = checkpointData
         with open(modelConfig, 'rb') as file:

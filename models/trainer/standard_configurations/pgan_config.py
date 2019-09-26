@@ -12,7 +12,6 @@ _C.maxIterAtScale = [48000, 96000, 96000,
 
 ############################################################
 
-
 # 2 possible values are possible:
 # - custom: iterations at which alpha should be updated and new value after the update
 # are fully described by the user

@@ -23,6 +23,7 @@ class BaseGAN():
                  dimOutput=3,
                  useGPU=True,
                  baseLearningRate=0.001,
+                 max_time=0,
                  lossMode='WGANGP',
                  attribKeysOrder=None,
                  weightConditionD=0.0,
@@ -39,6 +40,7 @@ class BaseGAN():
             useGPU (bool): set to true if the computation should be distribued
                            in the availanle GPUs
             baseLearningRate (float): target learning rate.
+            max_time: max number of seconds for training (0 --> infinite).
             lossMode (string): loss used by the model. Must be one of the
                                following options
                               * 'MSE' : mean square loss.

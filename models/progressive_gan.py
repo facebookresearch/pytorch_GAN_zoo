@@ -16,6 +16,7 @@ class ProgressiveGAN(BaseGAN):
                  depthScale0=512,
                  initBiasToZero=True,
                  leakyness=0.2,
+                 max_time=0,
                  perChannelNormalization=True,
                  miniBatchStdDev=False,
                  equalizedlR=True,
@@ -29,6 +30,7 @@ class ProgressiveGAN(BaseGAN):
                                      zero ?
             - leakyness (float): negative slope of the leakyRelU activation
                                  function
+            - max_time (int): number of seconds for training (0 = infinity).
             - perChannelNormalization (bool): do we normalize the output of
                                               each convolutional layer ?
             - miniBatchStdDev (bool): mini batch regularization for the
@@ -41,6 +43,7 @@ class ProgressiveGAN(BaseGAN):
             self.config = BaseConfig()
 
         self.config.depthScale0 = depthScale0
+        self.config.max_time = max_time
         self.config.initBiasToZero = initBiasToZero
         self.config.leakyReluLeak = leakyness
         self.config.depthOtherScales = []

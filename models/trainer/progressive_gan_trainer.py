@@ -1,5 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import os
+import time
 
 from .standard_configurations.pgan_config import _C
 from ..progressive_gan import ProgressiveGAN
@@ -22,6 +23,7 @@ class ProgressiveGANTrainer(GANTrainer):
                  pathdb,
                  miniBatchScheduler=None,
                  datasetProfile=None,
+                 max_time=0,
                  configScheduler=None,
                  **kwargs):
         r"""
@@ -46,6 +48,7 @@ class ProgressiveGANTrainer(GANTrainer):
             - stopOnShitStorm (bool): should we stop the training if a diverging
                                      behavior is detected ?
         """
+        self.max_time = max_time
 
         self.configScheduler = {}
         if configScheduler is not None:
@@ -208,6 +211,7 @@ class ProgressiveGANTrainer(GANTrainer):
                                           + "_train_config.json")
             self.saveBaseConfig(pathBaseConfig)
 
+        start = time.time()
         for scale in range(self.startScale, n_scales):
 
             self.updateDatasetForScale(scale)
@@ -230,7 +234,9 @@ class ProgressiveGANTrainer(GANTrainer):
                 shiftAlpha += 1
 
             while shiftIter < self.modelConfig.maxIterAtScale[scale]:
-
+                print("timer:", self.max_time, time.time() - start)
+                if self.max_time > 0  and time.time() - start > self.max_time:
+                    break
                 self.indexJumpAlpha = shiftAlpha
                 status = self.trainOnEpoch(dbLoader, scale,
                                            shiftIter=shiftIter,

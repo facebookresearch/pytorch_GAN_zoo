@@ -66,7 +66,7 @@ def updateParserWithConfig(parser, defaultConfig):
     for name, key in vars(defaultConfig).items():
         if key is None:
             continue
-
+        print("add argument ", name)
         if isinstance(key, bool):
             parser.add_argument('--' + name, type=str2bool, dest=name)
         else:

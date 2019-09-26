@@ -34,6 +34,8 @@ if __name__ == "__main__":
                          please run train.py $MODEL_NAME -overrides')
     parser.add_argument('--no_vis', help=' Disable all visualizations',
                         action='store_true')
+    parser.add_argument('--max_time', help=' Maximum time in seconds (0 for infinity)', type=int,
+                        dest='max_time', default=0)
     parser.add_argument('--np_vis', help=' Replace visdom by a numpy based \
                         visualizer (SLURM)',
                         action='store_true')
@@ -123,6 +125,7 @@ if __name__ == "__main__":
                                visualisation=vis_module,
                                lossIterEvaluation=kwargs["evalIter"],
                                checkPointDir=checkPointDir,
+                               max_time=kwargs["max_time"],
                                saveIter= kwargs["saveIter"],
                                modelLabel=modelLabel,
                                partitionValue=partitionValue,
