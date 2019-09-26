@@ -60,7 +60,7 @@ sudo apt-get install p7zip-full
 python download_celebA.py ./
 python download_celebA_HQ.py ./
 python make_HQ_images.py ./
-export PATH_TO_CELEBA=`readlink -f ./celebA-HQ/512`
+export PATH_TO_CELEBAHQ=`readlink -f ./celebA-HQ/512`
 ```
 
 ## Quick training
