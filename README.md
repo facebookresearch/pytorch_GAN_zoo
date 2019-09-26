@@ -48,6 +48,21 @@ pip install -r requirements.txt
  - DTD: https://www.robots.ox.ac.uk/~vgg/data/dtd/
  - CIFAR10: http://www.cs.toronto.edu/~kriz/cifar.html
 
+For a quick start with CelebAHQ, you might:
+```
+git clone https://github.com/nperraud/download-celebA-HQ.git
+cd download-celebA-HQ
+conda create -n celebaHQ python=3
+source activate celebaHQ
+conda install jpeg=8d tqdm requests pillow==3.1.1 urllib3 numpy cryptography scipy
+pip install opencv-python==3.4.0.12 cryptography==2.1.4
+sudo apt-get install p7zip-full
+python download_celebA.py ./
+python download_celebA_HQ.py ./
+python make_HQ_images.py ./
+export PATH_TO_CELEBA=`readlink -f ./celebA-HQ/512`
+```
+
 ## Quick training
 
 The datasets.py script allows you to prepare your datasets and build their corresponding configuration files.
