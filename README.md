@@ -79,8 +79,9 @@ And wait for a few days. Your checkpoints will be dumped in output_networks/cele
 For celebaHQ:
 
 ```
-python datasets.py celebaHQ $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET - f
-python train.py PGAN -c config_celebaHQ.json --restart -n celebaHQ
+python datasets.py celebaHQ $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET - f  # Prepare the dataset and build the configuration file.
+python train.py PGAN -c config_celebaHQ.json --restart -n celebaHQ  # Train.
+python eval.py inception -n celebaHQ -m PGAN  # If you want to check the inception score.
 ```
 
 Your checkpoints will be dumped in output_networks/celebaHQ. You should get 1024x1024 generations at the end.
