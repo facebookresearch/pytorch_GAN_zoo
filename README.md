@@ -3,7 +3,7 @@
 A GAN toolbox for researchers and developers with:
 - Progressive Growing of GAN(PGAN): https://arxiv.org/pdf/1710.10196.pdf
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf
-- To come: StyleGAN https://arxiv.org/abs/1812.04948
+- StyleGAN https://arxiv.org/abs/1812.04948
 
 <img src="illustration.png" alt="illustration">
 Picture: Generated samples from GANs trained on celebaHQ, fashionGen, DTD.
@@ -145,8 +145,8 @@ Where:
 
 1 - MODEL_NAME is the name of the model you want to run. Currently, two models are available:
     - PGAN(progressive growing of gan)
-    - PPGAN(decoupled version of PGAN)
-    TODO: isn't it PGAN, DCGAN and StyleGAN ?
+    - DCGAN
+    - StyleGAN
 
 2 - CONFIGURATION_FILE(mandatory): path to a training configuration file. This file is a json file containing at least a pathDB entry with the path to the training dataset. See below for more informations about this file.
 
