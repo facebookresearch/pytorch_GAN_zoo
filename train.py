@@ -37,6 +37,8 @@ if __name__ == "__main__":
     parser.add_argument('--np_vis', help=' Replace visdom by a numpy based \
                         visualizer (SLURM)',
                         action='store_true')
+    parser.add_argument('--max_time', help=' Maximum time in seconds (0 for infinity)', type=int,
+                        dest='max_time', default=0)    
     parser.add_argument('--restart', help=' If a checkpoint is detected, do \
                                            not try to load it',
                         action='store_true')
@@ -124,6 +126,7 @@ if __name__ == "__main__":
                                lossIterEvaluation=kwargs["evalIter"],
                                checkPointDir=checkPointDir,
                                saveIter= kwargs["saveIter"],
+                               max_time=kwargs["max_time"],                               
                                modelLabel=modelLabel,
                                partitionValue=partitionValue,
                                **trainingConfig)
