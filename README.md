@@ -253,10 +253,15 @@ python eval.py visualization -n $runName -m $modelName --save_dataset $PATH_TO_T
 ### SWD metric
 
 Using the same kind of configuration file as above, just launch:
-
 ```
 python eval.py laplacian_SWD -c $CONFIGURATION_FILE -n $runName -m $modelName
 ```
+for the SWD score, to be maximized, or for the inception score:
+```
+python eval.py inception -c $CONFIGURATION_FILE -n $runName -m $modelName
+```
+also to be maximized (see https://hal.inria.fr/hal-01850447/document for a discussion).
+
 
 Where $CONFIGURATION_FILE is the training configuration file called by train.py (see above): it must contains a "pathDB" field pointing to path to the dataset's directory. For example, if you followed the instruction of the Quick Training section to launch a training session on celebaHQ your configuration file will be config_celebaHQ.json.
 
