@@ -212,7 +212,7 @@ You can generate more images from an existing checkpoint using:
 python eval.py visualization -n $modelName -m $modelType
 ```
 
-Where modelType is in [PGAN, PPGAN, DCGAN] and modelName is the name given to your model. This script will load the last checkpoint detected at testNets/$modelName. If you want to load a specific iteration, please call:
+Where modelType is in [PGAN, PPGAN, DCGAN] and modelName is the name given to your model. This script will load the last checkpoint detected at output_networks/$modelName. If you want to load a specific iteration, please call:
 
 ```
 python eval.py visualization -n $modelName -m $modelType -s $SCALE -i $ITER
