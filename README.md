@@ -146,6 +146,7 @@ Where:
 1 - MODEL_NAME is the name of the model you want to run. Currently, two models are available:
     - PGAN(progressive growing of gan)
     - PPGAN(decoupled version of PGAN)
+    TODO: isn't it PGAN, DCGAN and StyleGAN ?
 
 2 - CONFIGURATION_FILE(mandatory): path to a training configuration file. This file is a json file containing at least a pathDB entry with the path to the training dataset. See below for more informations about this file.
 
@@ -224,19 +225,19 @@ You need to use the eval.py script.
 
 You can generate more images from an existing checkpoint using:
 ```
-python eval.py visualization -n $modelName -m $modelType
+python eval.py visualization -n $runName -m $modelName
 ```
 
-Where modelType is in [PGAN, PPGAN, DCGAN] and modelName is the name given to your model. This script will load the last checkpoint detected at output_networks/$modelName. If you want to load a specific iteration, please call:
+Where modelName is in [PGAN, StyleGAN, DCGAN] and runName is the name given to your run (trained model). This script will load the last checkpoint detected at output_networks/$modelName. If you want to load a specific iteration, please call:
 
 ```
-python eval.py visualization -n $modelName -m $modelType -s $SCALE -i $ITER
+python eval.py visualization -n $runName -m $modelName -s $SCALE -i $ITER
 ```
 
 If your model is conditioned, you can ask the visualizer to print out some conditioned generations. For example:
 
 ```
-python eval.py visualization -n $modelName -m $modelType --Class T_SHIRT
+python eval.py visualization -n $runName -m $modelName --Class T_SHIRT
 ```
 
 Will plot a batch of T_SHIRTS in visdom. Please use the option - -showLabels to see all the available labels for your model.
@@ -246,7 +247,7 @@ Will plot a batch of T_SHIRTS in visdom. Please use the option - -showLabels to 
 To save a randomly generated fake dataset from a checkpoint please use:
 
 ```
-python eval.py visualization -n $modelName -m $modelType --save_dataset $PATH_TO_THE_OUTPUT_DATASET --size_dataset $SIZE_OF_THE_OUTPUT
+python eval.py visualization -n $runName -m $modelName --save_dataset $PATH_TO_THE_OUTPUT_DATASET --size_dataset $SIZE_OF_THE_OUTPUT
 ```
 
 ### SWD metric
@@ -254,7 +255,7 @@ python eval.py visualization -n $modelName -m $modelType --save_dataset $PATH_TO
 Using the same kind of configuration file as above, just launch:
 
 ```
-python eval.py laplacian_SWD -c $CONFIGURATION_FILE -n $modelName -m $modelType
+python eval.py laplacian_SWD -c $CONFIGURATION_FILE -n $runName -m $modelName
 ```
 
 Where $CONFIGURATION_FILE is the training configuration file called by train.py (see above): it must contains a "pathDB" field pointing to path to the dataset's directory. For example, if you followed the instruction of the Quick Training section to launch a training session on celebaHQ your configuration file will be config_celebaHQ.json.
@@ -267,6 +268,7 @@ You can add optional arguments:
 
 ### Inspirational generation
 
+An inspirational generation consists in generation with your GAN an image which looks like a given input image.
 To make an inspirational generation, you first need to build a feature extractor:
 
 ```
@@ -276,14 +278,14 @@ python save_feature_extractor.py {vgg16, vgg19} $PATH_TO_THE_OUTPUT_FEATURE_EXTR
 Then run your model:
 
 ```
-python eval.py inspirational_generation -n $modelName -m $modelType --inputImage $pathTotheInputImage -f $PATH_TO_THE_OUTPUT_FEATURE_EXTRACTOR
+python eval.py inspirational_generation -n $runName -m $modelName --inputImage $pathTotheInputImage -f $PATH_TO_THE_OUTPUT_FEATURE_EXTRACTOR
 ```
 
 ### I have generated my metrics. How can i plot them on visdom ?
 
 Just run
 ```
-python eval.py metric_plot  -n $modelName
+python eval.py metric_plot  -n $runName
 ```
 
 ## LICENSE
