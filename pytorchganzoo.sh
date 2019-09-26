@@ -1,5 +1,6 @@
 #!/bin/bash
 
+cd /private/home/oteytaud/pytorchganzoo
 set -e -x
 
 num_params=3
@@ -18,8 +19,8 @@ CONFIGURATION_FILE=config_celebaHQ.json
 
 #TODO Run this the first time (and only the first time):
 if [ ! -d "$OUTPUT_DATASET" ]; then
-  #python3.6 datasets.py celeba_cropped $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET
-  python3.6 datasets.py celebaHQ $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET
+  #python3.6 -u datasets.py celeba_cropped $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET
+  python3.6 -u datasets.py celebaHQ $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET
 fi
 
 # Possible arguments for the training, NOT used in the present script:
@@ -40,9 +41,9 @@ ln=`./paramcloseto0.sh 0.01 0.6 $3`  # first parameter for epsilond
 # StyleGAN or DCGAN could replace PGAN.
 modelName=PGAN
 
-python3.6 train.py $modelName -c $CONFIGURATION_FILE  --restart -n $OUTPUT_DATASET --no_vis --baseLearningRate $lr --epsilonD $ed --leakyness $ln --max_time 100 
+python3.6 -u train.py $modelName -c $CONFIGURATION_FILE  --restart -n $OUTPUT_DATASET --no_vis --baseLearningRate $lr --epsilonD $ed --leakyness $ln --max_time 100 
 #for metric in laplacian_SWD inception
 for metric in inception
 do
-python3.6 eval.py --no_vis $metric -c $CONFIGURATION_FILE -n $OUTPUT_DATASET -m $modelName 
+python3.6 -u eval.py --no_vis $metric -c $CONFIGURATION_FILE -n $OUTPUT_DATASET -m $modelName 
 done

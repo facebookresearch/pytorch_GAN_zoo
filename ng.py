@@ -17,10 +17,10 @@ def pytorchganzoo(x, test=False):
 
 
 dim=3
- for budget in [10, 20, 40]:
+for budget in [10, 20, 40, 80, 160]:
   for r in [5]:
 #  for tool in ["OnePlusOne", "RandomSearch", "DiagonalCMA", "TwoPointsDE", "DE", "PSO", "SQP"]:
-   for tool in ["RandomSearch", "ScrHammersleySearch", "LHS"]:
+   for tool in ["RandomSearch", "ScrHammersleySearch", "LHS", "DE", "DiagonalCMA", "CMA"]:
     optimizer = ng.optimizers.registry[tool](instrumentation=dim, budget=budget)
     recommendation = optimizer.optimize(pytorchganzoo)
     #print(recommendation)  # optimal args and kwargs
