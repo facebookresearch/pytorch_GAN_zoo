@@ -30,7 +30,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Testing script')
     parser.add_argument('model_name', type=str,
                         help='Name of the model to launch, available models are\
-                        PGAN and PPGAN. To get all possible option for a model\
+                        PGAN and DCGAN and StyleGAN. To get all possible option for a model\
                          please run train.py $MODEL_NAME -overrides')
     parser.add_argument('--no_vis', help=' Disable all visualizations',
                         action='store_true')
