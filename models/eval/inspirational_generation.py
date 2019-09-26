@@ -71,7 +71,7 @@ def updateParser(parser):
     parser.add_argument('--weights', type=float, dest='weights',
                         nargs='*', help="Weight of each classifier. Default \
                         value is one. If specified, the number of weights must\
-                        match the number of feature exatrcators.")
+                        match the number of feature extractors.")
     parser.add_argument('--gradient_descent', help='gradient descent',
                         action='store_true')
     parser.add_argument('--random_search', help='Random search',
