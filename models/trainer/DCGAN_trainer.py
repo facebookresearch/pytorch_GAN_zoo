@@ -19,6 +19,7 @@ class DCGANTrainer(GANTrainer):
 
     def __init__(self,
                  pathdb,
+                 miniBatchScheduler=None,                 
                  **kwargs):
         r"""
         Args:
