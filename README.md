@@ -147,7 +147,6 @@ Where:
 1 - MODEL_NAME is the name of the model you want to run. Currently, two models are available:
     - PGAN(progressive growing of gan)
     - DCGAN
-    - StyleGAN
 
 2 - CONFIGURATION_FILE(mandatory): path to a training configuration file. This file is a json file containing at least a pathDB entry with the path to the training dataset. See below for more informations about this file.
 
