@@ -272,14 +272,16 @@ You can add optional arguments:
 - -i $ITER: specify the iteration to evaluate(if not set, will take the highest one)
 - --selfNoise: returns the typical noise of the SWD distance for each resolution
 
-### Inspirational generation
+### Inspirational generation (https://arxiv.org/abs/1906.11661)
 
-An inspirational generation consists in generation with your GAN an image which looks like a given input image.
+An inspirational generation consists in generating with your GAN an image which looks like a given input image.
+This is based on optimizing the latent vector z such that similarity(GAN(z), TargetImage) is maximum.
 To make an inspirational generation, you first need to build a feature extractor:
 
 ```
 python save_feature_extractor.py {vgg16, vgg19} $PATH_TO_THE_OUTPUT_FEATURE_EXTRACTOR --layers 3 4 5
 ```
+This feature extractor is then used for computing the similarity.
 
 Then run your model:
 
