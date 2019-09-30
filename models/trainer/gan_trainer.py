@@ -27,6 +27,7 @@ class GANTrainer():
                  checkPointDir=None,
                  modelLabel="GAN",
                  config=None,
+                 max_time=0,
                  pathAttribDict=None,
                  selectedAttributes=None,
                  imagefolderDataset=False,
@@ -70,6 +71,7 @@ class GANTrainer():
         self.path_db = pathdb
         self.pathPartition = pathPartition
         self.partitionValue = partitionValue
+        self.max_time = max_time
 
         if config is None:
             config = {}
