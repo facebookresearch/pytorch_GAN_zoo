@@ -31,7 +31,6 @@ class ProgressiveGANTrainer(GANTrainer):
                                dataset
             - useGPU (bool): set to True if you want to use the available GPUs
                              for the training procedure
-            - max_time (int): max number of seconds for training (0 = infinity).
             - visualisation (module): if not None, a visualisation module to
                                       follow the evolution of the training
             - lossIterEvaluation (int): size of the interval on which the
