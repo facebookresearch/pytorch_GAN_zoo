@@ -288,6 +288,13 @@ Then run your model:
 ```
 python eval.py inspirational_generation -n $runName -m $modelName --inputImage $pathTotheInputImage -f $PATH_TO_THE_OUTPUT_FEATURE_EXTRACTOR
 ```
+You can compare choose for the optimization one of the optimizers in Nevergrad
+(https://github.com/facebookresearch/nevergrad/). For example you can run:
+```
+python eval.py inspirational_generation -n $runName -m $modelName --inputImage $pathTotheInputImage -f $PATH_TO_THE_OUTPUT_FEATURE_EXTRACTOR --nevergrad CMA
+```
+if you want to use CMA-ES; or another optimizer in 'CMA', 'DE', 'PSO', 'TwoPointsDE', 'PortfolioDiscreteOnePlusOne', 'DiscreteOnePlusOne', 'OnePlusOne'. If you do not specify --nevergrad, then Adam is used.
+
 
 ### I have generated my metrics. How can i plot them on visdom ?
 
