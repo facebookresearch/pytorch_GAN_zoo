@@ -3,7 +3,7 @@
 A GAN toolbox for researchers and developers with:
 - Progressive Growing of GAN(PGAN): https://arxiv.org/pdf/1710.10196.pdf
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf
-- StyleGAN https://arxiv.org/abs/1812.04948
+- To come: StyleGAN https://arxiv.org/abs/1812.04948
 
 <img src="illustration.png" alt="illustration">
 Picture: Generated samples from GANs trained on celebaHQ, fashionGen, DTD.
