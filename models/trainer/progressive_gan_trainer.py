@@ -23,7 +23,6 @@ class ProgressiveGANTrainer(GANTrainer):
                  pathdb,
                  miniBatchScheduler=None,
                  datasetProfile=None,
-                 max_time=0,
                  configScheduler=None,
                  **kwargs):
         r"""
@@ -49,7 +48,6 @@ class ProgressiveGANTrainer(GANTrainer):
             - stopOnShitStorm (bool): should we stop the training if a diverging
                                      behavior is detected ?
         """
-        self.max_time = max_time
         self.configScheduler = {}
         if configScheduler is not None:
             self.configScheduler = {
