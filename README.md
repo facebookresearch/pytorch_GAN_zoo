@@ -305,3 +305,16 @@ python eval.py metric_plot  -n $runName
 ## LICENSE
 
 This project is under BSD-3 license.
+
+## Citing
+
+```bibtex
+@misc{nevergrad,
+    author = {M. Riviere and C. Couprie},
+    title = {{Pytorch GAN Zoo}},
+    year = {2019},
+    publisher = {GitHub},
+    journal = {GitHub repository},
+    howpublished = {\url{https://GitHub.com/FacebookResearch/pytorch_GAN_zoo}},
+}
+```
