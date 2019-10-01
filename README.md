@@ -273,6 +273,9 @@ You can add optional arguments:
 
 ### Inspirational generation (https://arxiv.org/abs/1906.11661)
 
+You might want to generate clothese (or faces, or whatever) using an inspirational image, e.g.:
+<img src="inspir.png" alt="celeba">
+
 An inspirational generation consists in generating with your GAN an image which looks like a given input image.
 This is based on optimizing the latent vector z such that similarity(GAN(z), TargetImage) is maximum.
 To make an inspirational generation, you first need to build a feature extractor:
