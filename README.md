@@ -309,7 +309,7 @@ This project is under BSD-3 license.
 ## Citing
 
 ```bibtex
-@misc{nevergrad,
+@misc{pytorchganzoo,
     author = {M. Riviere and C. Couprie},
     title = {{Pytorch GAN Zoo}},
     year = {2019},
