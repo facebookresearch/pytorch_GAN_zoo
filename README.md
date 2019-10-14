@@ -3,7 +3,6 @@
 A GAN toolbox for researchers and developers with:
 - Progressive Growing of GAN(PGAN): https://arxiv.org/pdf/1710.10196.pdf
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf
-- To come: StyleGAN https://arxiv.org/abs/1812.04948
 
 <img src="illustration.png" alt="illustration">
 Picture: Generated samples from GANs trained on celebaHQ, fashionGen, DTD.
@@ -228,7 +227,7 @@ You can generate more images from an existing checkpoint using:
 python eval.py visualization -n $runName -m $modelName
 ```
 
-Where modelName is in [PGAN, StyleGAN, DCGAN] and runName is the name given to your run (trained model). This script will load the last checkpoint detected at output_networks/$modelName. If you want to load a specific iteration, please call:
+Where modelName is in [PGAN, DCGAN] and runName is the name given to your run (trained model). This script will load the last checkpoint detected at output_networks/$modelName. If you want to load a specific iteration, please call:
 
 ```
 python eval.py visualization -n $runName -m $modelName -s $SCALE -i $ITER
