@@ -12,7 +12,7 @@ fi
 
 PATH_TO_CELEBAHQ=/private/home/mriviere/celebaHQ/512
 
-OUTPUT_DATASET=celebahq_output
+OUTPUT_DATASET=celebahq_output$
 
 #CONFIGURATION_FILE=config_celeba_cropped.json
 CONFIGURATION_FILE=config_celebaHQ.json
@@ -40,10 +40,11 @@ ln=`./paramcloseto0.sh 0.01 0.6 $3`  # first parameter for epsilond
 
 # StyleGAN or DCGAN could replace PGAN.
 modelName=PGAN
-
-python3.6 -u train.py $modelName -c $CONFIGURATION_FILE  --restart -n $OUTPUT_DATASET --no_vis --baseLearningRate $lr --epsilonD $ed --leakyness $ln --max_time 100 
+export NAME=run${RANDOM}_${RANDOM}
+python3.6 -u train.py $modelName -c $CONFIGURATION_FILE  --restart -n $NAME --no_vis --baseLearningRate $lr --epsilonD $ed --leakyness $ln --max_time 60 
 #for metric in laplacian_SWD inception
 for metric in inception
 do
-python3.6 -u eval.py --no_vis $metric -c $CONFIGURATION_FILE -n $OUTPUT_DATASET -m $modelName 
+python3.6 -u eval.py --no_vis $metric -c $CONFIGURATION_FILE -n $NAME -m $modelName 
 done
+rm -rf output_networks/$NAME
