@@ -254,7 +254,7 @@ class BaseGAN():
         # #3 GAN criterion
         lossGFake = self.lossCriterion.getCriterion(predFakeD, True)
         allLosses["lossG_fake"] = lossGFake.item()
-        lossGFake.backward()
+        lossGFake.backward(retain_graph=True)
 
         if self.config.GDPP:
             _, phiDReal = self.netD.forward(self.real_input, True)
