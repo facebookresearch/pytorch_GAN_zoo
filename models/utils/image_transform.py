@@ -28,8 +28,8 @@ class NumpyResize(object):
 
             np array: resized image
         """
-
-        return scipy.misc.imresize(img, self.size, interp='bilinear')
+        
+        return np.array(img.resize(self.size, resample=Image.BILINEAR))
 
     def __repr__(self):
         return self.__class__.__name__ + '(p={})'.format(self.p)
