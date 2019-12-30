@@ -118,6 +118,14 @@ See hubconf.py for how to load a checkpoint !
 
 To apply the GDPP loss to your model just add the option --GDPP true to your training command.
 
+## (beta) StyleGAN
+
+To run styleGAN, use the model name StyleGAN when running train.py. Besides, when running style GAN you can use the pre-computed configurations for celeba and celebaHQ. For example:
+
+```
+python train.py StyleGAN -c config_celebaHQ.json --restart -n style_gan_celeba
+```
+
 ## Advanced guidelines
 
 ### How to run a training session ?
