@@ -4,6 +4,7 @@ import scipy
 import scipy.misc
 import imageio
 import torch
+from PIL import Image
 
 
 def make_numpy_grid(arrays_list, gridMaxWidth=2048,
@@ -13,7 +14,7 @@ def make_numpy_grid(arrays_list, gridMaxWidth=2048,
     # NCWH format
     N, C, W, H = arrays_list.shape
 
-    arrays_list = (arrays_list + 1.0) * 255.0 / 2.0
+    arrays_list = ((arrays_list + 1.0) * 255.0 / 2.0).astype(np.uint8)
 
     if C == 1:
         arrays_list = np.reshape(arrays_list, (N, W, H))
@@ -37,6 +38,13 @@ def make_numpy_grid(arrays_list, gridMaxWidth=2048,
         outGrid = np.zeros((gridHeight, gridWidth, C), dtype='uint8')
     outGrid += 255
 
+    interp = {
+        'nearest': Image.NEAREST, 
+        'lanczos': Image.LANCZOS, 
+        'bilinear': Image.BILINEAR, 
+        'bicubic': Image.BICUBIC
+    }
+
     indexImage = 0
     for r in range(nRows):
         for c in range(nImgsPerRows):
@@ -47,8 +55,10 @@ def make_numpy_grid(arrays_list, gridMaxWidth=2048,
             xStart = c * imgSize
             yStart = r * imgHeight
 
-            tmpImage = scipy.misc.imresize(
-                arrays_list[indexImage], (imgSize, imgHeight), interp=interpolation)
+            img = np.array(arrays_list[indexImage])
+            img = Image.fromarray(np.transpose(img, (1,2,0)))
+
+            tmpImage = np.array(img.resize((imgSize, imgHeight), resample=interp[interpolation]))
 
             if C == 1:
                 outGrid[yStart:(yStart + imgHeight),
