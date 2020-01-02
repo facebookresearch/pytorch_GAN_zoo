@@ -91,6 +91,11 @@ _C.attribKeysOrder = None
 
 _C.equalizeLabels = False
 
+# Truncation trick
+_C.phiTruncation = 0.5
+
+_C.gamma_avg = 0.99
+
 #Activate GDPP loss ?
 _C.GDPP = False
 

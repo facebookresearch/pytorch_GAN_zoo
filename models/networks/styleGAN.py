@@ -71,7 +71,9 @@ class GNet(nn.Module):
                  dimOutput=3,
                  nMappingLayers=8,
                  leakyReluLeak=0.2,
-                 generationActivation=None):
+                 generationActivation=None,
+                 phiTruncation=0.5,
+                 gamma_avg=0.99):
 
         super(GNet, self).__init__()
         self.dimMapping = dimMapping
@@ -95,6 +97,10 @@ class GNet(nn.Module):
         self.alpha = 0
         self.generationActivation = generationActivation
         self.dimOutput = dimOutput
+        self.phiTruncation = phiTruncation
+
+        self.register_buffer('mean_w', torch.randn(1, dimMapping))
+        self.gamma_avg = gamma_avg
 
     def setNewAlpha(self, alpha):
         r"""
@@ -148,6 +154,11 @@ class GNet(nn.Module):
 
         batchSize = x.size(0)
         mapping = self.mapping(self.noramlizationLayer(x))
+        if self.training:
+            self.mean_w = self.gamma_avg * self.mean_w + (1-self.gamma_avg) * mapping.mean(dim=0, keepdim=True)
+
+        if self.phiTruncation < 1:
+            mapping = self.mean_w + self.phiTruncation * (mapping - self.mean_w)
 
         feature = self.baseScale0.expand(batchSize, -1, 4, 4)
         feature = feature + self.noiseMod00(torch.randn((batchSize, 1, 4, 4), device=x.device))
