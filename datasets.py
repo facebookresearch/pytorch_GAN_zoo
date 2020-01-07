@@ -281,7 +281,8 @@ if __name__ == "__main__":
         maxSize = 1024
         moveLastScale = False
         keepOriginalDataset = True
-        config["miniBatchScheduler"] = {"7": 12, "8": 8}
+        if args.model_type == 'PGAN':
+            config["miniBatchScheduler"] = {"7": 12, "8": 8}
         if args.model_type == 'DCGAN':
             print("WARNING: DCGAN is diverging for celebaHQ")
 

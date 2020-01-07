@@ -1,5 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import os
+import time
 
 from ..DCGAN import DCGAN
 from .gan_trainer import GANTrainer
@@ -18,6 +19,7 @@ class DCGANTrainer(GANTrainer):
 
     def __init__(self,
                  pathdb,
+                 miniBatchScheduler=None,                 
                  **kwargs):
         r"""
         Args:
@@ -46,10 +48,12 @@ class DCGANTrainer(GANTrainer):
             self.saveBaseConfig(pathBaseConfig)
 
         maxShift = int(self.modelConfig.nEpoch * len(self.getDBLoader(0)))
-
+        start = time.time()
         for epoch in range(self.modelConfig.nEpoch):
             dbLoader = self.getDBLoader(0)
             self.trainOnEpoch(dbLoader, 0, shiftIter=shift)
+            if self.max_time > 0  and time.time() - start > self.max_time:
+                break
 
             shift += len(dbLoader)
 

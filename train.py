@@ -14,7 +14,6 @@ import json
 def getTrainer(name):
 
     match = {"PGAN": ("progressive_gan_trainer", "ProgressiveGANTrainer"),
-             "StyleGAN":("styleGAN_trainer", "StyleGANTrainer"),
              "DCGAN": ("DCGAN_trainer", "DCGANTrainer")}
 
     if name not in match:
@@ -30,13 +29,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Testing script')
     parser.add_argument('model_name', type=str,
                         help='Name of the model to launch, available models are\
-                        PGAN and PPGAN. To get all possible option for a model\
+                        PGAN and DCGAN. To get all possible option for a model\
                          please run train.py $MODEL_NAME -overrides')
     parser.add_argument('--no_vis', help=' Disable all visualizations',
                         action='store_true')
     parser.add_argument('--np_vis', help=' Replace visdom by a numpy based \
                         visualizer (SLURM)',
                         action='store_true')
+    parser.add_argument('--max_time', help=' Maximum time in seconds (0 for infinity)', type=int,
+                        dest='max_time', default=0)    
     parser.add_argument('--restart', help=' If a checkpoint is detected, do \
                                            not try to load it',
                         action='store_true')
@@ -124,6 +125,7 @@ if __name__ == "__main__":
                                lossIterEvaluation=kwargs["evalIter"],
                                checkPointDir=checkPointDir,
                                saveIter= kwargs["saveIter"],
+                               max_time=kwargs["max_time"],                               
                                modelLabel=modelLabel,
                                partitionValue=partitionValue,
                                **trainingConfig)

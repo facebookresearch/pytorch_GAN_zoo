@@ -27,6 +27,7 @@ class GANTrainer():
                  checkPointDir=None,
                  modelLabel="GAN",
                  config=None,
+                 max_time=0,
                  pathAttribDict=None,
                  selectedAttributes=None,
                  imagefolderDataset=False,
@@ -50,6 +51,7 @@ class GANTrainer():
             - modelLabel (string): name of the model
             - config (dictionary): configuration dictionnary.
             for all the possible options
+            - max_time (int): max number of seconds for training (0 = infinity).
             - pathAttribDict (string): path to the attribute dictionary giving
                                        the labels of the dataset
             - selectedAttributes (list): if not None, consider only the listed
@@ -70,6 +72,7 @@ class GANTrainer():
         self.path_db = pathdb
         self.pathPartition = pathPartition
         self.partitionValue = partitionValue
+        self.max_time = max_time
 
         if config is None:
             config = {}

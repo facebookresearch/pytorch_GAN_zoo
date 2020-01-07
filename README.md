@@ -3,7 +3,6 @@
 A GAN toolbox for researchers and developers with:
 - Progressive Growing of GAN(PGAN): https://arxiv.org/pdf/1710.10196.pdf
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf
-- To come: StyleGAN https://arxiv.org/abs/1812.04948
 
 <img src="illustration.png" alt="illustration">
 Picture: Generated samples from GANs trained on celebaHQ, fashionGen, DTD.
@@ -48,6 +47,21 @@ pip install -r requirements.txt
  - DTD: https://www.robots.ox.ac.uk/~vgg/data/dtd/
  - CIFAR10: http://www.cs.toronto.edu/~kriz/cifar.html
 
+For a quick start with CelebAHQ, you might:
+```
+git clone https://github.com/nperraud/download-celebA-HQ.git
+cd download-celebA-HQ
+conda create -n celebaHQ python=3
+source activate celebaHQ
+conda install jpeg=8d tqdm requests pillow==3.1.1 urllib3 numpy cryptography scipy
+pip install opencv-python==3.4.0.12 cryptography==2.1.4
+sudo apt-get install p7zip-full
+python download_celebA.py ./
+python download_celebA_HQ.py ./
+python make_HQ_images.py ./
+export PATH_TO_CELEBAHQ=`readlink -f ./celebA-HQ/512`
+```
+
 ## Quick training
 
 The datasets.py script allows you to prepare your datasets and build their corresponding configuration files.
@@ -64,8 +78,9 @@ And wait for a few days. Your checkpoints will be dumped in output_networks/cele
 For celebaHQ:
 
 ```
-python datasets.py celebaHQ $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET - f
-python train.py PGAN -c config_celebaHQ.json --restart -n celebaHQ
+python datasets.py celebaHQ $PATH_TO_CELEBAHQ -o $OUTPUT_DATASET  # Prepare the dataset and build the configuration file.
+python train.py PGAN -c config_celebaHQ.json --restart -n celebaHQ  # Train.
+python eval.py inception -n celebaHQ -m PGAN  # If you want to check the inception score.
 ```
 
 Your checkpoints will be dumped in output_networks/celebaHQ. You should get 1024x1024 generations at the end.
@@ -130,7 +145,7 @@ Where:
 
 1 - MODEL_NAME is the name of the model you want to run. Currently, two models are available:
     - PGAN(progressive growing of gan)
-    - PPGAN(decoupled version of PGAN)
+    - DCGAN
 
 2 - CONFIGURATION_FILE(mandatory): path to a training configuration file. This file is a json file containing at least a pathDB entry with the path to the training dataset. See below for more informations about this file.
 
@@ -209,19 +224,19 @@ You need to use the eval.py script.
 
 You can generate more images from an existing checkpoint using:
 ```
-python eval.py visualization -n $modelName -m $modelType
+python eval.py visualization -n $runName -m $modelName
 ```
 
-Where modelType is in [PGAN, PPGAN, DCGAN] and modelName is the name given to your model. This script will load the last checkpoint detected at testNets/$modelName. If you want to load a specific iteration, please call:
+Where modelName is in [PGAN, DCGAN] and runName is the name given to your run (trained model). This script will load the last checkpoint detected at output_networks/$modelName. If you want to load a specific iteration, please call:
 
 ```
-python eval.py visualization -n $modelName -m $modelType -s $SCALE -i $ITER
+python eval.py visualization -n $runName -m $modelName -s $SCALE -i $ITER
 ```
 
 If your model is conditioned, you can ask the visualizer to print out some conditioned generations. For example:
 
 ```
-python eval.py visualization -n $modelName -m $modelType --Class T_SHIRT
+python eval.py visualization -n $runName -m $modelName --Class T_SHIRT
 ```
 
 Will plot a batch of T_SHIRTS in visdom. Please use the option - -showLabels to see all the available labels for your model.
@@ -231,16 +246,21 @@ Will plot a batch of T_SHIRTS in visdom. Please use the option - -showLabels to 
 To save a randomly generated fake dataset from a checkpoint please use:
 
 ```
-python eval.py visualization -n $modelName -m $modelType --save_dataset $PATH_TO_THE_OUTPUT_DATASET --size_dataset $SIZE_OF_THE_OUTPUT
+python eval.py visualization -n $runName -m $modelName --save_dataset $PATH_TO_THE_OUTPUT_DATASET --size_dataset $SIZE_OF_THE_OUTPUT
 ```
 
 ### SWD metric
 
 Using the same kind of configuration file as above, just launch:
+```
+python eval.py laplacian_SWD -c $CONFIGURATION_FILE -n $runName -m $modelName
+```
+for the SWD score, to be maximized, or for the inception score:
+```
+python eval.py inception -c $CONFIGURATION_FILE -n $runName -m $modelName
+```
+also to be maximized (see https://hal.inria.fr/hal-01850447/document for a discussion).
 
-```
-python eval.py laplacian_SWD -c $CONFIGURATION_FILE -n $modelName -m $modelType
-```
 
 Where $CONFIGURATION_FILE is the training configuration file called by train.py (see above): it must contains a "pathDB" field pointing to path to the dataset's directory. For example, if you followed the instruction of the Quick Training section to launch a training session on celebaHQ your configuration file will be config_celebaHQ.json.
 
@@ -250,27 +270,53 @@ You can add optional arguments:
 - -i $ITER: specify the iteration to evaluate(if not set, will take the highest one)
 - --selfNoise: returns the typical noise of the SWD distance for each resolution
 
-### Inspirational generation
+### Inspirational generation (https://arxiv.org/abs/1906.11661)
 
+You might want to generate clothese (or faces, or whatever) using an inspirational image, e.g.:
+<img src="inspir.png" alt="celeba" class="center">
+
+An inspirational generation consists in generating with your GAN an image which looks like a given input image.
+This is based on optimizing the latent vector z such that similarity(GAN(z), TargetImage) is maximum.
 To make an inspirational generation, you first need to build a feature extractor:
 
 ```
 python save_feature_extractor.py {vgg16, vgg19} $PATH_TO_THE_OUTPUT_FEATURE_EXTRACTOR --layers 3 4 5
 ```
+This feature extractor is then used for computing the similarity.
 
 Then run your model:
 
 ```
-python eval.py inspirational_generation -n $modelName -m $modelType --inputImage $pathTotheInputImage -f $PATH_TO_THE_OUTPUT_FEATURE_EXTRACTOR
+python eval.py inspirational_generation -n $runName -m $modelName --inputImage $pathTotheInputImage -f $PATH_TO_THE_OUTPUT_FEATURE_EXTRACTOR
 ```
+You can compare choose for the optimization one of the optimizers in Nevergrad
+(https://github.com/facebookresearch/nevergrad/). For example you can run:
+```
+python eval.py inspirational_generation -n $runName -m $modelName --inputImage $pathTotheInputImage -f $PATH_TO_THE_OUTPUT_FEATURE_EXTRACTOR --nevergrad CMA
+```
+if you want to use CMA-ES; or another optimizer in 'CMA', 'DE', 'PSO', 'TwoPointsDE', 'PortfolioDiscreteOnePlusOne', 'DiscreteOnePlusOne', 'OnePlusOne'. If you do not specify --nevergrad, then Adam is used.
+
 
 ### I have generated my metrics. How can i plot them on visdom ?
 
 Just run
 ```
-python eval.py metric_plot  -n $modelName
+python eval.py metric_plot  -n $runName
 ```
 
 ## LICENSE
 
 This project is under BSD-3 license.
+
+## Citing
+
+```bibtex
+@misc{pytorchganzoo,
+    author = {M. Riviere},
+    title = {{Pytorch GAN Zoo}},
+    year = {2019},
+    publisher = {GitHub},
+    journal = {GitHub repository},
+    howpublished = {\url{https://GitHub.com/FacebookResearch/pytorch_GAN_zoo}},
+}
+```
