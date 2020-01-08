@@ -154,7 +154,7 @@ python train.py $MODEL_NAME --overrides
 
 ## Configuration file of a training session
 
-The minimum necessary file for a training session is a json with the following lines
+The minimum configuration file for a training session is a json with the following lines
 
 ```
 {
@@ -164,7 +164,7 @@ The minimum necessary file for a training session is a json with the following l
 
 Where a dataset can be:
 - a folder with all your images in .jpg, .png or .npy format
-- a folder with N subfolder and images in it
+- a folder with N subfolder and images in it (see imagefolderDataset = True below)
 - a .h5 file(cf fashionGen)
 
 To this you can add a "config" entry giving overrides to the standard configuration. See models/trainer/standard_configurations to see all possible options. For example:
@@ -218,13 +218,25 @@ Where modelType is in [PGAN, PPGAN, DCGAN] and modelName is the name given to yo
 python eval.py visualization -n $modelName -m $modelType -s $SCALE -i $ITER
 ```
 
-If your model is conditioned, you can ask the visualizer to print out some conditioned generations. For example:
+If your model is conditioned, you can ask the visualizer to print out some conditioned generations. First, use --showLabels to see all the available categories and their labels. 
+
+```
+python eval.py visualization -n $modelName -m $modelType --showLabels
+```
+
+Then, run your generation with:
+
+```
+python eval.py visualization -n $modelName -m $modelType --$CATEGORY_NAME $LABEL_NAME
+```
+
+For example with a model trained on fashionGen:
 
 ```
 python eval.py visualization -n $modelName -m $modelType --Class T_SHIRT
 ```
 
-Will plot a batch of T_SHIRTS in visdom. Please use the option - -showLabels to see all the available labels for your model.
+Will plot a batch of T_SHIRTS in visdom.
 
 ### Fake dataset generation
 
