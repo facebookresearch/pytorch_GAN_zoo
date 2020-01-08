@@ -154,7 +154,7 @@ python train.py $MODEL_NAME --overrides
 
 ## Configuration file of a training session
 
-The minimum configuration file for a training session is a json with the following lines
+The minimum configuration file for a training session is a json file with the following lines
 
 ```
 {
