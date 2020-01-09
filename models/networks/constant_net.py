@@ -21,6 +21,19 @@ class ConstantNet(nn.Module):
         return x
 
 
+class MeanStd(nn.Module):
+    def __init__(self):
+        super(MeanStd, self).__init__()
+
+    def forward(self,x):
+
+        # Size : N C W H
+        x = x.view(x.size(0), x.size(1), -1)
+        mean_x = torch.mean(x, dim=2)
+        var_x = torch.mean(x**2, dim=2) - mean_x * mean_x
+        return torch.cat([mean_x, var_x], dim=1)
+
+
 class FeatureTransform(nn.Module):
     r"""
     Concatenation of a resize tranform and a normalization

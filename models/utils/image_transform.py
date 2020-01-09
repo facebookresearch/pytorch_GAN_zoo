@@ -4,9 +4,6 @@ import torchvision.transforms as Transforms
 import os
 import random
 import numpy as np
-import scipy
-import scipy.misc
-
 from PIL import Image
 
 # The equivalent of some torchvision.transforms operations but for numpy array
@@ -28,7 +25,8 @@ class NumpyResize(object):
 
             np array: resized image
         """
-        
+        if not isinstance(img, Image.Image):
+            img = Image.fromarray(img)
         return np.array(img.resize(self.size, resample=Image.BILINEAR))
 
     def __repr__(self):
@@ -71,6 +69,7 @@ class NumpyToTensor(object):
 
         return Transforms.functional.to_tensor(img)
 
+
 def pil_loader(path):
     imgExt = os.path.splitext(path)[1]
     if imgExt == ".npy":
@@ -82,6 +81,7 @@ def pil_loader(path):
     with open(path, 'rb') as f:
         img = Image.open(f)
         return img.convert('RGB')
+
 
 def standardTransform(size):
     return Transforms.Compose([NumpyResize(size),

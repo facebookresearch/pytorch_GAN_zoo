@@ -3,7 +3,7 @@
 A GAN toolbox for researchers and developers with:
 - Progressive Growing of GAN(PGAN): https://arxiv.org/pdf/1710.10196.pdf
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf
-- To come: StyleGAN https://arxiv.org/abs/1812.04948
+- StyleGAN (beta): https://arxiv.org/abs/1812.04948
 
 <img src="illustration.png" alt="illustration">
 Picture: Generated samples from GANs trained on celebaHQ, fashionGen, DTD.
@@ -117,6 +117,14 @@ See hubconf.py for how to load a checkpoint !
 ## GDPP
 
 To apply the GDPP loss to your model just add the option --GDPP true to your training command.
+
+## (beta) StyleGAN
+
+To run StyleGAN, use the model name StyleGAN when running train.py. Besides,to run StyleGAN you can use the pre-computed configurations for celeba and celebaHQ. For example:
+
+```
+python train.py StyleGAN -c config_celebaHQ.json --restart -n style_gan_celeba
+```
 
 ## Advanced guidelines
 
