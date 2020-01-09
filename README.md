@@ -3,7 +3,7 @@
 A GAN toolbox for researchers and developers with:
 - Progressive Growing of GAN(PGAN): https://arxiv.org/pdf/1710.10196.pdf
 - DCGAN: https://arxiv.org/pdf/1511.06434.pdf
-- To come: StyleGAN https://arxiv.org/abs/1812.04948
+- StyleGAN (beta): https://arxiv.org/abs/1812.04948
 
 <img src="illustration.png" alt="illustration">
 Picture: Generated samples from GANs trained on celebaHQ, fashionGen, DTD.
@@ -120,7 +120,7 @@ To apply the GDPP loss to your model just add the option --GDPP true to your tra
 
 ## (beta) StyleGAN
 
-To run styleGAN, use the model name StyleGAN when running train.py. Besides, when running style GAN you can use the pre-computed configurations for celeba and celebaHQ. For example:
+To run StyleGAN, use the model name StyleGAN when running train.py. Besides,to run StyleGAN you can use the pre-computed configurations for celeba and celebaHQ. For example:
 
 ```
 python train.py StyleGAN -c config_celebaHQ.json --restart -n style_gan_celeba
@@ -232,7 +232,7 @@ If your model is conditioned, you can ask the visualizer to print out some condi
 python eval.py visualization -n $modelName -m $modelType --Class T_SHIRT
 ```
 
-Will plot a batch of T_SHIRTS in visdom. Please use the option - -showLabels to see all the available labels for your model.
+Will plot a batch of T_SHIRTS in visdom. Please use the option --showLabels to see all the available labels for your model.
 
 ### Fake dataset generation
 
