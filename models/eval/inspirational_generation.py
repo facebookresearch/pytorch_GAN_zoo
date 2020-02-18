@@ -202,7 +202,7 @@ def gradientDescentOnInput(model,
 
     nImages = input.size(0)
     assert nImages == 1
-    assert randomSearch
+    # assert randomSearch
     thelosses = [1., 3., 3.]
     target = MultiobjectiveFunction(lambda x: thelosses, tuple(thelosses))  # These numbers should be discussed...
     print(f"Generating {nImages} images")
@@ -328,7 +328,7 @@ def gradientDescentOnInput(model,
             *["{:10.6f}".format(optimalLoss[i].item())
               for i in range(nImages)]))
       all_outputs[method] = all_outputs_for_this_method       
-    return all_outputs, output, optimalVector, optimalLoss
+    return output, optimalVector, optimalLoss, all_outputs
 
 
 def test(parser, visualisation=None):
@@ -433,7 +433,7 @@ def test(parser, visualisation=None):
         if not os.path.isdir(outPathDescent):
             os.mkdir(outPathDescent)
 
-    img, outVectors, loss = gradientDescentOnInput(visualizer.model,
+    img, outVectors, loss, all_outputs = gradientDescentOnInput(visualizer.model,
                                                    fullInputs,
                                                    featureExtractors,
                                                    imgTransforms,
