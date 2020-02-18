@@ -241,17 +241,17 @@ def gradientDescentOnInput(model,
                 varNoise.to(model.device)
 
         noiseOut = model.netG(varNoise)
-        sumLoss = torch.zeros(nImages, device=model.device)
+        sumLoss = torch.zeros(3, nImages, device=model.device)
 
         loss = (((varNoise**2).mean(dim=1) - 1)**2)
-        sumLoss += loss.view(nImages)
+        sumLoss[0] = loss.view(nImages)
         loss.sum(dim=0).backward(retain_graph=True)
 
         for i in range(nExtractors):
             featureOut = featureExtractors[i](imageTransforms[i](noiseOut))
             diff = ((featuresIn[i] - featureOut)**2)
             loss = weights[i] * diff.mean(dim=1)
-            sumLoss += loss
+            sumLoss[1] += loss
 
             if not randomSearch:
                 retainGraph = (lambdaD > 0) or (i != nExtractors - 1)
@@ -260,14 +260,14 @@ def gradientDescentOnInput(model,
         if lambdaD > 0:
 
             loss = -lambdaD * model.netD(noiseOut)[:, 0]
-            sumLoss += loss
+            sumLoss[2] += loss
 
             if not randomSearch:
                 loss.sum(dim=0).backward()
 
         if nevergrad:
             for i in range(nImages):
-                optimizers[i].tell(inps[i], float(sumLoss[i]))
+                optimizers[i].tell(inps[i], (float(sumLoss[0][i]), float(sumLoss[1][i]), float(sumLoss[2][i])))
         elif not randomSearch:
             optimNoise.step()
 
@@ -300,17 +300,28 @@ def gradientDescentOnInput(model,
         if iter % epochStep == (epochStep - 1):
             lr *= gradientDecay
             resetVar(optimalVector)
+            
+    assert(nImages == 1)   # Let us simplify the understanding in the MOO case.
+    num_optima = 8
+    all_outputs = {}
+    for method in ["random", "loss-covering", "domain-covering", "hypervolume"]
+      all_outputs_for_this_method = []
+      pareto = optimizers[0].sample_pareto_front(num_optima, method)
+      for v in range(num_optima):
+        inps = [pareto[v]]
+        npinps = np.array(inps)  
+        varNoise = torch.tensor(npinps, dtype=torch.float32, device=model.device)                                               
+        output = model.test(varNoise, getAvG=True, toCPU=True).detach()
+        all_outputs_for_this_method += [output]
+        if visualizer is not None:
+            visualizer.publishTensors(
+                output.cpu(), (output.size(2), output.size(3)))
 
-    output = model.test(optimalVector, getAvG=True, toCPU=True).detach()
-
-    if visualizer is not None:
-        visualizer.publishTensors(
-            output.cpu(), (output.size(2), output.size(3)))
-
-    print("optimal losses : " + formatCommand.format(
-        *["{:10.6f}".format(optimalLoss[i].item())
-          for i in range(nImages)]))
-    return output, optimalVector, optimalLoss
+        print("optimal losses : " + formatCommand.format(
+            *["{:10.6f}".format(optimalLoss[i].item())
+              for i in range(nImages)]))
+      all_outputs[method] = all_outputs_for_this_method       
+    return all_outputs, output, optimalVector, optimalLoss
 
 
 def test(parser, visualisation=None):
