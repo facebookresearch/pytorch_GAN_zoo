@@ -203,8 +203,8 @@ def gradientDescentOnInput(model,
     nImages = input.size(0)
     assert nImages == 1
     # assert randomSearch
-    thelosses = [1., 3., 3.]
-    target = MultiobjectiveFunction(lambda x: thelosses, tuple(thelosses))  # These numbers should be discussed...
+    thelosses = [1., 3., 3.]  # These numbers should be discussed...
+    target = MultiobjectiveFunction(lambda x: thelosses, tuple(thelosses))
     print(f"Generating {nImages} images")
     if nevergrad is not None:
         optimizers = []
