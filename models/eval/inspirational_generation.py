@@ -2,6 +2,7 @@
 import os
 import json
 from nevergrad.optimization import optimizerlib
+from nevergrad.functions.multiobjective.core import MultiobjectiveFunction
 from copy import deepcopy
 
 from PIL import Image
@@ -136,7 +137,7 @@ def gradientDescentOnInput(model,
 
     if nevergrad not in [None, 'CMA', 'DE', 'PSO',
                          'TwoPointsDE', 'PortfolioDiscreteOnePlusOne',
-                         'DiscreteOnePlusOne', 'OnePlusOne']:
+                         'DiscreteOnePlusOne', 'OnePlusOne', 'random', 'loss-covering', 'hypervolume', 'domain-covering']:
         raise ValueError("Invalid nevergard mode " + str(nevergrad))
     randomSearch = randomSearch or (nevergrad is not None)
     print("Running for %d setps" % nSteps)
@@ -200,11 +201,16 @@ def gradientDescentOnInput(model,
     gradientDecay = 0.1
 
     nImages = input.size(0)
+    assert nImages == 1
+    assert randomSearch
+    thelosses = [1., 3., 3.]
+    target = MultiobjectiveFunction(lambda x: thelosses, tuple(thelosses))  # These numbers should be discussed...
     print(f"Generating {nImages} images")
     if nevergrad is not None:
         optimizers = []
         for i in range(nImages):
-            optimizers += [optimizerlib.registry[nevergrad](
+            optim = nevergrad if nevergrad not in ["random", "loss-covering", "hypervolume", "domain-covering"] else "OnePlusOne"
+            optimizers += [optimizerlib.registry[optim](
                 dimension=model.config.noiseVectorDim +
                 model.config.categoryVectorDim,
                 budget=nSteps)]
@@ -267,7 +273,8 @@ def gradientDescentOnInput(model,
 
         if nevergrad:
             for i in range(nImages):
-                optimizers[i].tell(inps[i], (float(sumLoss[0][i]), float(sumLoss[1][i]), float(sumLoss[2][i])))
+                thelosses = (float(sumLoss[0][i]), float(sumLoss[1][i]), float(sumLoss[2][i]))
+                optimizers[i].tell(target.compute_aggregate_loss(thelosses, inps[0]))
         elif not randomSearch:
             optimNoise.step()
 
