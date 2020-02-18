@@ -433,7 +433,7 @@ def test(parser, visualisation=None):
         if not os.path.isdir(outPathDescent):
             os.mkdir(outPathDescent)
 
-    img, outVectors, loss, all_outputs = gradientDescentOnInput(visualizer.model,
+    img, outVectors, loss, all_imgs = gradientDescentOnInput(visualizer.model,
                                                    fullInputs,
                                                    featureExtractors,
                                                    imgTransforms,
@@ -451,6 +451,10 @@ def test(parser, visualisation=None):
 
     path = basePath + ".jpg"
     visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
+    for i, output_img in enumerate(all_imgs):
+      path = basePath + "_" + str(i) + ".jpg"
+      visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
+        
     outDictData[os.path.splitext(os.path.basename(path))[0]] = \
         [x.item() for x in loss]
 
