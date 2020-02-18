@@ -2,7 +2,7 @@
 import os
 import json
 from nevergrad.optimization import optimizerlib
-from nevergrad.functions.multiobjective.core import MultiobjectiveFunction
+from nevergrad.functions import MultiobjectiveFunction
 from copy import deepcopy
 
 from PIL import Image
@@ -137,7 +137,7 @@ def gradientDescentOnInput(model,
 
     if nevergrad not in [None, 'CMA', 'DE', 'PSO',
                          'TwoPointsDE', 'PortfolioDiscreteOnePlusOne',
-                         'DiscreteOnePlusOne', 'OnePlusOne', 'random', 'loss-covering', 'hypervolume', 'domain-covering']:
+                         'DiscreteOnePlusOne', 'OnePlusOne', 'moo']:
         raise ValueError("Invalid nevergard mode " + str(nevergrad))
     randomSearch = randomSearch or (nevergrad is not None)
     print("Running for %d setps" % nSteps)
@@ -209,7 +209,7 @@ def gradientDescentOnInput(model,
     if nevergrad is not None:
         optimizers = []
         for i in range(nImages):
-            optim = nevergrad if nevergrad not in ["random", "loss-covering", "hypervolume", "domain-covering"] else "OnePlusOne"
+            optim = "OnePlusOne" if nevergrad == "moo" else nevergrad
             optimizers += [optimizerlib.registry[optim](
                 dimension=model.config.noiseVectorDim +
                 model.config.categoryVectorDim,
@@ -311,7 +311,7 @@ def gradientDescentOnInput(model,
     assert(nImages == 1)   # Let us simplify the understanding in the MOO case.
     num_optima = 8
     all_outputs = {}
-    for method in ["random", "loss-covering", "domain-covering", "hypervolume"]
+    for method in ["random", "loss-covering", "domain-covering", "hypervolume"] if nevergrad == "moo" else [nevergrad]
       all_outputs_for_this_method = []
       pareto = optimizers[0].sample_pareto_front(num_optima, method)
       for v in range(num_optima):
