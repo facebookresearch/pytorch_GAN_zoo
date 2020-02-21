@@ -450,12 +450,12 @@ def test(parser, visualisation=None):
         featureExtractors = IDModule()
         imgTransforms = IDModule()
 
-    basePath = os.path.splitext(imgPath)[0] + "_" + kwargs['suffix']
+    basePath = os.path.splitext(imgPath)[0] + f'_iter_{kwargs["nSteps"]}_discr_{kwargs["lambdaD"]}' #+ "_" + kwargs['suffix']
 
     if not os.path.isdir(basePath):
         os.mkdir(basePath)
 
-    basePath = os.path.join(basePath, os.path.basename(basePath))
+    # basePath = os.path.join(basePath) #os.path.basename(basePath))
 
     print("All results will be saved in " + basePath)
 
