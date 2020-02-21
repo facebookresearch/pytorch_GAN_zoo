@@ -9,6 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lbfgs import LBFGS
 
 from ..gan_visualizer import GANVisualizer
 from ..utils.utils import loadmodule, getLastCheckPoint, getVal, \
@@ -81,7 +82,7 @@ def updateParser(parser):
     parser.add_argument('--nevergrad', type=str,
                         choices=['CMA', 'DE', 'PSO', 'TwoPointsDE',
                                  'PortfolioDiscreteOnePlusOne',
-                                 'DiscreteOnePlusOne', 'OnePlusOne'])
+                                 'DiscreteOnePlusOne', 'OnePlusOne', 'LBFGS'])
     parser.add_argument('--save_descent', help='Save descent',
                         action='store_true')
 
@@ -136,9 +137,13 @@ def gradientDescentOnInput(model,
 
     if nevergrad not in [None, 'CMA', 'DE', 'PSO',
                          'TwoPointsDE', 'PortfolioDiscreteOnePlusOne',
-                         'DiscreteOnePlusOne', 'OnePlusOne']:
+                         'DiscreteOnePlusOne', 'OnePlusOne', 'LBFGS']:
         raise ValueError("Invalid nevergard mode " + str(nevergrad))
-    randomSearch = randomSearch or (nevergrad is not None)
+    use_lbfgs = False
+    if nevergrad == 'LBFGS':
+        nevergrad = None
+        use_lbfgs=True
+    randomSearch = randomSearch or (nevergrad is not None and nevergrad != 'LBFGS')
     print("Running for %d setps" % nSteps)
 
     if visualizer is not None:
@@ -150,8 +155,11 @@ def gradientDescentOnInput(model,
                             model.config.categoryVectorDim),
                            requires_grad=True, device=model.device)
 
-    optimNoise = optim.Adam([varNoise],
-                            betas=[0., 0.99], lr=lr)
+    if use_lbfgs:
+        optimNoise = LBFGS([varNoise], lr=1)
+    else:
+        optimNoise = optim.Adam([varNoise],
+                                betas=[0., 0.99], lr=lr)
 
     noiseOut = model.test(varNoise, getAvG=True, toCPU=False)
 
@@ -205,7 +213,7 @@ def gradientDescentOnInput(model,
         optimizers = []
         for i in range(nImages):
             optimizers += [optimizerlib.registry[nevergrad](
-                dimension=model.config.noiseVectorDim +
+                parametrization=model.config.noiseVectorDim +
                 model.config.categoryVectorDim,
                 budget=nSteps)]
 
@@ -213,11 +221,12 @@ def gradientDescentOnInput(model,
         newVal.requires_grad = True
         print("Updating the optimizer with learning rate : %f" % lr)
         varNoise = newVal
-        optimNoise = optim.Adam([varNoise],
-                                betas=[0., 0.99], lr=lr)
+        optimNoise = optim.Adam([varNoise], betas=[0., 0.99], lr=lr)
 
     # String's format for loss output
     formatCommand = ' '.join(['{:>4}' for x in range(nImages)])
+    backtobfgs = False
+
     for iter in range(nSteps):
 
         optimNoise.zero_grad()
@@ -233,8 +242,7 @@ def gradientDescentOnInput(model,
                 inps = []
                 for i in range(nImages):
                     inps += [optimizers[i].ask()]
-                    npinps = np.array(inps)
-
+                    npinps = np.array([inp.value for inp in inps])
                 varNoise = torch.tensor(
                     npinps, dtype=torch.float32, device=model.device)
                 varNoise.requires_grad = True
@@ -269,7 +277,7 @@ def gradientDescentOnInput(model,
             for i in range(nImages):
                 optimizers[i].tell(inps[i], float(sumLoss[i]))
         elif not randomSearch:
-            optimNoise.step()
+            optimNoise.step(closure=lambda:loss.sum(dim=0))
 
         if optimalLoss is None:
             optimalVector = deepcopy(varNoise)
@@ -296,6 +304,18 @@ def gradientDescentOnInput(model,
             print(str(iter) + " : " + formatCommand.format(
                 *["{:10.6f}".format(sumLoss[i].item())
                   for i in range(nImages)]))
+        if use_lbfgs:
+            for i in range(nImages):
+                if sumLoss[i] != sumLoss[i]:
+                    #   varNoise[i].data = optimalVector[i].data
+                    varNoise.data = optimalVector.data
+                    print("yoyo")
+                    optimNoise = optim.Adam([varNoise],
+                                            lr=lr)
+                    backtobfgs = True
+        if backtobfgs:
+            optimNoise = torch.optim.LBFGS([varNoise], lr=lr)
+            backtobfgs = False
 
         if iter % epochStep == (epochStep - 1):
             lr *= gradientDecay

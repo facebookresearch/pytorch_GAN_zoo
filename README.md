@@ -281,7 +281,7 @@ python save_feature_extractor.py {vgg16, vgg19} $PATH_TO_THE_OUTPUT_FEATURE_EXTR
 Then run your model:
 
 ```
-python eval.py inspirational_generation -n $modelName -m $modelType --inputImage $pathTotheInputImage -f $PATH_TO_THE_OUTPUT_FEATURE_EXTRACTOR
+python eval.py inspirational_generation -n $modelName -m $modelType --input_image $pathTotheInputImage -f $PATH_TO_THE_OUTPUT_FEATURE_EXTRACTOR
 ```
 
 ### I have generated my metrics. How can i plot them on visdom ?
