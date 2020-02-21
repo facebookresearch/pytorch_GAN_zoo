@@ -415,12 +415,12 @@ def test(parser, visualisation=None):
         featureExtractors = IDModule()
         imgTransforms = IDModule()
 
-    basePath = os.path.splitext(imgPath)[0] + "_" + kwargs['suffix']
+    basePath = os.path.splitext(imgPath)[0] + f'_iter_{kwargs["nSteps"]}_discr_{kwargs["lambdaD"]}' #+ "_" + kwargs['suffix']
 
     if not os.path.isdir(basePath):
         os.mkdir(basePath)
 
-    basePath = os.path.join(basePath, os.path.basename(basePath))
+    # basePath = os.path.join(basePath) #os.path.basename(basePath))
 
     print("All results will be saved in " + basePath)
 
@@ -451,8 +451,9 @@ def test(parser, visualisation=None):
     pathVectors = basePath + "vector.pt"
     torch.save(outVectors, open(pathVectors, 'wb'))
 
-    path = basePath + ".jpg"
-    visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
+    path = basePath  + f'/{kwargs["nevergrad"]}'+ ".jpg"
+    if visualisation:
+        visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
     outDictData[os.path.splitext(os.path.basename(path))[0]] = \
         [x.item() for x in loss]
 
