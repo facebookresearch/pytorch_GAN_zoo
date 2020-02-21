@@ -348,7 +348,7 @@ def gradientDescentOnInput(model,
         return output, optimalVector, optimalLoss, []
 
     assert nevergrad == "moo"
-    for method in ["random", "loss-covering", "domain-covering", "hypervolume"]
+    for method in ["random", "loss-covering", "domain-covering", "hypervolume"]:
       all_outputs_for_this_method = []
       pareto = optimizers[0].sample_pareto_front(num_optima, method)
       for v in range(num_optima):
