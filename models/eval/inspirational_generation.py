@@ -9,7 +9,7 @@ from PIL import Image
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.optim as optim
+from torch.optim import Adam
 from torch.optim.lbfgs import LBFGS
 
 from ..gan_visualizer import GANVisualizer
@@ -83,7 +83,7 @@ def updateParser(parser):
     parser.add_argument('--nevergrad', type=str,
                         choices=['CMA', 'DE', 'PSO', 'TwoPointsDE',
                                  'PortfolioDiscreteOnePlusOne',
-                                 'DiscreteOnePlusOne', 'OnePlusOne', 'LBFGS'])
+                                 'DiscreteOnePlusOne', 'OnePlusOne', 'LBFGS', 'moo'])
     parser.add_argument('--save_descent', help='Save descent',
                         action='store_true')
 
@@ -159,7 +159,7 @@ def gradientDescentOnInput(model,
     if use_lbfgs:
         optimNoise = LBFGS([varNoise], lr=1)
     else:
-        optimNoise = optim.Adam([varNoise],
+        optimNoise = Adam([varNoise],
                                 betas=[0., 0.99], lr=lr)
 
     noiseOut = model.test(varNoise, getAvG=True, toCPU=False)
@@ -211,7 +211,7 @@ def gradientDescentOnInput(model,
     nImages = input.size(0)
     assert nImages == 1
     # assert randomSearch
-    thelosses = [1., 3., 3.]  # These numbers should be discussed...
+    thelosses = [x * 100 for x in [1., 3., 3.]]  # These numbers should be discussed...
     target = MultiobjectiveFunction(lambda x: thelosses, tuple(thelosses))
     print(f"Generating {nImages} images")
     if nevergrad is not None:
@@ -227,7 +227,7 @@ def gradientDescentOnInput(model,
         newVal.requires_grad = True
         print("Updating the optimizer with learning rate : %f" % lr)
         varNoise = newVal
-        optimNoise = optim.Adam([varNoise], betas=[0., 0.99], lr=lr)
+        optimNoise = Adam([varNoise], betas=[0., 0.99], lr=lr)
 
     # String's format for loss output
     formatCommand = ' '.join(['{:>4}' for x in range(nImages)])
@@ -286,7 +286,7 @@ def gradientDescentOnInput(model,
         if nevergrad:
             for i in range(nImages):
                 thelosses = (float(combinedLoss[0][i]), float(combinedLoss[1][i]), float(combinedLoss[2][i]))
-                optimizers[i].tell(target.compute_aggregate_loss(thelosses, inps[0]))
+                optimizers[i].tell(inps[i], target.compute_aggregate_loss(thelosses, inps[i]))
         elif not randomSearch:
             optimNoise.step(closure=lambda:loss.sum(dim=0))
 
@@ -313,7 +313,7 @@ def gradientDescentOnInput(model,
                         outPath)
 
             print(str(iter) + " : " + formatCommand.format(
-                *["{:10.6f}".format(combinedLoss[:,i].item())
+                *["{:10.6f}".format(combinedLoss[:,i].sum().item())
                   for i in range(nImages)]))
         if use_lbfgs:
             for i in range(nImages):
@@ -321,7 +321,7 @@ def gradientDescentOnInput(model,
                     #   varNoise[i].data = optimalVector[i].data
                     varNoise.data = optimalVector.data
                     print("yoyo")
-                    optimNoise = optim.Adam([varNoise],
+                    optimNoise = Adam([varNoise],
                                             lr=lr)
                     backtobfgs = True
         if backtobfgs:
@@ -348,11 +348,12 @@ def gradientDescentOnInput(model,
         return output, optimalVector, optimalLoss, []
 
     assert nevergrad == "moo"
-    for method in ["random", "loss-covering", "domain-covering", "hypervolume"]:
+    for method in ["random", "loss-covering", "hypervolume"]:
       all_outputs_for_this_method = []
-      pareto = optimizers[0].sample_pareto_front(num_optima, method)
+      pareto = target.pareto_front(num_optima, method)
+      print(len(pareto), num_optima)
       for v in range(num_optima):
-        inps = [pareto[v]]
+        inps = [pareto[v][0][0].value]
         npinps = np.array(inps)
         varNoise = torch.tensor(npinps, dtype=torch.float32, device=model.device)
         output = model.test(varNoise, getAvG=True, toCPU=True).detach()
@@ -488,9 +489,11 @@ def test(parser, visualisation=None):
 
     path = basePath + ".jpg"
     visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
-    for i, output_img in enumerate(all_imgs):
-      path = basePath + "_" + str(i) + ".jpg"
-      visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
+
+    for method, images in all_imgs.items():
+        for i, img in enumerate(images):
+            path = f'{basePath}_{method}_moo_{str(i)}.jpg'
+            visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
 
     outDictData[os.path.splitext(os.path.basename(path))[0]] = \
         [x.item() for x in loss]
