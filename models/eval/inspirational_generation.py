@@ -315,7 +315,20 @@ def gradientDescentOnInput(model,
     assert(nImages == 1)   # Let us simplify the understanding in the MOO case.
     num_optima = 8
     all_outputs = {}
-    for method in ["random", "loss-covering", "domain-covering", "hypervolume"] if nevergrad == "moo" else [nevergrad]
+    if nevergrad != "moo":
+        output = model.test(optimalVector, getAvG=True, toCPU=True).detach()
+
+        if visualizer is not None:
+            visualizer.publishTensors(
+                output.cpu(), (output.size(2), output.size(3)))
+
+        print("optimal losses : " + formatCommand.format(
+            *["{:10.6f}".format(optimalLoss[i].item())
+              for i in range(nImages)]))
+        return output, optimalVector, optimalLoss, []
+    
+    assert nevergrad == "moo"
+    for method in ["random", "loss-covering", "domain-covering", "hypervolume"]
       all_outputs_for_this_method = []
       pareto = optimizers[0].sample_pareto_front(num_optima, method)
       for v in range(num_optima):
