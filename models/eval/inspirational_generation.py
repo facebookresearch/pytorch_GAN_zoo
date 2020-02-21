@@ -305,7 +305,7 @@ def gradientDescentOnInput(model,
                         outPath)
 
             print(str(iter) + " : " + formatCommand.format(
-                *["{:10.6f}".format(combinedLoss[i].item())
+                *["{:10.6f}".format(combinedLoss[:,i].item())
                   for i in range(nImages)]))
 
         if iter % epochStep == (epochStep - 1):
