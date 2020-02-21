@@ -248,9 +248,11 @@ def gradientDescentOnInput(model,
 
         noiseOut = model.netG(varNoise)
         combinedLoss = torch.zeros(3, nImages, device=model.device)
+        sumLoss = torch.zeros(nImages, device=model.device)
 
         loss = (((varNoise**2).mean(dim=1) - 1)**2)
         combinedLoss[0] = loss.view(nImages)
+        sumLoss += loss.view(nImages)
         loss.sum(dim=0).backward(retain_graph=True)
 
         for i in range(nExtractors):
@@ -258,6 +260,7 @@ def gradientDescentOnInput(model,
             diff = ((featuresIn[i] - featureOut)**2)
             loss = weights[i] * diff.mean(dim=1)
             combinedLoss[1] += loss
+            sumLoss += loss
 
             if not randomSearch:
                 retainGraph = (lambdaD > 0) or (i != nExtractors - 1)
@@ -267,6 +270,7 @@ def gradientDescentOnInput(model,
 
             loss = -lambdaD * model.netD(noiseOut)[:, 0]
             combinedLoss[2] += loss
+            sumLoss += loss
 
             if not randomSearch:
                 loss.sum(dim=0).backward()
@@ -280,13 +284,13 @@ def gradientDescentOnInput(model,
 
         if optimalLoss is None:
             optimalVector = deepcopy(varNoise)
-            optimalLoss = combinedLoss
+            optimalLoss = sumLoss
 
         else:
-            optimalVector = torch.where(combinedLoss.view(-1, 1) < optimalLoss.view(-1, 1),
+            optimalVector = torch.where(sumLoss.view(-1, 1) < optimalLoss.view(-1, 1),
                                         varNoise, optimalVector).detach()
-            optimalLoss = torch.where(combinedLoss < optimalLoss,
-                                      combinedLoss, optimalLoss).detach()
+            optimalLoss = torch.where(sumLoss < optimalLoss,
+                                      sumLoss, optimalLoss).detach()
 
         if iter % 100 == 0:
             if visualizer is not None:
