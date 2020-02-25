@@ -211,7 +211,7 @@ def gradientDescentOnInput(model,
     nImages = input.size(0)
     assert nImages == 1
     # assert randomSearch
-    thelosses = [x * 100 for x in [1., 3., 3.]]  # These numbers should be discussed...
+    thelosses = [x * 100 for x in [1., 3., 1.]]  # These numbers should be discussed...
     target = MultiobjectiveFunction(lambda x: thelosses, tuple(thelosses))
     print(f"Generating {nImages} images")
     if nevergrad is not None:
@@ -451,10 +451,12 @@ def test(parser, visualisation=None):
         featureExtractors = IDModule()
         imgTransforms = IDModule()
 
-    basePath = os.path.splitext(imgPath)[0] + f'_iter_{kwargs["nSteps"]}_discr_{kwargs["lambdaD"]}' #+ "_" + kwargs['suffix']
+    base_name = os.path.splitext(imgPath)[0]
+    basePath = os.path.join("/".join(base_name.split('/')[:-1]), 'MOO', f'{base_name.split("/")[-1]}_iter_{kwargs["nSteps"]}_discr_{kwargs["lambdaD"]}') #+ "_" + kwargs['suffix']
 
-    if not os.path.isdir(basePath):
-        os.mkdir(basePath)
+    mkdir('/'.join(basePath.split('/')[:-2]))
+    mkdir('/'.join(basePath.split('/')[:-1]))
+    mkdir(basePath)
 
     # basePath = os.path.join(basePath) #os.path.basename(basePath))
 
@@ -468,8 +470,7 @@ def test(parser, visualisation=None):
     if kwargs['save_descent']:
         outPathDescent = os.path.join(
             os.path.dirname(basePath), "descent")
-        if not os.path.isdir(outPathDescent):
-            os.mkdir(outPathDescent)
+        mkdir(outPathDescent)
 
     img, outVectors, loss, all_imgs = gradientDescentOnInput(visualizer.model,
                                                    fullInputs,
@@ -517,3 +518,8 @@ def test(parser, visualisation=None):
 
     pathVectors = basePath + "vectors.pt"
     torch.save(outVectors, open(pathVectors, 'wb'))
+
+
+def mkdir(basePath):
+    if not os.path.isdir(basePath):
+        os.mkdir(basePath)
