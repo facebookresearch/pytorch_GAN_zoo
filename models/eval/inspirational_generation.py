@@ -452,7 +452,7 @@ def test(parser, visualisation=None):
         imgTransforms = IDModule()
 
     base_name = os.path.splitext(imgPath)[0]
-    basePath = os.path.join("/".join(base_name.split('/')[:-1]), 'MOO', f'{base_name.split("/")[-1]}_iter_{kwargs["nSteps"]}_discr_{kwargs["lambdaD"]}') #+ "_" + kwargs['suffix']
+    basePath = os.path.join("/".join(base_name.split('/')[:-1]), 'MOO', 'auto_reference_point', f'iter_{kwargs["nSteps"]}', f'{base_name.split("/")[-1]}_iter_{kwargs["nSteps"]}_discr_{kwargs["lambdaD"]}') #+ "_" + kwargs['suffix']
 
     mkdir('/'.join(basePath.split('/')[:-2]))
     mkdir('/'.join(basePath.split('/')[:-1]))
@@ -489,6 +489,17 @@ def test(parser, visualisation=None):
     torch.save(outVectors, open(pathVectors, 'wb'))
 
     path = basePath + ".jpg"
+    # uniquify the path
+    if os.path.isfile(path):
+        number = 1
+        while True:
+            number += 1
+            new_path = path.split(".jpg")[0] + str(number) + ".jpg"
+            if os.path.isfile(new_path):
+                continue
+            else:
+                path = new_path
+                break
     visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
 
     for method, images in all_imgs.items():
