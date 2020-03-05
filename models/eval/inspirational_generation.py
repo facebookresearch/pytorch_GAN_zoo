@@ -211,13 +211,13 @@ def gradientDescentOnInput(model,
     nImages = input.size(0)
     assert nImages == 1
     # assert randomSearch
-    thelosses = [x * 100 for x in [1., 3., 1.]]  # These numbers should be discussed...
-    target = MultiobjectiveFunction(lambda x: thelosses, tuple(thelosses))
+    thelosses = [x * 100 for x in [0.1, 2., 0.5]]  # These numbers should be discussed...
+    target = MultiobjectiveFunction(lambda x: thelosses)
     print(f"Generating {nImages} images")
     if nevergrad is not None:
         optimizers = []
         for i in range(nImages):
-            optim = "OnePlusOne" if nevergrad == "moo" else nevergrad
+            optim = "DiscreteOnePlusOne" if nevergrad == "moo" else nevergrad
             optimizers += [optimizerlib.registry[optim](
                 parametrization=model.config.noiseVectorDim +
                 model.config.categoryVectorDim,
