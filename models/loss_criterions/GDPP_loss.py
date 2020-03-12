@@ -26,6 +26,8 @@ def GDPPLoss(phiFake, phiReal, backward=True):
 
     def normalize_min_max(eigVals):
         minV, maxV = torch.min(eigVals), torch.max(eigVals)
+        if abs(minV - maxV) < 1e-10:
+            return eigVals
         return (eigVals - minV) / (maxV - minV)
 
     fakeEigVals, fakeEigVecs = compute_diversity(phiFake)
