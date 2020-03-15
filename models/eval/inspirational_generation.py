@@ -452,7 +452,7 @@ def test(parser, visualisation=None):
         imgTransforms = IDModule()
 
     base_name = os.path.splitext(imgPath)[0]
-    basePath = os.path.join("/".join(base_name.split('/')[:-1]), 'MOO', 'auto_reference_point', f'iter_{kwargs["nSteps"]}', f'{base_name.split("/")[-1]}_iter_{kwargs["nSteps"]}_discr_{kwargs["lambdaD"]}') #+ "_" + kwargs['suffix']
+    basePath = os.path.join("/".join(base_name.split('/')[:-1]), 'MOO', 'auto_reference_point', f'iter_{kwargs["nSteps"]}', kwargs['suffix'], f'{base_name.split("/")[-1]}_iter_{kwargs["nSteps"]}_discr_{kwargs["lambdaD"]}')
 
     mkdir('/'.join(basePath.split('/')[:-2]))
     mkdir('/'.join(basePath.split('/')[:-1]))
