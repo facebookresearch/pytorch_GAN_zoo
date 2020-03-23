@@ -415,10 +415,12 @@ def test(parser, visualisation=None):
         featureExtractors = IDModule()
         imgTransforms = IDModule()
 
-    basePath = os.path.splitext(imgPath)[0] + f'_iter_{kwargs["nSteps"]}_discr_{kwargs["lambdaD"]}' #+ "_" + kwargs['suffix']
+    base_name = os.path.splitext(imgPath)[0]
+    basePath = os.path.join("/".join(base_name.split('/')[:-1]), f'iter_{kwargs["nSteps"]}', kwargs['suffix'], f'{base_name.split("/")[-1]}_iter_{kwargs["nSteps"]}_discr_{kwargs["lambdaD"]}')
 
-    if not os.path.isdir(basePath):
-        os.mkdir(basePath)
+    mkdir('/'.join(basePath.split('/')[:-2]))
+    mkdir('/'.join(basePath.split('/')[:-1]))
+    mkdir(basePath)
 
     # basePath = os.path.join(basePath) #os.path.basename(basePath))
 
@@ -452,8 +454,21 @@ def test(parser, visualisation=None):
     torch.save(outVectors, open(pathVectors, 'wb'))
 
     path = basePath  + f'/{kwargs["nevergrad"]}'+ ".jpg"
+
+    if os.path.isfile(path):
+        number = 1
+        while True:
+            number += 1
+            new_path = path.split(".jpg")[0] + str(number) + ".jpg"
+            if os.path.isfile(new_path):
+                continue
+            else:
+                path = new_path
+                break
+
     if visualisation:
         visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
+
     outDictData[os.path.splitext(os.path.basename(path))[0]] = \
         [x.item() for x in loss]
 
@@ -476,3 +491,8 @@ def test(parser, visualisation=None):
 
     pathVectors = basePath + "vectors.pt"
     torch.save(outVectors, open(pathVectors, 'wb'))
+
+
+def mkdir(basePath):
+    if not os.path.isdir(basePath):
+        os.mkdir(basePath)
