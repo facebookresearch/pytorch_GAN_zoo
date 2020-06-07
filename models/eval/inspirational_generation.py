@@ -2,6 +2,7 @@
 import os
 import json
 from nevergrad.optimization import optimizerlib
+from nevergrad.functions import MultiobjectiveFunction
 from copy import deepcopy
 
 from PIL import Image
@@ -136,7 +137,7 @@ def gradientDescentOnInput(model,
 
     if nevergrad not in [None, 'CMA', 'DE', 'PSO',
                          'TwoPointsDE', 'PortfolioDiscreteOnePlusOne',
-                         'DiscreteOnePlusOne', 'OnePlusOne']:
+                         'DiscreteOnePlusOne', 'OnePlusOne', 'moo']:
         raise ValueError("Invalid nevergard mode " + str(nevergrad))
     randomSearch = randomSearch or (nevergrad is not None)
     print("Running for %d setps" % nSteps)
@@ -200,11 +201,16 @@ def gradientDescentOnInput(model,
     gradientDecay = 0.1
 
     nImages = input.size(0)
+    assert nImages == 1
+    # assert randomSearch
+    thelosses = [1., 3., 3.]  # These numbers should be discussed...
+    target = MultiobjectiveFunction(lambda x: thelosses, tuple(thelosses))
     print(f"Generating {nImages} images")
     if nevergrad is not None:
         optimizers = []
         for i in range(nImages):
-            optimizers += [optimizerlib.registry[nevergrad](
+            optim = "OnePlusOne" if nevergrad == "moo" else nevergrad
+            optimizers += [optimizerlib.registry[optim](
                 dimension=model.config.noiseVectorDim +
                 model.config.categoryVectorDim,
                 budget=nSteps)]
@@ -241,9 +247,11 @@ def gradientDescentOnInput(model,
                 varNoise.to(model.device)
 
         noiseOut = model.netG(varNoise)
+        combinedLoss = torch.zeros(3, nImages, device=model.device)
         sumLoss = torch.zeros(nImages, device=model.device)
 
         loss = (((varNoise**2).mean(dim=1) - 1)**2)
+        combinedLoss[0] = loss.view(nImages)
         sumLoss += loss.view(nImages)
         loss.sum(dim=0).backward(retain_graph=True)
 
@@ -251,6 +259,7 @@ def gradientDescentOnInput(model,
             featureOut = featureExtractors[i](imageTransforms[i](noiseOut))
             diff = ((featuresIn[i] - featureOut)**2)
             loss = weights[i] * diff.mean(dim=1)
+            combinedLoss[1] += loss
             sumLoss += loss
 
             if not randomSearch:
@@ -260,6 +269,7 @@ def gradientDescentOnInput(model,
         if lambdaD > 0:
 
             loss = -lambdaD * model.netD(noiseOut)[:, 0]
+            combinedLoss[2] += loss
             sumLoss += loss
 
             if not randomSearch:
@@ -267,7 +277,8 @@ def gradientDescentOnInput(model,
 
         if nevergrad:
             for i in range(nImages):
-                optimizers[i].tell(inps[i], float(sumLoss[i]))
+                thelosses = (float(combinedLoss[0][i]), float(combinedLoss[1][i]), float(combinedLoss[2][i]))
+                optimizers[i].tell(target.compute_aggregate_loss(thelosses, inps[0]))
         elif not randomSearch:
             optimNoise.step()
 
@@ -294,23 +305,47 @@ def gradientDescentOnInput(model,
                         outPath)
 
             print(str(iter) + " : " + formatCommand.format(
-                *["{:10.6f}".format(sumLoss[i].item())
+                *["{:10.6f}".format(combinedLoss[:,i].item())
                   for i in range(nImages)]))
 
         if iter % epochStep == (epochStep - 1):
             lr *= gradientDecay
             resetVar(optimalVector)
+            
+    assert(nImages == 1)   # Let us simplify the understanding in the MOO case.
+    num_optima = 8
+    all_outputs = {}
+    if nevergrad != "moo":
+        output = model.test(optimalVector, getAvG=True, toCPU=True).detach()
 
-    output = model.test(optimalVector, getAvG=True, toCPU=True).detach()
+        if visualizer is not None:
+            visualizer.publishTensors(
+                output.cpu(), (output.size(2), output.size(3)))
 
-    if visualizer is not None:
-        visualizer.publishTensors(
-            output.cpu(), (output.size(2), output.size(3)))
+        print("optimal losses : " + formatCommand.format(
+            *["{:10.6f}".format(optimalLoss[i].item())
+              for i in range(nImages)]))
+        return output, optimalVector, optimalLoss, []
+    
+    assert nevergrad == "moo"
+    for method in ["random", "loss-covering", "domain-covering", "hypervolume"]
+      all_outputs_for_this_method = []
+      pareto = optimizers[0].sample_pareto_front(num_optima, method)
+      for v in range(num_optima):
+        inps = [pareto[v]]
+        npinps = np.array(inps)  
+        varNoise = torch.tensor(npinps, dtype=torch.float32, device=model.device)                                               
+        output = model.test(varNoise, getAvG=True, toCPU=True).detach()
+        all_outputs_for_this_method += [output]
+        if visualizer is not None:
+            visualizer.publishTensors(
+                output.cpu(), (output.size(2), output.size(3)))
 
-    print("optimal losses : " + formatCommand.format(
-        *["{:10.6f}".format(optimalLoss[i].item())
-          for i in range(nImages)]))
-    return output, optimalVector, optimalLoss
+        print("optimal losses : " + formatCommand.format(
+            *["{:10.6f}".format(optimalLoss[i].item())
+              for i in range(nImages)]))
+      all_outputs[method] = all_outputs_for_this_method       
+    return output, optimalVector, optimalLoss, all_outputs
 
 
 def test(parser, visualisation=None):
@@ -415,7 +450,7 @@ def test(parser, visualisation=None):
         if not os.path.isdir(outPathDescent):
             os.mkdir(outPathDescent)
 
-    img, outVectors, loss = gradientDescentOnInput(visualizer.model,
+    img, outVectors, loss, all_imgs = gradientDescentOnInput(visualizer.model,
                                                    fullInputs,
                                                    featureExtractors,
                                                    imgTransforms,
@@ -433,6 +468,10 @@ def test(parser, visualisation=None):
 
     path = basePath + ".jpg"
     visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
+    for i, output_img in enumerate(all_imgs):
+      path = basePath + "_" + str(i) + ".jpg"
+      visualisation.saveTensor(img, (img.size(2), img.size(3)), path)
+        
     outDictData[os.path.splitext(os.path.basename(path))[0]] = \
         [x.item() for x in loss]
 
