@@ -1,6 +1,8 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import os
 import json
+from pathlib import Path
+
 from nevergrad.optimization import optimizerlib
 from nevergrad.functions import MultiobjectiveFunction
 from copy import deepcopy
@@ -18,6 +20,7 @@ from ..utils.utils import loadmodule, getLastCheckPoint, getVal, \
 from ..utils.image_transform import standardTransform
 from ..metrics.nn_score import buildFeatureExtractor
 from ..networks.constant_net import FeatureTransform
+import time
 
 
 def pil_loader(path):
@@ -83,7 +86,7 @@ def updateParser(parser):
     parser.add_argument('--nevergrad', type=str,
                         choices=['CMA', 'DE', 'PSO', 'TwoPointsDE',
                                  'PortfolioDiscreteOnePlusOne',
-                                 'DiscreteOnePlusOne', 'OnePlusOne', 'LBFGS', 'moo'])
+                                 'DiscreteOnePlusOne', 'OnePlusOne', 'LBFGS', 'moo_DiscreteOnePlusOne', 'moo_DE'])
     parser.add_argument('--save_descent', help='Save descent',
                         action='store_true')
 
@@ -138,7 +141,7 @@ def gradientDescentOnInput(model,
 
     if nevergrad not in [None, 'CMA', 'DE', 'PSO',
                          'TwoPointsDE', 'PortfolioDiscreteOnePlusOne',
-                         'DiscreteOnePlusOne', 'OnePlusOne', 'LBFGS', 'moo']:
+                         'DiscreteOnePlusOne', 'OnePlusOne', 'LBFGS', 'moo_DiscreteOnePlusOne', 'moo_DE']:
         raise ValueError("Invalid nevergard mode " + str(nevergrad))
     use_lbfgs = False
     if nevergrad == 'LBFGS':
@@ -211,13 +214,14 @@ def gradientDescentOnInput(model,
     nImages = input.size(0)
     assert nImages == 1
     # assert randomSearch
-    thelosses = [x * 100 for x in [0.1, 2., 0.5]]  # These numbers should be discussed...
-    target = MultiobjectiveFunction(lambda x: thelosses)
+    # thelosses = [x * 100 for x in [0.1, 2., 0.5]]  # These numbers should be discussed...
+    # target = MultiobjectiveFunction(lambda x: thelosses)
     print(f"Generating {nImages} images")
     if nevergrad is not None:
         optimizers = []
         for i in range(nImages):
-            optim = "DiscreteOnePlusOne" if nevergrad == "moo" else nevergrad
+            optim = nevergrad.replace('moo_','',1) if nevergrad.startswith('moo') else nevergrad
+            # optim = "DiscreteOnePlusOne" if nevergrad == "moo" else nevergrad
             optimizers += [optimizerlib.registry[optim](
                 parametrization=model.config.noiseVectorDim +
                 model.config.categoryVectorDim,
@@ -232,7 +236,7 @@ def gradientDescentOnInput(model,
     # String's format for loss output
     formatCommand = ' '.join(['{:>4}' for x in range(nImages)])
     backtobfgs = False
-
+    start_time = time.perf_counter()
     for iter in range(nSteps):
 
         optimNoise.zero_grad()
@@ -285,10 +289,10 @@ def gradientDescentOnInput(model,
 
         if nevergrad:
             for i in range(nImages):
-                thelosses = (float(combinedLoss[0][i]), float(combinedLoss[1][i]), float(combinedLoss[2][i]))
-                optimizers[i].tell(inps[i], target.compute_aggregate_loss(thelosses, inps[i]))
+                # thelosses = (float(combinedLoss[0][i]), float(combinedLoss[1][i]), float(combinedLoss[2][i]))
+                optimizers[i].tell(inps[i], [float(cl[i]) for cl in combinedLoss])
         elif not randomSearch:
-            optimNoise.step(closure=lambda:loss.sum(dim=0))
+            optimNoise.step(closure=lambda: loss.sum(dim=0))
 
         if optimalLoss is None:
             optimalVector = deepcopy(varNoise)
@@ -312,9 +316,10 @@ def gradientDescentOnInput(model,
                         (noiseOut.size(2), noiseOut.size(3)),
                         outPath)
 
+            total_seconds = time.perf_counter() - start_time
             print(str(iter) + " : " + formatCommand.format(
                 *["{:10.6f}".format(combinedLoss[:,i].sum().item())
-                  for i in range(nImages)]))
+                  for i in range(nImages)]) + f' in {total_seconds} seconds ({iter/total_seconds} it/s)')
         if use_lbfgs:
             for i in range(nImages):
                 if sumLoss[i] != sumLoss[i]:
@@ -335,7 +340,7 @@ def gradientDescentOnInput(model,
     assert(nImages == 1)   # Let us simplify the understanding in the MOO case.
     num_optima = 8
     all_outputs = {}
-    if nevergrad != "moo":
+    if 'moo' not in nevergrad:
         output = model.test(optimalVector, getAvG=True, toCPU=True).detach()
 
         if visualizer is not None:
@@ -347,10 +352,11 @@ def gradientDescentOnInput(model,
               for i in range(nImages)]))
         return output, optimalVector, optimalLoss, []
 
-    assert nevergrad == "moo"
-    for method in ["random", "loss-covering", "hypervolume"]:
+    assert 'moo' in nevergrad
+    for method in ["random", "loss-covering", "hypervolume", "EPS"]:
       all_outputs_for_this_method = []
-      pareto = target.pareto_front(num_optima, method)
+      assert len(optimizers) == 1
+      pareto = optimizers[0].pareto_front(num_optima, method)
       print(len(pareto), num_optima)
       for v in range(num_optima):
         inps = [pareto[v][0][0].value]
@@ -452,10 +458,8 @@ def test(parser, visualisation=None):
         imgTransforms = IDModule()
 
     base_name = os.path.splitext(imgPath)[0]
-    basePath = os.path.join("/".join(base_name.split('/')[:-1]), 'MOO', 'auto_reference_point', f'iter_{kwargs["nSteps"]}', kwargs['suffix'], f'{base_name.split("/")[-1]}_iter_{kwargs["nSteps"]}_discr_{kwargs["lambdaD"]}')
+    basePath = os.path.join("/".join(base_name.split('/')[:-1]), kwargs['nevergrad'], 'auto_reference_point', f'iter_{kwargs["nSteps"]}', kwargs['suffix'], f'{base_name.split("/")[-1]}_iter_{kwargs["nSteps"]}_discr_{kwargs["lambdaD"]}')
 
-    mkdir('/'.join(basePath.split('/')[:-2]))
-    mkdir('/'.join(basePath.split('/')[:-1]))
     mkdir(basePath)
 
     # basePath = os.path.join(basePath) #os.path.basename(basePath))
@@ -532,5 +536,4 @@ def test(parser, visualisation=None):
 
 
 def mkdir(basePath):
-    if not os.path.isdir(basePath):
-        os.mkdir(basePath)
+    Path(basePath).mkdir(parents=True, exist_ok=True)
