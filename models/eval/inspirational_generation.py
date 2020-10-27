@@ -1,6 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 import os
 import json
+import pdb
 from pathlib import Path
 
 from nevergrad.optimization import optimizerlib
@@ -359,7 +360,7 @@ def gradientDescentOnInput(model,
       pareto = optimizers[0].pareto_front(num_optima, method)
       print(len(pareto), num_optima)
       for v in range(num_optima):
-        inps = [pareto[v][0][0].value]
+        inps = [pareto[v].value]
         npinps = np.array(inps)
         varNoise = torch.tensor(npinps, dtype=torch.float32, device=model.device)
         output = model.test(varNoise, getAvG=True, toCPU=True).detach()
