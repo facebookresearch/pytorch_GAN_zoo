@@ -1,5 +1,5 @@
 # Fork to Add Albumentations
-This is a fork of the Pytorch GAN Zoo, primarily to make it compatible with the Albumentations image augmentations. That's it.
+This is a fork of the Pytorch GAN Zoo, primarily to make it compatible with the [Albumentations image augmentations](https://albumentations.ai/). That's it.
 The vanialla GAN-Zoo implementation uses a very basic image augmentation pipeline. Nvidia-research suggests that aggressive image augmentations/transformations is the key to getting high-quality hallucinations with little data
 
 # Pytorch GAN Zoo
