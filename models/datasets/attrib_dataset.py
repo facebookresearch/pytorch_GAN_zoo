@@ -6,12 +6,14 @@ from copy import deepcopy
 
 import torchvision.transforms as Transforms
 import torch
+import albumentations as A
+import cv2
 
 from torch.utils.data import Dataset
-from ..utils.image_transform import pil_loader
-
+from ..utils.image_transform import pil_loader,ToTensorV2
 
 from .utils.db_stats import buildKeyOrder
+
 
 
 class AttribDataset(Dataset):
@@ -61,7 +63,7 @@ class AttribDataset(Dataset):
                 with open(attribDictPath, 'rb') as file:
                     tmpDict = json.load(file)
                 self.listImg = [imgName for imgName in os.listdir(pathdb)
-                                if (os.path.splitext(imgName)[1] in [".jpg",
+                                if (os.path.splitext(imgName)[-1] in [".jpg",
                                                                      ".png", ".npy"] and imgName in tmpDict)]
             else:
                 self.loadAttribDict(attribDictPath, pathdb, specificAttrib)
@@ -184,7 +186,7 @@ class AttribDataset(Dataset):
         listDir = [dirName for dirName in os.listdir(pathdb)
                    if os.path.isdir(os.path.join(pathdb, dirName))]
 
-        imgExt = [".jpg", ".png", ".JPEG"]
+        imgExt = [".jpg", ".png", ".JPEG", ".PNG", ".JPG",".jpeg"]
 
         self.attribDict = {}
 
