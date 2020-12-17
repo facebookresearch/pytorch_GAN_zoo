@@ -131,8 +131,9 @@ class ProgressiveGAN(BaseGAN):
         self.getOriginalD().setNewAlpha(newAlpha)
 
         if self.avgG:
-            self.avgG.module.setNewAlpha(newAlpha)
-
+            #self.avgG.module.setNewAlpha(newAlpha)
+            self.avgG.setNewAlpha(newAlpha) # 
+        
         self.config.alpha = newAlpha
 
     def getSize(self):
