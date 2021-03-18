@@ -69,6 +69,12 @@ def updateParserWithConfig(parser, defaultConfig):
 
         if isinstance(key, bool):
             parser.add_argument('--' + name, type=str2bool, dest=name)
+        elif isinstance(key, list):
+            parser_type = int
+            if name == 'alphaJumpVals':
+                parser_type = float
+
+            parser.add_argument('--' + name, nargs='+', dest=name, type=parser_type)
         else:
             parser.add_argument('--' + name, type=type(key), dest=name)
 
